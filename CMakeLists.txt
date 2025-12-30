@@ -20,6 +20,7 @@ target_sources(loomis PRIVATE
 	src/api/api-emby.cpp
 	src/api/api-manager.cpp
 	src/api/api-plex.cpp
+	src/api/api-tautulli.cpp
 	src/config-reader/config-reader.cpp
 	src/logger/ansii-formatter.cpp
 	src/logger/ansii-remove-formatter.cpp
@@ -27,7 +28,6 @@ target_sources(loomis PRIVATE
 	src/logger/logger.cpp
 	src/services/service-base.cpp
 	src/services/playlist-sync/playlist-sync-service.cpp
-	src/services/test/test-service.cpp
 	src/base.cpp
 	src/main.cpp
 	src/cron-scheduler.cpp

@@ -6,13 +6,17 @@
 
 namespace loomis
 {
+   struct ServerConnectionConfig
+   {
+      std::string url;
+      std::string apiKey;
+   };
+
    struct ServerConfig
    {
       std::string name;
-      std::string url;
-      std::string apiKey;
-      std::string trackerUrl;
-      std::string trackerApiKey;
+      ServerConnectionConfig main;
+      ServerConnectionConfig tracker;
       std::string mediaPath;
    };
 

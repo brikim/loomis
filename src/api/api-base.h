@@ -10,7 +10,7 @@ namespace loomis
    class ApiBase : public Base
    {
    public:
-      ApiBase(const ServerConfig& serverConfig, std::string_view className, std::string_view ansiiCode);
+      ApiBase(std::string_view name, const ServerConnectionConfig& serverConnection, std::string_view className, std::string_view ansiiCode);
       virtual ~ApiBase() = default;
 
       [[nodiscard]] const std::string& GetName() const;

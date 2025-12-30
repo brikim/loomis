@@ -79,13 +79,14 @@ namespace loomis
       std::vector<std::string> addIds;
       for (const auto& updatedId : updatedPlaylistIds)
       {
-         auto found = std::ranges::any_of(currentPlaylist.items, [&updatedId](const auto& item) {
+         std::string_view foundPlaylistId;
+         auto iter = std::ranges::find_if(currentPlaylist.items, [&updatedId](const auto& item) {
             return item.id == updatedId;
          });
 
-         if (!found)
+         if (iter == currentPlaylist.items.end())
          {
-            addIds.emplace_back(updatedId);
+            addIds.emplace_back((*iter).playlistId);
          }
       }
 
@@ -98,7 +99,7 @@ namespace loomis
 
          if (notFound)
          {
-            deleteIds.emplace_back(item.id);
+            deleteIds.emplace_back(item.playlistId);
          }
       }
 
@@ -277,10 +278,10 @@ namespace loomis
 
    void PlaylistSyncService::SyncPlexCollection(PlexApi* plexApi, EmbyApi* embyApi, const PlaylistPlexCollection& collection)
    {
-      const auto& plexCollection{plexApi->GetCollection(collection.library, collection.collectionName)};
-      if (plexCollection.valid)
+      auto plexCollection{plexApi->GetCollection(collection.library, collection.collectionName)};
+      if (plexCollection.has_value())
       {
-         SyncEmbyPlaylist(plexApi, embyApi, plexCollection);
+         SyncEmbyPlaylist(plexApi, embyApi, plexCollection.value());
       }
    }
 

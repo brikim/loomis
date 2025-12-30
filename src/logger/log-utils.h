@@ -22,7 +22,8 @@ namespace loomis::utils
 
    static const std::string ANSI_CODE_PLEX{std::format("{}220{}", ANSI_CODE_START, ANSI_CODE_END)};
    static const std::string ANSI_CODE_EMBY{std::format("{}77{}", ANSI_CODE_START, ANSI_CODE_END)};
-   static const std::string ANSI_CODE_JELLYFIN{std::format("{}134{}", ANSI_CODE_START, ANSI_CODE_END)};
+   static const std::string ANSI_CODE_TAUTULLI{std::format("{}136{}", ANSI_CODE_START, ANSI_CODE_END)};
+   static const std::string ANSI_CODE_JELLYSTAT{std::format("{}63{}", ANSI_CODE_START, ANSI_CODE_END)};
 
    static const std::string ANSI_CODE_SERVICE_PLAYLIST_SYNC{std::format("{}171{}", ANSI_CODE_START, ANSI_CODE_END)};
 
@@ -32,7 +33,6 @@ namespace loomis::utils
    static const std::string ANSI_FORMATTED_UNKNOWN("Unknown Server");
    static const std::string ANSI_FORMATTED_PLEX(std::format("{}Plex{}", ANSI_CODE_PLEX, ANSI_CODE_LOG));
    static const std::string ANSI_FORMATTED_EMBY(std::format("{}Emby{}", ANSI_CODE_EMBY, ANSI_CODE_LOG));
-   static const std::string ANSI_FORMATTED_JELLYFIN(std::format("{}Jellyfin{}", ANSI_CODE_JELLYFIN, ANSI_CODE_LOG));
 
    inline std::string GetTag(std::string_view tag, std::string_view value)
    {
@@ -54,11 +54,6 @@ namespace loomis::utils
       return ANSI_FORMATTED_EMBY;
    }
 
-   inline std::string_view GetFormattedJellyfin()
-   {
-      return ANSI_FORMATTED_JELLYFIN;
-   }
-
    inline std::string GetServiceHeader(std::string_view ansiiCode, std::string_view name)
    {
       return std::format("{}{}{}:", ansiiCode, name, ANSI_CODE_LOG);
@@ -72,8 +67,6 @@ namespace loomis::utils
             return GetFormattedPlex();
          case ApiType::EMBY:
             return GetFormattedEmby();
-         case ApiType::JELLYFIN:
-            return GetFormattedJellyfin();
          default:
             return ANSI_FORMATTED_UNKNOWN;
       }

@@ -17,18 +17,16 @@ namespace loomis
    void ApiManager::SetupPlexApis(const std::vector<ServerConfig>& serverConfigs)
    {
       std::ranges::for_each(serverConfigs, [this](const auto& server) {
-         auto plexApi{std::make_unique<PlexApi>(server)};
+         auto& plexApi{plexApis_.emplace_back(std::make_unique<PlexApi>(server))};
          plexApi->GetValid() ? LogServerConnectionSuccess(utils::GetFormattedPlex(), plexApi.get()) : LogServerConnectionError(plexApi.get());
-         plexApis_.emplace_back(std::move(plexApi));
       });
    }
 
    void ApiManager::SetupEmbyApis(const std::vector<ServerConfig>& serverConfigs)
    {
       std::ranges::for_each(serverConfigs, [this](const auto& server) {
-         auto embyApi{std::make_unique<EmbyApi>(server)};
+         auto& embyApi{embyApis_.emplace_back(std::make_unique<EmbyApi>(server))};
          embyApi->GetValid() ? LogServerConnectionSuccess(utils::GetFormattedEmby(), embyApi.get()) : LogServerConnectionError(embyApi.get());
-         embyApis_.emplace_back(std::move(embyApi));
       });
    }
 
@@ -78,8 +76,6 @@ namespace loomis
             return GetPlexApi(name);
          case ApiType::EMBY:
             return GetEmbyApi(name);
-         case ApiType::JELLYFIN:
-            break;
          default:
             break;
       }

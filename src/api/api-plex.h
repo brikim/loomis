@@ -20,7 +20,6 @@ namespace loomis
 
    struct PlexCollection
    {
-      bool valid{false};
       std::string name;
       std::vector<PlexCollectionItem> items;
    };
@@ -40,7 +39,7 @@ namespace loomis
       [[nodiscard]] bool GetCollectionValid(std::string_view library, std::string_view collection);
 
       // Returns the collection information for the collection in the library
-      [[nodiscard]] const PlexCollection& GetCollection(std::string_view library, std::string_view collection);
+      [[nodiscard]] std::optional<PlexCollection> GetCollection(std::string_view library, std::string_view collection);
 
       void SetLibraryScan(std::string_view libraryId) override;
 
@@ -52,6 +51,5 @@ namespace loomis
       httplib::Headers headers_;
 
       pugi::xml_document collectionDoc_;
-      PlexCollection collection_;
    };
 }

@@ -4,6 +4,7 @@
 #include "logger/log-utils.h"
 #include "services/playlist-sync/playlist-sync-service.h"
 
+#include <algorithm>
 #include <format>
 #include <ranges>
 

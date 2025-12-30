@@ -45,7 +45,7 @@ namespace loomis
    };
 
    PlexApi::PlexApi(const ServerConfig& serverConfig)
-      : ApiBase(serverConfig, "PlexApi", utils::ANSI_CODE_PLEX)
+      : ApiBase(serverConfig.name, serverConfig.main, "PlexApi", utils::ANSI_CODE_PLEX)
       , client_(GetUrl())
    {
       constexpr time_t timeoutSec{5};
@@ -158,11 +158,8 @@ namespace loomis
       return GetCollectionNode(library, collection) != nullptr;
    }
 
-   const PlexCollection& PlexApi::GetCollection(std::string_view library, std::string_view collection)
+   std::optional<PlexCollection> PlexApi::GetCollection(std::string_view library, std::string_view collection)
    {
-      // Clear out the collection
-      collection_ = {};
-
       if (auto* node{GetCollectionNode(library, collection)};
           node != nullptr
           && node->attribute(ATTR_KEY))
@@ -175,15 +172,15 @@ namespace loomis
             if (data.load_buffer(res.value().body.c_str(), res.value().body.size()).status == pugi::status_ok
                 && data.child(ELEM_MEDIA_CONTAINER))
             {
-               collection_.valid = true;
-               collection_.name = collection;
+               PlexCollection  returnCollection;
+               returnCollection.name = collection;
 
                for (const auto& itemNode : data.child(ELEM_MEDIA_CONTAINER))
                {
                   if (itemNode.attribute(ATTR_TITLE)
                       && itemNode.child(ELEM_MEDIA))
                   {
-                     auto& collectionItem{collection_.items.emplace_back()};
+                     auto& collectionItem{returnCollection.items.emplace_back()};
                      collectionItem.title = itemNode.attribute(ATTR_TITLE).as_string();
 
                      for (const auto& mediaNode : itemNode.child(ELEM_MEDIA))
@@ -195,10 +192,12 @@ namespace loomis
                      }
                   }
                }
+
+               return returnCollection;
             }
          }
       }
 
-      return collection_;
+      return std::nullopt;
    }
 }

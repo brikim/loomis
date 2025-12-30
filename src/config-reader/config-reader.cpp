@@ -90,32 +90,33 @@ namespace loomis
          return;
       }
 
-      for (auto& serverConfig : jsonData[SERVERS])
+      for (auto& serverConfigJson : jsonData[SERVERS])
       {
-         if (serverConfig.contains(SERVER_NAME) == false
-             || serverConfig.contains(URL) == false
-             || serverConfig.contains(API_KEY) == false
-             || serverConfig.contains(TRACKER_URL) == false
-             || serverConfig.contains(TRACKER_API_KEY) == false
-             || serverConfig.contains(MEDIA_PATH) == false)
+         if (serverConfigJson.contains(SERVER_NAME) == false
+             || serverConfigJson.contains(URL) == false
+             || serverConfigJson.contains(API_KEY) == false
+             || serverConfigJson.contains(TRACKER_URL) == false
+             || serverConfigJson.contains(TRACKER_API_KEY) == false
+             || serverConfigJson.contains(MEDIA_PATH) == false)
          {
             Logger::Instance().Error(std::format("{} server config invalid {} {} {} {} {} {}",
                                                  utils::GetFormattedApiName(apiType),
-                                                 utils::GetTag(SERVER_NAME, serverConfig.contains(SERVER_NAME) ? serverConfig[SERVER_NAME].get<std::string>() : "ERROR"),
-                                                 utils::GetTag(URL, serverConfig.contains(URL) ? serverConfig[URL].get<std::string>() : "ERROR"),
-                                                 utils::GetTag(API_KEY, serverConfig.contains(API_KEY) ? serverConfig[API_KEY].get<std::string>() : "ERROR"),
-                                                 utils::GetTag(TRACKER_URL, serverConfig.contains(TRACKER_URL) ? serverConfig[TRACKER_URL].get<std::string>() : "ERROR"),
-                                                 utils::GetTag(TRACKER_API_KEY, serverConfig.contains(TRACKER_API_KEY) ? serverConfig[TRACKER_API_KEY].get<std::string>() : "ERROR"),
-                                                 utils::GetTag(MEDIA_PATH, serverConfig.contains(MEDIA_PATH) ? serverConfig[MEDIA_PATH].get<std::string>() : "ERROR")));
+                                                 utils::GetTag(SERVER_NAME, serverConfigJson.contains(SERVER_NAME) ? serverConfigJson[SERVER_NAME].get<std::string>() : "ERROR"),
+                                                 utils::GetTag(URL, serverConfigJson.contains(URL) ? serverConfigJson[URL].get<std::string>() : "ERROR"),
+                                                 utils::GetTag(API_KEY, serverConfigJson.contains(API_KEY) ? serverConfigJson[API_KEY].get<std::string>() : "ERROR"),
+                                                 utils::GetTag(TRACKER_URL, serverConfigJson.contains(TRACKER_URL) ? serverConfigJson[TRACKER_URL].get<std::string>() : "ERROR"),
+                                                 utils::GetTag(TRACKER_API_KEY, serverConfigJson.contains(TRACKER_API_KEY) ? serverConfigJson[TRACKER_API_KEY].get<std::string>() : "ERROR"),
+                                                 utils::GetTag(MEDIA_PATH, serverConfigJson.contains(MEDIA_PATH) ? serverConfigJson[MEDIA_PATH].get<std::string>() : "ERROR")));
             break;
          }
 
-         servers.emplace_back(serverConfig[SERVER_NAME].get<std::string>(),
-                              serverConfig[URL].get<std::string>(),
-                              serverConfig[API_KEY].get<std::string>(),
-                              serverConfig[TRACKER_URL].get<std::string>(),
-                              serverConfig[TRACKER_API_KEY].get<std::string>(),
-                              serverConfig[MEDIA_PATH].get<std::string>());
+         auto& serverConfig{servers.emplace_back()};
+         serverConfig.name = serverConfigJson[SERVER_NAME].get<std::string>();
+         serverConfig.main.url = serverConfigJson[URL].get<std::string>();
+         serverConfig.main.apiKey = serverConfigJson[API_KEY].get<std::string>();
+         serverConfig.tracker.url = serverConfigJson[TRACKER_URL].get<std::string>();
+         serverConfig.tracker.apiKey = serverConfigJson[TRACKER_API_KEY].get<std::string>();
+         serverConfig.mediaPath = serverConfigJson[MEDIA_PATH].get<std::string>();
       }
    }
 

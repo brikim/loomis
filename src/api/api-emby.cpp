@@ -35,7 +35,7 @@ namespace loomis
    static constexpr std::string_view ENTRY_IDS{"EntryIds"};
 
    EmbyApi::EmbyApi(const ServerConfig& serverConfig)
-      : ApiBase(serverConfig, "EmbyApi", utils::ANSI_CODE_EMBY)
+      : ApiBase(serverConfig.name, serverConfig.main, "EmbyApi", utils::ANSI_CODE_EMBY)
       , client_(GetUrl())
    {
       constexpr time_t timeoutSec{5};
