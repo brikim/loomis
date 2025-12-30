@@ -134,7 +134,7 @@ namespace loomis
       auto res{client_.Get(apiUrl, emptyHeaders_)};
       if (IsHttpSuccess("GetItem", res))
       {
-         auto data{nlohmann::json::parse(res.value().body)};
+         auto data = nlohmann::json::parse(res.value().body);
          if (data.contains(ITEMS))
          {
             for (const auto& item : data[ITEMS])
@@ -189,7 +189,7 @@ namespace loomis
          auto res{client_.Get(apiUrl, emptyHeaders_)};
          if (IsHttpSuccess("GetItem", res))
          {
-            auto data{nlohmann::json::parse(res.value().body)};
+            auto data = nlohmann::json::parse(res.value().body);
             if (data.contains(ITEMS))
             {
                EmbyPlaylist returnPlaylist;
