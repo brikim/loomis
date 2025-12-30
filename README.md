@@ -96,7 +96,7 @@ A configuration file is required to use Loomis. Create a config.conf file in the
         "enabled": "True",
         "url": "http://0.0.0.0:0",
         "key": "apprise",
-        "message_title": "Test remote scan notification"
+        "message_title": "Test loomis notification"
     },
 
     "playlist_sync": {

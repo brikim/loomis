@@ -5,6 +5,7 @@
 #include "services/service-base.h"
 
 #include <atomic>
+#include <cstdint>
 #include <memory>
 #include <mutex>
 #include <vector>

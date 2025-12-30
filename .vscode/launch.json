@@ -8,7 +8,7 @@
       "name": "C/C++: Clang/LLDB Debug Active File",
       "type": "lldb", // Specifies the debugger type for CodeLLDB
       "request": "launch",
-      "program": "/home/brian/code/remote-scan/build/remotescan", // Path to your compiled executable
+      "program": "/home/brian/code/loomis/build/loomis", // Path to your compiled executable
       "args": [],
       "stopAtEntry": false, // Set to true to stop at the beginning of main
       "cwd": "${fileDirname}",
@@ -18,7 +18,7 @@
       "miDebuggerPath": "/usr/bin/lldb", // Path to the LLDB executable (adjust if different)
       // "preLaunchTask": "C/C++: clang++ build active file" // Optional: specify a build task
       "env": {
-        "CONFIG_PATH": "/home/brian/code/remote-scan/config"
+        "CONFIG_PATH": "/home/brian/test/loomis"
       }
     }
   ]

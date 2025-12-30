@@ -24,7 +24,7 @@ namespace loomis
           logPath != nullptr)
       {
          std::string logPathFilename = logPath;
-         logPathFilename.append("/remote-scan.log");
+         logPathFilename.append("/loomis.log");
 
          constexpr size_t max_size{1048576 * 5};
          constexpr size_t max_files{5};
@@ -32,7 +32,7 @@ namespace loomis
          fileSink->set_formatter(std::make_unique<AnsiiRemoveFormatter>());
       }
 
-      logger_ = std::make_shared<spdlog::logger>("remote-scan", sinks.begin(), sinks.end());
+      logger_ = std::make_shared<spdlog::logger>("loomis", sinks.begin(), sinks.end());
       logger_->flush_on(spdlog::level::info);
 
 #if defined(_DEBUG) || !defined(NDEBUG)

@@ -6,6 +6,7 @@
 #include <httplib/httplib.h>
 #include <json/json.hpp>
 
+#include <cstdint>
 #include <list>
 #include <optional>
 #include <string>
