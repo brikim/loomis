@@ -12,7 +12,7 @@
 
 namespace loomis
 {
-   static std::optional<nlohmann::json> JsonSafeParse(const std::string& rawJson, const std::source_location location = std::source_location::current())
+   inline std::optional<nlohmann::json> JsonSafeParse(const std::string& rawJson, const std::source_location location = std::source_location::current())
    {
       try
       {
@@ -30,7 +30,7 @@ namespace loomis
    }
 
    template <typename T>
-   static std::optional<T> JsonSafeGet(const nlohmann::json& data, std::string_view key, const std::source_location location = std::source_location::current())
+   inline std::optional<T> JsonSafeGet(const nlohmann::json& data, std::string_view key, const std::source_location location = std::source_location::current())
    {
       try
       {
@@ -52,7 +52,7 @@ namespace loomis
    }
 
    template <typename T>
-   static std::optional<T> JsonSafeGet(const nlohmann::json& data, const nlohmann::json::json_pointer& ptr, const std::source_location location = std::source_location::current())
+   inline std::optional<T> JsonSafeGet(const nlohmann::json& data, const nlohmann::json::json_pointer& ptr, const std::source_location location = std::source_location::current())
    {
       try
       {

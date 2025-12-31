@@ -10,16 +10,16 @@
 
 namespace loomis
 {
-   static const std::string API_BASE{"/api/v2"};
+   inline const std::string TAUTULLI_API_BASE{"/api/v2"};
 
-   static const std::string CMD_GET_INFO{"get_tautulli_info"};
+   inline const std::string TAUTULLI_CMD_GET_INFO{"get_tautulli_info"};
 
-   static const std::string CMD_SERVER_INFO{"get_server_info"};
-   static const auto PTR_SERVER_INFO_PMS_NAME = "/response/data/pms_name"_json_pointer;
+   inline const std::string TAUTULLI_CMD_SERVER_INFO{"get_server_info"};
+   inline const auto TAUTULLI_PTR_SERVER_INFO_PMS_NAME = "/response/data/pms_name"_json_pointer;
 
-   static constexpr std::string_view ELEM_RESPONSE{"response"};
-   static constexpr std::string_view ELEM_DATA{"data"};
-   static constexpr std::string_view ELEM_PMS_NAME{"pms_name"};
+   inline constexpr std::string_view TAUTULLI_ELEM_RESPONSE{"response"};
+   inline constexpr std::string_view TAUTULLI_ELEM_DATA{"data"};
+   inline constexpr std::string_view TAUTULLI_ELEM_PMS_NAME{"pms_name"};
 
    TautulliApi::TautulliApi(const ServerConfig& serverConfig)
       : ApiBase(serverConfig.name, serverConfig.tracker, "TautulliApi", utils::ANSI_CODE_TAUTULLI)
@@ -31,24 +31,24 @@ namespace loomis
 
    std::string TautulliApi::BuildApiPath(std::string_view cmd)
    {
-      return std::format("{}?apikey={}&cmd={}", API_BASE, GetApiKey(), cmd);
+      return std::format("{}?apikey={}&cmd={}", TAUTULLI_API_BASE, GetApiKey(), cmd);
    }
 
    bool TautulliApi::GetValid()
    {
-      auto res = client_.Get(BuildApiPath(CMD_GET_INFO), headers_);
+      auto res = client_.Get(BuildApiPath(TAUTULLI_CMD_GET_INFO), headers_);
       return res.error() == httplib::Error::Success && res.value().status < VALID_HTTP_RESPONSE_MAX;
    }
 
    std::optional<std::string> TautulliApi::GetServerReportedName()
    {
-      if (auto res = client_.Get(BuildApiPath(CMD_SERVER_INFO), headers_);
+      if (auto res = client_.Get(BuildApiPath(TAUTULLI_CMD_SERVER_INFO), headers_);
           IsHttpSuccess("GetServerReportedName", res))
       {
          if (auto jsonData = JsonSafeParse(res.value().body);
              jsonData.has_value())
          {
-            if (auto pmsName = JsonSafeGet<std::string>(jsonData.value(), PTR_SERVER_INFO_PMS_NAME);
+            if (auto pmsName = JsonSafeGet<std::string>(jsonData.value(), TAUTULLI_PTR_SERVER_INFO_PMS_NAME);
                 pmsName.has_value())
             {
                return pmsName.value();

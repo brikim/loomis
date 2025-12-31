@@ -9,17 +9,17 @@
 
 namespace loomis
 {
-   static const std::string API_BASE{""};
-   static const std::string API_SERVERS{"/servers"};
-   static const std::string API_LIBRARIES{"/library/sections/"};
+   inline const std::string PLEX_API_BASE{""};
+   inline const std::string PLEX_API_SERVERS{"/servers"};
+   inline const std::string PLEX_API_LIBRARIES{"/library/sections/"};
 
-   static constexpr std::string_view ELEM_MEDIA_CONTAINER{"MediaContainer"};
-   static constexpr std::string_view ELEM_MEDIA{"Media"};
+   inline constexpr std::string_view PLEX_ELEM_MEDIA_CONTAINER{"MediaContainer"};
+   inline constexpr std::string_view PLEX_ELEM_MEDIA{"Media"};
 
-   static constexpr std::string_view ATTR_NAME{"name"};
-   static constexpr std::string_view ATTR_KEY{"key"};
-   static constexpr std::string_view ATTR_TITLE{"title"};
-   static constexpr std::string_view ATTR_FILE{"file"};
+   inline constexpr std::string_view PLEX_ATTR_NAME{"name"};
+   inline constexpr std::string_view PLEX_ATTR_KEY{"key"};
+   inline constexpr std::string_view PLEX_ATTR_TITLE{"title"};
+   inline constexpr std::string_view PLEX_ATTR_FILE{"file"};
 
    enum class PlexSearchTypes
    {
@@ -54,28 +54,28 @@ namespace loomis
 
    std::string PlexApi::BuildApiPath(std::string_view path)
    {
-      return std::format("{}{}?X-Plex-Token={}", API_BASE, path, GetApiKey());
+      return std::format("{}{}?X-Plex-Token={}", PLEX_API_BASE, path, GetApiKey());
    }
 
    bool PlexApi::GetValid()
    {
-      auto res = client_.Get(BuildApiPath(API_SERVERS), headers_);
+      auto res = client_.Get(BuildApiPath(PLEX_API_SERVERS), headers_);
       return res.error() == httplib::Error::Success && res.value().status < VALID_HTTP_RESPONSE_MAX;
    }
 
    std::optional<std::string> PlexApi::GetServerReportedName()
    {
       httplib::Headers header;
-      if (auto res = client_.Get(BuildApiPath(API_SERVERS), header);
+      if (auto res = client_.Get(BuildApiPath(PLEX_API_SERVERS), header);
           res.error() == httplib::Error::Success)
       {
          pugi::xml_document data;
          if (data.load_buffer(res.value().body.c_str(), res.value().body.size()).status == pugi::status_ok
-             && data.child(ELEM_MEDIA_CONTAINER)
-             && data.child(ELEM_MEDIA_CONTAINER).first_child()
-             && data.child(ELEM_MEDIA_CONTAINER).first_child().attribute(ATTR_NAME))
+             && data.child(PLEX_ELEM_MEDIA_CONTAINER)
+             && data.child(PLEX_ELEM_MEDIA_CONTAINER).first_child()
+             && data.child(PLEX_ELEM_MEDIA_CONTAINER).first_child().attribute(PLEX_ATTR_NAME))
          {
-            return data.child(ELEM_MEDIA_CONTAINER).first_child().attribute(ATTR_NAME).as_string();
+            return data.child(PLEX_ELEM_MEDIA_CONTAINER).first_child().attribute(PLEX_ATTR_NAME).as_string();
          }
          else
          {
@@ -87,21 +87,21 @@ namespace loomis
 
    std::optional<std::string> PlexApi::GetLibraryId(std::string_view libraryName)
    {
-      if (auto res = client_.Get(BuildApiPath(API_LIBRARIES), headers_);
+      if (auto res = client_.Get(BuildApiPath(PLEX_API_LIBRARIES), headers_);
           res.error() == httplib::Error::Success)
       {
          pugi::xml_document data;
          if (data.load_buffer(res.value().body.c_str(), res.value().body.size()).status == pugi::status_ok
-             && data.child(ELEM_MEDIA_CONTAINER))
+             && data.child(PLEX_ELEM_MEDIA_CONTAINER))
          {
-            for (const auto& library : data.child(ELEM_MEDIA_CONTAINER))
+            for (const auto& library : data.child(PLEX_ELEM_MEDIA_CONTAINER))
             {
                if (library
-                   && library.attribute(ATTR_TITLE)
-                   && library.attribute(ATTR_TITLE).as_string() == libraryName
-                   && library.attribute(ATTR_KEY))
+                   && library.attribute(PLEX_ATTR_TITLE)
+                   && library.attribute(PLEX_ATTR_TITLE).as_string() == libraryName
+                   && library.attribute(PLEX_ATTR_KEY))
                {
-                  return library.attribute(ATTR_KEY).as_string();
+                  return library.attribute(PLEX_ATTR_KEY).as_string();
                }
             }
          }
@@ -111,7 +111,7 @@ namespace loomis
 
    void PlexApi::SetLibraryScan(std::string_view libraryId)
    {
-      auto apiUrl = BuildApiPath(std::format("{}{}/refresh", API_LIBRARIES, libraryId));
+      auto apiUrl = BuildApiPath(std::format("{}{}/refresh", PLEX_API_LIBRARIES, libraryId));
       if (auto res = client_.Get(apiUrl, headers_);
           res.error() != httplib::Error::Success
           || res.value().status >= VALID_HTTP_RESPONSE_MAX)
@@ -132,18 +132,18 @@ namespace loomis
          return nullptr;
       }
 
-      auto apiUrl = BuildApiPath(std::format("{}{}/all", API_LIBRARIES, libraryId.value()));
+      auto apiUrl = BuildApiPath(std::format("{}{}/all", PLEX_API_LIBRARIES, libraryId.value()));
       apiUrl.append(std::format("&type={}", static_cast<int>(PlexSearchTypes::collection), collection));
       if (auto res = client_.Get(apiUrl, headers_);
           res.error() == httplib::Error::Success)
       {
          if (collectionDoc_.load_buffer(res.value().body.c_str(), res.value().body.size()).status == pugi::status_ok
-             && collectionDoc_.child(ELEM_MEDIA_CONTAINER))
+             && collectionDoc_.child(PLEX_ELEM_MEDIA_CONTAINER))
          {
-            for (const auto& plexCollection : collectionDoc_.child(ELEM_MEDIA_CONTAINER))
+            for (const auto& plexCollection : collectionDoc_.child(PLEX_ELEM_MEDIA_CONTAINER))
             {
-               if (plexCollection.attribute(ATTR_TITLE)
-                   && collection == plexCollection.attribute(ATTR_TITLE).as_string())
+               if (plexCollection.attribute(PLEX_ATTR_TITLE)
+                   && collection == plexCollection.attribute(PLEX_ATTR_TITLE).as_string())
                {
                   return &plexCollection;
                }
@@ -162,32 +162,32 @@ namespace loomis
    {
       if (auto* node{GetCollectionNode(library, collection)};
           node != nullptr
-          && node->attribute(ATTR_KEY))
+          && node->attribute(PLEX_ATTR_KEY))
       {
-         auto apiUrl = BuildApiPath(node->attribute(ATTR_KEY).as_string());
+         auto apiUrl = BuildApiPath(node->attribute(PLEX_ATTR_KEY).as_string());
          if (auto res = client_.Get(apiUrl, headers_);
              res.error() == httplib::Error::Success)
          {
             pugi::xml_document data;
             if (data.load_buffer(res.value().body.c_str(), res.value().body.size()).status == pugi::status_ok
-                && data.child(ELEM_MEDIA_CONTAINER))
+                && data.child(PLEX_ELEM_MEDIA_CONTAINER))
             {
                PlexCollection  returnCollection;
                returnCollection.name = collection;
 
-               for (const auto& itemNode : data.child(ELEM_MEDIA_CONTAINER))
+               for (const auto& itemNode : data.child(PLEX_ELEM_MEDIA_CONTAINER))
                {
-                  if (itemNode.attribute(ATTR_TITLE)
-                      && itemNode.child(ELEM_MEDIA))
+                  if (itemNode.attribute(PLEX_ATTR_TITLE)
+                      && itemNode.child(PLEX_ELEM_MEDIA))
                   {
                      auto& collectionItem{returnCollection.items.emplace_back()};
-                     collectionItem.title = itemNode.attribute(ATTR_TITLE).as_string();
+                     collectionItem.title = itemNode.attribute(PLEX_ATTR_TITLE).as_string();
 
-                     for (const auto& mediaNode : itemNode.child(ELEM_MEDIA))
+                     for (const auto& mediaNode : itemNode.child(PLEX_ELEM_MEDIA))
                      {
-                        if (mediaNode.attribute(ATTR_FILE))
+                        if (mediaNode.attribute(PLEX_ATTR_FILE))
                         {
-                           collectionItem.paths.emplace_back(mediaNode.attribute(ATTR_FILE).as_string());
+                           collectionItem.paths.emplace_back(mediaNode.attribute(PLEX_ATTR_FILE).as_string());
                         }
                      }
                   }

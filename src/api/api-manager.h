@@ -30,7 +30,7 @@ namespace loomis
       void SetupEmbyApis(const std::vector<ServerConfig>& serverConfigs);
 
       void LogServerConnectionSuccess(std::string_view serverName, ApiBase* api);
-      void LogServerConnectionError(ApiBase* api);
+      void LogServerConnectionError(std::string_view serverName, ApiBase* api);
 
       std::vector<std::unique_ptr<PlexApi>> plexApis_;
       std::vector<std::unique_ptr<EmbyApi>> embyApis_;

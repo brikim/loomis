@@ -18,12 +18,12 @@ namespace loomis
    {
       std::ranges::for_each(serverConfigs, [this](const auto& server) {
          auto& plexApi{plexApis_.emplace_back(std::make_unique<PlexApi>(server))};
-         plexApi->GetValid() ? LogServerConnectionSuccess(utils::GetFormattedPlex(), plexApi.get()) : LogServerConnectionError(plexApi.get());
+         plexApi->GetValid() ? LogServerConnectionSuccess(utils::GetFormattedPlex(), plexApi.get()) : LogServerConnectionError(utils::GetFormattedPlex(), plexApi.get());
 
          if (server.tracker.valid)
          {
             auto& tautulliApi{tautulliApis_.emplace_back(std::make_unique<TautulliApi>(server))};
-            tautulliApi->GetValid() ? LogServerConnectionSuccess(utils::GetFormattedTautulli(), tautulliApi.get()) : LogServerConnectionError(tautulliApi.get());
+            tautulliApi->GetValid() ? LogServerConnectionSuccess(utils::GetFormattedTautulli(), tautulliApi.get()) : LogServerConnectionError(utils::GetFormattedTautulli(), tautulliApi.get());
          }
       });
    }
@@ -32,12 +32,12 @@ namespace loomis
    {
       std::ranges::for_each(serverConfigs, [this](const auto& server) {
          auto& embyApi{embyApis_.emplace_back(std::make_unique<EmbyApi>(server))};
-         embyApi->GetValid() ? LogServerConnectionSuccess(utils::GetFormattedEmby(), embyApi.get()) : LogServerConnectionError(embyApi.get());
+         embyApi->GetValid() ? LogServerConnectionSuccess(utils::GetFormattedEmby(), embyApi.get()) : LogServerConnectionError(utils::GetFormattedEmby(), embyApi.get());
 
          if (server.tracker.valid)
          {
             auto& jellystatApi{jellystatApis_.emplace_back(std::make_unique<JellystatApi>(server))};
-            jellystatApi->GetValid() ? LogServerConnectionSuccess(utils::GetFormattedJellystat(), jellystatApi.get()) : LogServerConnectionError(jellystatApi.get());
+            jellystatApi->GetValid() ? LogServerConnectionSuccess(utils::GetFormattedJellystat(), jellystatApi.get()) : LogServerConnectionError(utils::GetFormattedJellystat(), jellystatApi.get());
          }
       });
    }
@@ -55,10 +55,10 @@ namespace loomis
       }
    }
 
-   void ApiManager::LogServerConnectionError(ApiBase* api)
+   void ApiManager::LogServerConnectionError(std::string_view serverName, ApiBase* api)
    {
       Logger::Instance().Warning(std::format("{}({}) server not available. Is this correct {} {}",
-                                             utils::GetFormattedEmby(),
+                                             serverName,
                                              api->GetName(),
                                              utils::GetTag("url", api->GetUrl()),
                                              utils::GetTag("api_key", api->GetApiKey())));

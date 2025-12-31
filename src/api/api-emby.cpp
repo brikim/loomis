@@ -10,30 +10,30 @@
 
 namespace loomis
 {
-   static const std::string API_BASE{"/emby"};
-   static const std::string API_SYSTEM_INFO{"/System/Info"};
-   static const std::string API_MEDIA_FOLDERS{"/Library/SelectableMediaFolders"};
-   static const std::string API_ITEMS{"/Items"};
-   static const std::string API_PLAYLISTS{"/Playlists"};
+   inline const std::string EMBY_API_BASE{"/emby"};
+   inline const std::string EMBY_API_SYSTEM_INFO{"/System/Info"};
+   inline const std::string EMBY_API_MEDIA_FOLDERS{"/Library/SelectableMediaFolders"};
+   inline const std::string EMBY_API_ITEMS{"/Items"};
+   inline const std::string EMBY_API_PLAYLISTS{"/Playlists"};
 
-   static constexpr std::string_view SERVER_NAME{"ServerName"};
-   static constexpr std::string_view NAME{"Name"};
-   static constexpr std::string_view ID{"Id"};
-   static constexpr std::string_view IDS{"Ids"};
-   static constexpr std::string_view ITEMS{"Items"};
-   static constexpr std::string_view TYPE{"Type"};
-   static constexpr std::string_view PATH{"Path"};
+   inline constexpr std::string_view EMBY_SERVER_NAME{"ServerName"};
+   inline constexpr std::string_view EMBY_NAME{"Name"};
+   inline constexpr std::string_view EMBY_ID{"Id"};
+   inline constexpr std::string_view EMBY_IDS{"Ids"};
+   inline constexpr std::string_view EMBY_ITEMS{"Items"};
+   inline constexpr std::string_view EMBY_TYPE{"Type"};
+   inline constexpr std::string_view EMBY_PATH{"Path"};
 
-   static constexpr std::string_view TOTAL_RECORD_COUNT{"TotalRecordCount"};
-   static constexpr std::string_view MEDIA_TYPE{"MediaType"};
-   static constexpr std::string_view MOVIES{"Movies"};
-   static constexpr std::string_view SEARCH_TERM{"SearchTerm"};
-   static constexpr std::string_view SERIES_NAME{"SeriesName"};
-   static constexpr std::string_view PARENT_INDEX_NUMBER{"ParentIndexNumber"};
-   static constexpr std::string_view INDEX_NUMBER{"IndexNumber"};
-   static constexpr std::string_view RUN_TIME_TICKS{"RunTimeTicks"};
-   static constexpr std::string_view PLAYLIST_ITEM_ID{"PlaylistItemId"};
-   static constexpr std::string_view ENTRY_IDS{"EntryIds"};
+   inline constexpr std::string_view EMBY_TOTAL_RECORD_COUNT{"TotalRecordCount"};
+   inline constexpr std::string_view EMBY_MEDIA_TYPE{"MediaType"};
+   inline constexpr std::string_view EMBY_MOVIES{"Movies"};
+   inline constexpr std::string_view EMBY_SEARCH_TERM{"SearchTerm"};
+   inline constexpr std::string_view EMBY_SERIES_NAME{"SeriesName"};
+   inline constexpr std::string_view EMBY_PARENT_INDEX_NUMBER{"ParentIndexNumber"};
+   inline constexpr std::string_view EMBY_INDEX_NUMBER{"IndexNumber"};
+   inline constexpr std::string_view EMBY_RUN_TIME_TICKS{"RunTimeTicks"};
+   inline constexpr std::string_view EMBY_PLAYLIST_ITEM_ID{"PlaylistItemId"};
+   inline constexpr std::string_view EMBY_ENTRY_IDS{"EntryIds"};
 
    EmbyApi::EmbyApi(const ServerConfig& serverConfig)
       : ApiBase(serverConfig.name, serverConfig.main, "EmbyApi", utils::ANSI_CODE_EMBY)
@@ -45,7 +45,7 @@ namespace loomis
 
    std::string EmbyApi::BuildApiPath(std::string_view path) const
    {
-      return std::format("{}{}?api_key={}", API_BASE, path, GetApiKey());
+      return std::format("{}{}?api_key={}", EMBY_API_BASE, path, GetApiKey());
    }
 
    void EmbyApi::AddApiParam(std::string& url, const std::list<std::pair<std::string_view, std::string_view>>& params) const
@@ -71,19 +71,19 @@ namespace loomis
 
    bool EmbyApi::GetValid()
    {
-      auto res = client_.Get(BuildApiPath(API_SYSTEM_INFO), emptyHeaders_);
+      auto res = client_.Get(BuildApiPath(EMBY_API_SYSTEM_INFO), emptyHeaders_);
       return res.error() == httplib::Error::Success && res.value().status < VALID_HTTP_RESPONSE_MAX;
    }
 
    std::optional<std::string> EmbyApi::GetServerReportedName()
    {
-      auto res = client_.Get(BuildApiPath(API_SYSTEM_INFO), emptyHeaders_);
+      auto res = client_.Get(BuildApiPath(EMBY_API_SYSTEM_INFO), emptyHeaders_);
       if (IsHttpSuccess("GetServerReportedName", res))
       {
          if (auto data = JsonSafeParse(res.value().body);
              data.has_value())
          {
-            auto serverName = JsonSafeGet<std::string>(data.value(), SERVER_NAME);
+            auto serverName = JsonSafeGet<std::string>(data.value(), EMBY_SERVER_NAME);
             if (serverName.has_value())
             {
                return serverName.value();
@@ -95,7 +95,7 @@ namespace loomis
 
    std::optional<std::string> EmbyApi::GetLibraryId(std::string_view libraryName)
    {
-      auto res = client_.Get(BuildApiPath(API_MEDIA_FOLDERS), emptyHeaders_);
+      auto res = client_.Get(BuildApiPath(EMBY_API_MEDIA_FOLDERS), emptyHeaders_);
       if (IsHttpSuccess("GetLibraryId", res))
       {
          if (auto data = JsonSafeParse(res.value().body);
@@ -103,10 +103,10 @@ namespace loomis
          {
             for (const auto& library : data.value())
             {
-               auto libName{JsonSafeGet<std::string>(library, NAME)};
+               auto libName{JsonSafeGet<std::string>(library, EMBY_NAME)};
                if (libName.has_value() && libName.value() == libraryName)
                {
-                  if (auto libId = JsonSafeGet<std::string>(library, ID);
+                  if (auto libId = JsonSafeGet<std::string>(library, EMBY_ID);
                       libId.has_value())
                   {
                      return libId.value();
@@ -123,17 +123,17 @@ namespace loomis
       switch (type)
       {
          case EmbySearchType::id:
-            return IDS;
+            return EMBY_IDS;
          case EmbySearchType::path:
-            return PATH;
+            return EMBY_PATH;
          default:
-            return SEARCH_TERM;
+            return EMBY_SEARCH_TERM;
       }
    }
 
    std::optional<EmbyItem> EmbyApi::GetItem(EmbySearchType type, std::string_view name, std::list<std::pair<std::string_view, std::string_view>> extraSearchArgs)
    {
-      auto apiUrl{BuildApiPath(API_ITEMS)};
+      auto apiUrl{BuildApiPath(EMBY_API_ITEMS)};
       AddApiParam(apiUrl, {
          {"Recursive", "true"},
          {GetSearchTypeStr(type), GetPercentEncoded(name)},
@@ -148,22 +148,22 @@ namespace loomis
       if (IsHttpSuccess("GetItem", res))
       {
          if (auto data = JsonSafeParse(res.value().body);
-             data.has_value() && data.value().contains(ITEMS) && data.value()[ITEMS].is_array())
+             data.has_value() && data.value().contains(EMBY_ITEMS) && data.value()[EMBY_ITEMS].is_array())
          {
-            for (const auto& item : data.value()[ITEMS])
+            for (const auto& item : data.value()[EMBY_ITEMS])
             {
-               auto itemId = JsonSafeGet<std::string>(item, ID);
-               auto itemPath = JsonSafeGet<std::string>(item, PATH);
-               auto itemName = JsonSafeGet<std::string>(item, NAME);
+               auto itemId = JsonSafeGet<std::string>(item, EMBY_ID);
+               auto itemPath = JsonSafeGet<std::string>(item, EMBY_PATH);
+               auto itemName = JsonSafeGet<std::string>(item, EMBY_NAME);
                if ((type == EmbySearchType::id && itemId.has_value() && itemId.value() == name)
                    || (type == EmbySearchType::path && itemPath.has_value() && itemPath.value() == name)
                    || (type == EmbySearchType::name && itemName.has_value() && itemName == name))
                {
-                  auto itemType = JsonSafeGet<std::string>(item, TYPE);
-                  auto itemSeriesName = JsonSafeGet<std::string>(item, SERIES_NAME);
-                  auto itemSeasonNum = JsonSafeGet<uint32_t>(item, PARENT_INDEX_NUMBER);
-                  auto itemEpisodeNum = JsonSafeGet<uint32_t>(item, INDEX_NUMBER);
-                  auto itemRuntimeTicks = JsonSafeGet<uint64_t>(item, RUN_TIME_TICKS);
+                  auto itemType = JsonSafeGet<std::string>(item, EMBY_TYPE);
+                  auto itemSeriesName = JsonSafeGet<std::string>(item, EMBY_SERIES_NAME);
+                  auto itemSeasonNum = JsonSafeGet<uint32_t>(item, EMBY_PARENT_INDEX_NUMBER);
+                  auto itemEpisodeNum = JsonSafeGet<uint32_t>(item, EMBY_INDEX_NUMBER);
+                  auto itemRuntimeTicks = JsonSafeGet<uint64_t>(item, EMBY_RUN_TIME_TICKS);
 
                   EmbyItem returnItem;
                   if (itemId.has_value()) returnItem.id = itemId.value();
@@ -207,7 +207,7 @@ namespace loomis
       auto item{GetItem(EmbySearchType::name, name, {{"IncludeItemTypes", "Playlist"}})};
       if (item.has_value())
       {
-         auto apiUrl{BuildApiPath(std::format("{}/{}/Items", API_PLAYLISTS, item.value().id))};
+         auto apiUrl{BuildApiPath(std::format("{}/{}/Items", EMBY_API_PLAYLISTS, item.value().id))};
          auto res{client_.Get(apiUrl, emptyHeaders_)};
          if (IsHttpSuccess("GetItem", res))
          {
@@ -215,18 +215,18 @@ namespace loomis
                 jsonData.has_value())
             {
                const auto& data = jsonData.value();
-               if (data.contains(ITEMS) && data[ITEMS].is_array())
+               if (data.contains(EMBY_ITEMS) && data[EMBY_ITEMS].is_array())
                {
                   EmbyPlaylist returnPlaylist;
                   returnPlaylist.name = item.value().name;
                   returnPlaylist.id = item.value().id;
-                  for (const auto& item : data[ITEMS])
+                  for (const auto& item : data[EMBY_ITEMS])
                   {
                      auto& playlistItem{returnPlaylist.items.emplace_back()};
 
-                     auto itemId = JsonSafeGet<std::string>(item, ID);
-                     auto itemName = JsonSafeGet<std::string>(item, NAME);
-                     auto itemPlaylistId = JsonSafeGet<std::string>(item, PLAYLIST_ITEM_ID);
+                     auto itemId = JsonSafeGet<std::string>(item, EMBY_ID);
+                     auto itemName = JsonSafeGet<std::string>(item, EMBY_NAME);
+                     auto itemPlaylistId = JsonSafeGet<std::string>(item, EMBY_PLAYLIST_ITEM_ID);
                      if (itemId.has_value()) playlistItem.id = itemId.value();
                      if (itemName.has_value()) playlistItem.name = itemName.value();
                      if (itemPlaylistId.has_value()) playlistItem.playlistId = itemPlaylistId.value();
@@ -243,11 +243,11 @@ namespace loomis
 
    void EmbyApi::CreatePlaylist(std::string_view name, const std::vector<std::string>& itemIds)
    {
-      auto apiUrl = BuildApiPath(API_PLAYLISTS);
+      auto apiUrl = BuildApiPath(EMBY_API_PLAYLISTS);
       AddApiParam(apiUrl, {
-         {NAME, name},
-         {IDS, BuildCommaSeparatedList(itemIds)},
-         {MEDIA_TYPE, MOVIES}
+         {EMBY_NAME, name},
+         {EMBY_IDS, BuildCommaSeparatedList(itemIds)},
+         {EMBY_MEDIA_TYPE, EMBY_MOVIES}
       });
 
       auto res{client_.Post(apiUrl, jsonHeaders_)};
@@ -256,9 +256,9 @@ namespace loomis
 
    bool EmbyApi::AddPlaylistItems(std::string_view playlistId, const std::vector<std::string>& addIds)
    {
-      auto apiUrl{BuildApiPath(std::format("{}/{}/Items", API_PLAYLISTS, playlistId))};
+      auto apiUrl{BuildApiPath(std::format("{}/{}/Items", EMBY_API_PLAYLISTS, playlistId))};
       AddApiParam(apiUrl, {
-         {IDS, BuildCommaSeparatedList(addIds)}
+         {EMBY_IDS, BuildCommaSeparatedList(addIds)}
       });
       auto res{client_.Post(apiUrl, jsonHeaders_)};
       return IsHttpSuccess("AddPlaylistItems", res);
@@ -266,9 +266,9 @@ namespace loomis
 
    bool EmbyApi::RemovePlaylistItems(std::string_view playlistId, const std::vector<std::string>& removeIds)
    {
-      auto apiUrl{BuildApiPath(std::format("{}/{}/Items/Delete", API_PLAYLISTS, playlistId))};
+      auto apiUrl{BuildApiPath(std::format("{}/{}/Items/Delete", EMBY_API_PLAYLISTS, playlistId))};
       AddApiParam(apiUrl, {
-         {ENTRY_IDS, BuildCommaSeparatedList(removeIds)}
+         {EMBY_ENTRY_IDS, BuildCommaSeparatedList(removeIds)}
       });
       auto res{client_.Post(apiUrl, jsonHeaders_)};
       return IsHttpSuccess("RemovePlaylistItems", res);
@@ -276,7 +276,7 @@ namespace loomis
 
    bool EmbyApi::MovePlaylistItem(std::string_view playlistId, std::string_view itemId, uint32_t index)
    {
-      auto apiUrl{BuildApiPath(std::format("{}/{}/Items/{}/Move/{}", API_PLAYLISTS, playlistId, itemId, index))};
+      auto apiUrl{BuildApiPath(std::format("{}/{}/Items/{}/Move/{}", EMBY_API_PLAYLISTS, playlistId, itemId, index))};
       auto res{client_.Post(apiUrl, jsonHeaders_)};
       return IsHttpSuccess("RemovePlaylistItems", res);
    }
