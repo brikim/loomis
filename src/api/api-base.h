@@ -3,6 +3,10 @@
 #include "base.h"
 #include "config-reader/config-reader-types.h"
 
+#include <httplib/httplib.h>
+#include <json/json.hpp>
+
+#include <optional>
 #include <string>
 
 namespace loomis
@@ -19,11 +23,13 @@ namespace loomis
 
       [[nodiscard]] virtual bool GetValid() = 0;
       [[nodiscard]] virtual std::optional<std::string> GetServerReportedName() = 0;
-      [[nodiscard]] virtual std::optional<std::string> GetLibraryId(std::string_view libraryName) = 0;
-      virtual void SetLibraryScan(std::string_view libraryId) = 0;
 
    protected:
-      std::string GetPercentEncoded(std::string_view value);
+      // Encode the source string to percent encoding
+      std::string GetPercentEncoded(std::string_view src);
+
+      // Returns if the http request was successful and outputs to the log if not successful
+      bool IsHttpSuccess(std::string_view name, const httplib::Result& result);
 
    private:
       std::string name_;

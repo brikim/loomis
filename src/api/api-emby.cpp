@@ -1,5 +1,6 @@
 #include "api-emby.h"
 
+#include "api/json-helper.h"
 #include "logger/logger.h"
 #include "logger/log-utils.h"
 #include "types.h"
@@ -79,10 +80,14 @@ namespace loomis
       auto res = client_.Get(BuildApiPath(API_SYSTEM_INFO), emptyHeaders_);
       if (IsHttpSuccess("GetServerReportedName", res))
       {
-         auto data = nlohmann::json::parse(res.value().body);
-         if (data.contains(SERVER_NAME))
+         if (auto data = JsonSafeParse(res.value().body);
+             data.has_value())
          {
-            return data.at(SERVER_NAME).get<std::string>();
+            auto serverName = JsonSafeGet<std::string>(data.value(), SERVER_NAME);
+            if (serverName.has_value())
+            {
+               return serverName.value();
+            }
          }
       }
       return std::nullopt;
@@ -93,12 +98,20 @@ namespace loomis
       auto res = client_.Get(BuildApiPath(API_MEDIA_FOLDERS), emptyHeaders_);
       if (IsHttpSuccess("GetLibraryId", res))
       {
-         auto data = nlohmann::json::parse(res.value().body);
-         for (const auto& library : data)
+         if (auto data = JsonSafeParse(res.value().body);
+             data.has_value() && data.value().is_array())
          {
-            if (library.contains(NAME) && library.at(NAME).get<std::string>() == libraryName && library.contains(ID))
+            for (const auto& library : data.value())
             {
-               return library.at(ID).get<std::string>();
+               auto libName{JsonSafeGet<std::string>(library, NAME)};
+               if (libName.has_value() && libName.value() == libraryName)
+               {
+                  if (auto libId = JsonSafeGet<std::string>(library, ID);
+                      libId.has_value())
+                  {
+                     return libId.value();
+                  }
+               }
             }
          }
       }
@@ -134,24 +147,33 @@ namespace loomis
       auto res{client_.Get(apiUrl, emptyHeaders_)};
       if (IsHttpSuccess("GetItem", res))
       {
-         auto data = nlohmann::json::parse(res.value().body);
-         if (data.contains(ITEMS))
+         if (auto data = JsonSafeParse(res.value().body);
+             data.has_value() && data.value().contains(ITEMS) && data.value()[ITEMS].is_array())
          {
-            for (const auto& item : data[ITEMS])
+            for (const auto& item : data.value()[ITEMS])
             {
-               if ((type == EmbySearchType::id && item.contains(ID) && item[ID].get<std::string>() == name)
-                   || (type == EmbySearchType::path && item.contains(PATH) && item[PATH].get<std::string>() == name)
-                   || (type == EmbySearchType::name && item.contains(NAME) && item[NAME].get<std::string>() == name))
+               auto itemId = JsonSafeGet<std::string>(item, ID);
+               auto itemPath = JsonSafeGet<std::string>(item, PATH);
+               auto itemName = JsonSafeGet<std::string>(item, NAME);
+               if ((type == EmbySearchType::id && itemId.has_value() && itemId.value() == name)
+                   || (type == EmbySearchType::path && itemPath.has_value() && itemPath.value() == name)
+                   || (type == EmbySearchType::name && itemName.has_value() && itemName == name))
                {
+                  auto itemType = JsonSafeGet<std::string>(item, TYPE);
+                  auto itemSeriesName = JsonSafeGet<std::string>(item, SERIES_NAME);
+                  auto itemSeasonNum = JsonSafeGet<uint32_t>(item, PARENT_INDEX_NUMBER);
+                  auto itemEpisodeNum = JsonSafeGet<uint32_t>(item, INDEX_NUMBER);
+                  auto itemRuntimeTicks = JsonSafeGet<uint64_t>(item, RUN_TIME_TICKS);
+
                   EmbyItem returnItem;
-                  if (item.contains(ID)) returnItem.id = item[ID].get<std::string>();
-                  if (item.contains(TYPE)) returnItem.type = item[TYPE].get<std::string>();
-                  if (item.contains(NAME)) returnItem.name = item[NAME].get<std::string>();
-                  if (item.contains(PATH)) returnItem.path = item[PATH].get<std::string>();
-                  if (item.contains(SERIES_NAME)) returnItem.series.name = item[SERIES_NAME].get<std::string>();
-                  if (item.contains(PARENT_INDEX_NUMBER)) returnItem.series.seasonNum = item[PARENT_INDEX_NUMBER].get<uint32_t>();
-                  if (item.contains(INDEX_NUMBER)) returnItem.series.episodeNum = item[INDEX_NUMBER].get<uint32_t>();
-                  if (item.contains(RUN_TIME_TICKS)) returnItem.runTimeTicks = item[RUN_TIME_TICKS].get<uint64_t>();
+                  if (itemId.has_value()) returnItem.id = itemId.value();
+                  if (itemType.has_value()) returnItem.type = itemType.value();
+                  if (itemName.has_value()) returnItem.name = itemName.value();
+                  if (itemPath.has_value()) returnItem.path = itemPath.value();
+                  if (itemSeriesName.has_value()) returnItem.series.name = itemSeriesName.value();
+                  if (itemSeasonNum.has_value()) returnItem.series.seasonNum = itemSeasonNum.value();
+                  if (itemEpisodeNum.has_value()) returnItem.series.episodeNum = itemEpisodeNum.value();
+                  if (itemRuntimeTicks.has_value()) returnItem.runTimeTicks = itemRuntimeTicks.value();
 
                   return returnItem;
                }
@@ -189,21 +211,29 @@ namespace loomis
          auto res{client_.Get(apiUrl, emptyHeaders_)};
          if (IsHttpSuccess("GetItem", res))
          {
-            auto data = nlohmann::json::parse(res.value().body);
-            if (data.contains(ITEMS))
+            if (auto jsonData = JsonSafeParse(res.value().body);
+                jsonData.has_value())
             {
-               EmbyPlaylist returnPlaylist;
-               returnPlaylist.name = item.value().name;
-               returnPlaylist.id = item.value().id;
-               for (const auto& item : data[ITEMS])
+               const auto& data = jsonData.value();
+               if (data.contains(ITEMS) && data[ITEMS].is_array())
                {
-                  auto& playlistItem{returnPlaylist.items.emplace_back()};
-                  if (item.contains(ID)) playlistItem.id = item[ID].get<std::string>();
-                  if (item.contains(NAME)) playlistItem.name = item[NAME].get<std::string>();
-                  if (item.contains(PLAYLIST_ITEM_ID)) playlistItem.playlistId = item[PLAYLIST_ITEM_ID].get<std::string>();
-               }
+                  EmbyPlaylist returnPlaylist;
+                  returnPlaylist.name = item.value().name;
+                  returnPlaylist.id = item.value().id;
+                  for (const auto& item : data[ITEMS])
+                  {
+                     auto& playlistItem{returnPlaylist.items.emplace_back()};
 
-               return returnPlaylist;
+                     auto itemId = JsonSafeGet<std::string>(item, ID);
+                     auto itemName = JsonSafeGet<std::string>(item, NAME);
+                     auto itemPlaylistId = JsonSafeGet<std::string>(item, PLAYLIST_ITEM_ID);
+                     if (itemId.has_value()) playlistItem.id = itemId.value();
+                     if (itemName.has_value()) playlistItem.name = itemName.value();
+                     if (itemPlaylistId.has_value()) playlistItem.playlistId = itemPlaylistId.value();
+                  }
+
+                  return returnPlaylist;
+               }
             }
          }
       }
@@ -268,18 +298,5 @@ namespace loomis
 
       auto res = client_.Post(apiUrl, headers);
       IsHttpSuccess("SetLibraryScan", res);
-   }
-
-   bool EmbyApi::IsHttpSuccess(std::string_view name, const httplib::Result& result)
-   {
-      if (result.error() != httplib::Error::Success || result.value().status >= VALID_HTTP_RESPONSE_MAX)
-      {
-         LogWarning(std::format("{} - HTTP error {}",
-                                name,
-                                utils::GetTag("error",
-                                              result.value().status >= VALID_HTTP_RESPONSE_MAX ? std::format("{} - {}", result.value().reason, result.value().body) : httplib::to_string(result.error()))));
-         return false;
-      }
-      return true;
    }
 }

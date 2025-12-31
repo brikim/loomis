@@ -19,6 +19,12 @@ namespace loomis
       std::ranges::for_each(serverConfigs, [this](const auto& server) {
          auto& plexApi{plexApis_.emplace_back(std::make_unique<PlexApi>(server))};
          plexApi->GetValid() ? LogServerConnectionSuccess(utils::GetFormattedPlex(), plexApi.get()) : LogServerConnectionError(plexApi.get());
+
+         if (server.tracker.valid)
+         {
+            auto& tautulliApi{tautulliApis_.emplace_back(std::make_unique<TautulliApi>(server))};
+            tautulliApi->GetValid() ? LogServerConnectionSuccess(utils::GetFormattedTautulli(), tautulliApi.get()) : LogServerConnectionError(tautulliApi.get());
+         }
       });
    }
 
@@ -27,6 +33,12 @@ namespace loomis
       std::ranges::for_each(serverConfigs, [this](const auto& server) {
          auto& embyApi{embyApis_.emplace_back(std::make_unique<EmbyApi>(server))};
          embyApi->GetValid() ? LogServerConnectionSuccess(utils::GetFormattedEmby(), embyApi.get()) : LogServerConnectionError(embyApi.get());
+
+         if (server.tracker.valid)
+         {
+            auto& jellystatApi{jellystatApis_.emplace_back(std::make_unique<JellystatApi>(server))};
+            jellystatApi->GetValid() ? LogServerConnectionSuccess(utils::GetFormattedJellystat(), jellystatApi.get()) : LogServerConnectionError(jellystatApi.get());
+         }
       });
    }
 
@@ -35,11 +47,11 @@ namespace loomis
       auto serverReportedName{api->GetServerReportedName()};
       if (serverReportedName.has_value())
       {
-         Logger::Instance().Info(std::format("Connected to {}({}) successfully", serverName, api->GetServerReportedName().value()));
+         Logger::Instance().Info(std::format("Connected to {}({}) successfully. Server reported {}", serverName, api->GetName(), utils::GetTag("name", serverReportedName.value())));
       }
       else
       {
-         LogServerConnectionError(api);
+         Logger::Instance().Info(std::format("Connected to {}({}) successfully.", serverName, api->GetName()));
       }
    }
 
@@ -68,6 +80,22 @@ namespace loomis
       return iter != embyApis_.end() ? iter->get() : nullptr;
    }
 
+   TautulliApi* ApiManager::GetTautulliApi(std::string_view name) const
+   {
+      auto iter = std::ranges::find_if(tautulliApis_, [name](const auto& api) {
+         return api->GetName() == name;
+      });
+      return iter != tautulliApis_.end() ? iter->get() : nullptr;
+   }
+
+   JellystatApi* ApiManager::GetJellystatApi(std::string_view name) const
+   {
+      auto iter = std::ranges::find_if(jellystatApis_, [name](const auto& api) {
+         return api->GetName() == name;
+      });
+      return iter != jellystatApis_.end() ? iter->get() : nullptr;
+   }
+
    ApiBase* ApiManager::GetApi(ApiType type, std::string_view name) const
    {
       switch (type)
@@ -76,9 +104,12 @@ namespace loomis
             return GetPlexApi(name);
          case ApiType::EMBY:
             return GetEmbyApi(name);
+         case ApiType::TAUTULLI:
+            return GetTautulliApi(name);
+         case ApiType::JELLYSTAT:
+            return GetJellystatApi(name);
          default:
-            break;
+            return nullptr;
       }
-      return nullptr;
    }
 }

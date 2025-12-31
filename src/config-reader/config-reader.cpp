@@ -95,28 +95,34 @@ namespace loomis
          if (serverConfigJson.contains(SERVER_NAME) == false
              || serverConfigJson.contains(URL) == false
              || serverConfigJson.contains(API_KEY) == false
-             || serverConfigJson.contains(TRACKER_URL) == false
-             || serverConfigJson.contains(TRACKER_API_KEY) == false
              || serverConfigJson.contains(MEDIA_PATH) == false)
          {
-            Logger::Instance().Error(std::format("{} server config invalid {} {} {} {} {} {}",
+            Logger::Instance().Error(std::format("{} server config invalid {} {} {} {}",
                                                  utils::GetFormattedApiName(apiType),
                                                  utils::GetTag(SERVER_NAME, serverConfigJson.contains(SERVER_NAME) ? serverConfigJson[SERVER_NAME].get<std::string>() : "ERROR"),
                                                  utils::GetTag(URL, serverConfigJson.contains(URL) ? serverConfigJson[URL].get<std::string>() : "ERROR"),
                                                  utils::GetTag(API_KEY, serverConfigJson.contains(API_KEY) ? serverConfigJson[API_KEY].get<std::string>() : "ERROR"),
-                                                 utils::GetTag(TRACKER_URL, serverConfigJson.contains(TRACKER_URL) ? serverConfigJson[TRACKER_URL].get<std::string>() : "ERROR"),
-                                                 utils::GetTag(TRACKER_API_KEY, serverConfigJson.contains(TRACKER_API_KEY) ? serverConfigJson[TRACKER_API_KEY].get<std::string>() : "ERROR"),
                                                  utils::GetTag(MEDIA_PATH, serverConfigJson.contains(MEDIA_PATH) ? serverConfigJson[MEDIA_PATH].get<std::string>() : "ERROR")));
             break;
          }
 
          auto& serverConfig{servers.emplace_back()};
          serverConfig.name = serverConfigJson[SERVER_NAME].get<std::string>();
+         serverConfig.main.valid = true;
          serverConfig.main.url = serverConfigJson[URL].get<std::string>();
          serverConfig.main.apiKey = serverConfigJson[API_KEY].get<std::string>();
-         serverConfig.tracker.url = serverConfigJson[TRACKER_URL].get<std::string>();
-         serverConfig.tracker.apiKey = serverConfigJson[TRACKER_API_KEY].get<std::string>();
          serverConfig.mediaPath = serverConfigJson[MEDIA_PATH].get<std::string>();
+
+         if (serverConfigJson.contains(TRACKER_URL) && serverConfigJson.contains(TRACKER_API_KEY))
+         {
+            serverConfig.tracker.valid = true;
+            serverConfig.tracker.url = serverConfigJson[TRACKER_URL].get<std::string>();
+            serverConfig.tracker.apiKey = serverConfigJson[TRACKER_API_KEY].get<std::string>();
+         }
+         else
+         {
+            Logger::Instance().Warning(std::format("Tracker {}/{} not set for {}. Some services may not be available", TRACKER_URL, TRACKER_API_KEY, utils::GetFormattedApiName(apiType)));
+         }
       }
    }
 

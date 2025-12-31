@@ -33,6 +33,8 @@ namespace loomis::utils
    static const std::string ANSI_FORMATTED_UNKNOWN("Unknown Server");
    static const std::string ANSI_FORMATTED_PLEX(std::format("{}Plex{}", ANSI_CODE_PLEX, ANSI_CODE_LOG));
    static const std::string ANSI_FORMATTED_EMBY(std::format("{}Emby{}", ANSI_CODE_EMBY, ANSI_CODE_LOG));
+   static const std::string ANSI_FORMATTED_TAUTULLI(std::format("{}Tautulli{}", ANSI_CODE_TAUTULLI, ANSI_CODE_LOG));
+   static const std::string ANSI_FORMATTED_JELLYSTAT(std::format("{}Jellystat{}", ANSI_CODE_JELLYSTAT, ANSI_CODE_LOG));
 
    inline std::string GetTag(std::string_view tag, std::string_view value)
    {
@@ -54,6 +56,16 @@ namespace loomis::utils
       return ANSI_FORMATTED_EMBY;
    }
 
+   inline std::string_view GetFormattedTautulli()
+   {
+      return ANSI_FORMATTED_TAUTULLI;
+   }
+
+   inline std::string_view GetFormattedJellystat()
+   {
+      return ANSI_FORMATTED_JELLYSTAT;
+   }
+
    inline std::string GetServiceHeader(std::string_view ansiiCode, std::string_view name)
    {
       return std::format("{}{}{}:", ansiiCode, name, ANSI_CODE_LOG);
@@ -67,6 +79,10 @@ namespace loomis::utils
             return GetFormattedPlex();
          case ApiType::EMBY:
             return GetFormattedEmby();
+         case ApiType::TAUTULLI:
+            return GetFormattedTautulli();
+         case ApiType::JELLYSTAT:
+            return GetFormattedJellystat();
          default:
             return ANSI_FORMATTED_UNKNOWN;
       }

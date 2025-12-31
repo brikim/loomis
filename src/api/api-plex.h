@@ -33,7 +33,7 @@ namespace loomis
       // Returns true if the server is reachable and the API key is valid
       [[nodiscard]] bool GetValid() override;
       [[nodiscard]] std::optional<std::string> GetServerReportedName() override;
-      [[nodiscard]] std::optional<std::string> GetLibraryId(std::string_view libraryName) override;
+      [[nodiscard]] std::optional<std::string> GetLibraryId(std::string_view libraryName);
 
       // Returns if the collection in the library is valid on this server
       [[nodiscard]] bool GetCollectionValid(std::string_view library, std::string_view collection);
@@ -41,7 +41,8 @@ namespace loomis
       // Returns the collection information for the collection in the library
       [[nodiscard]] std::optional<PlexCollection> GetCollection(std::string_view library, std::string_view collection);
 
-      void SetLibraryScan(std::string_view libraryId) override;
+      // Tell Plex to scan the passed in library
+      void SetLibraryScan(std::string_view libraryId);
 
    private:
       std::string BuildApiPath(std::string_view path);

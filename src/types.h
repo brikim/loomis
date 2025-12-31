@@ -10,7 +10,9 @@ namespace loomis
    enum class ApiType
    {
       PLEX,
-      EMBY
+      EMBY,
+      TAUTULLI,
+      JELLYSTAT
    };
 
    struct Task

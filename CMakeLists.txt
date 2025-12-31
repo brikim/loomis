@@ -18,6 +18,7 @@ add_executable(loomis)
 target_sources(loomis PRIVATE
 	src/api/api-base.cpp
 	src/api/api-emby.cpp
+	src/api/api-jellystat.cpp
 	src/api/api-manager.cpp
 	src/api/api-plex.cpp
 	src/api/api-tautulli.cpp

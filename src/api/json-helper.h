@@ -1,0 +1,75 @@
+#pragma once
+
+#include "logger/logger.h"
+#include "logger/log-utils.h"
+
+#include <json/json.hpp>
+
+#include <format>
+#include <optional>
+#include <source_location>
+#include <string>
+
+namespace loomis
+{
+   static std::optional<nlohmann::json> JsonSafeParse(const std::string& rawJson, const std::source_location location = std::source_location::current())
+   {
+      try
+      {
+         return nlohmann::json::parse(rawJson);
+      }
+      catch (std::exception& e)
+      {
+         Logger::Instance().Warning(std::format("JSON parse {} {} {} {}",
+                                                utils::GetTag("file", location.file_name()),
+                                                utils::GetTag("function_name", location.function_name()),
+                                                utils::GetTag("line_num", std::to_string(location.line())),
+                                                utils::GetTag("error", e.what())));
+         return std::nullopt;
+      }
+   }
+
+   template <typename T>
+   static std::optional<T> JsonSafeGet(const nlohmann::json& data, std::string_view key, const std::source_location location = std::source_location::current())
+   {
+      try
+      {
+         if (data.contains(key) && !data[key].is_null())
+         {
+            return data[key].get<T>();
+         }
+      }
+      catch (std::exception& e)
+      {
+         Logger::Instance().Warning(std::format("JSON get {} {} {} {} {}",
+                                                utils::GetTag("file", location.file_name()),
+                                                utils::GetTag("function_name", location.function_name()),
+                                                utils::GetTag("line_num", std::to_string(location.line())),
+                                                utils::GetTag("key", key),
+                                                utils::GetTag("error", e.what())));
+      }
+      return std::nullopt;
+   }
+
+   template <typename T>
+   static std::optional<T> JsonSafeGet(const nlohmann::json& data, const nlohmann::json::json_pointer& ptr, const std::source_location location = std::source_location::current())
+   {
+      try
+      {
+         if (data.contains(ptr) && !data[ptr].is_null())
+         {
+            return data[ptr].get<T>();
+         }
+      }
+      catch (std::exception& e)
+      {
+         Logger::Instance().Warning(std::format("JSON get pointer {} {} {} {} {}",
+                                                utils::GetTag("file", location.file_name()),
+                                                utils::GetTag("function_name", location.function_name()),
+                                                utils::GetTag("line_num", std::to_string(location.line())),
+                                                utils::GetTag("ptr", ptr.to_string()),
+                                                utils::GetTag("error", e.what())));
+      }
+      return std::nullopt;
+   }
+}

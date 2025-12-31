@@ -1,6 +1,9 @@
 #include "api-tautulli.h"
 
+#include "api/json-helper.h"
 #include "logger/log-utils.h"
+
+#include <json/json.hpp>
 
 #include <format>
 #include <ranges>
@@ -8,16 +11,15 @@
 namespace loomis
 {
    static const std::string API_BASE{"/api/v2"};
-   static const std::string API_GET_INFO{"get_tautulli_info"};
-   static const std::string API_LIBRARIES{"/library/sections/"};
 
-   static constexpr std::string_view ELEM_MEDIA_CONTAINER{"MediaContainer"};
-   static constexpr std::string_view ELEM_MEDIA{"Media"};
+   static const std::string CMD_GET_INFO{"get_tautulli_info"};
 
-   static constexpr std::string_view ATTR_NAME{"name"};
-   static constexpr std::string_view ATTR_KEY{"key"};
-   static constexpr std::string_view ATTR_TITLE{"title"};
-   static constexpr std::string_view ATTR_FILE{"file"};
+   static const std::string CMD_SERVER_INFO{"get_server_info"};
+   static const auto PTR_SERVER_INFO_PMS_NAME = "/response/data/pms_name"_json_pointer;
+
+   static constexpr std::string_view ELEM_RESPONSE{"response"};
+   static constexpr std::string_view ELEM_DATA{"data"};
+   static constexpr std::string_view ELEM_PMS_NAME{"pms_name"};
 
    TautulliApi::TautulliApi(const ServerConfig& serverConfig)
       : ApiBase(serverConfig.name, serverConfig.tracker, "TautulliApi", utils::ANSI_CODE_TAUTULLI)
@@ -27,37 +29,36 @@ namespace loomis
       client_.set_connection_timeout(timeoutSec);
    }
 
-   std::string TautulliApi::BuildApiPath(std::string_view path)
+   std::string TautulliApi::BuildApiPath(std::string_view cmd)
    {
-      return std::format("{}{}", API_BASE, path);
+      return std::format("{}?apikey={}&cmd={}", API_BASE, GetApiKey(), cmd);
    }
 
    bool TautulliApi::GetValid()
    {
-      //auto res = client_.Get(BuildApiPath(API_SERVERS), headers_);
-      //return res.error() == httplib::Error::Success && res.value().status < VALID_HTTP_RESPONSE_MAX;
-      return false;
+      auto res = client_.Get(BuildApiPath(CMD_GET_INFO), headers_);
+      return res.error() == httplib::Error::Success && res.value().status < VALID_HTTP_RESPONSE_MAX;
    }
 
    std::optional<std::string> TautulliApi::GetServerReportedName()
    {
-      //httplib::Headers header;
-      //if (auto res = client_.Get(BuildApiPath(API_SERVERS), header);
-      //    res.error() == httplib::Error::Success)
-      //{
-      //   pugi::xml_document data;
-      //   if (data.load_buffer(res.value().body.c_str(), res.value().body.size()).status == pugi::status_ok
-      //       && data.child(ELEM_MEDIA_CONTAINER)
-      //       && data.child(ELEM_MEDIA_CONTAINER).first_child()
-      //       && data.child(ELEM_MEDIA_CONTAINER).first_child().attribute(ATTR_NAME))
-      //   {
-      //      return data.child(ELEM_MEDIA_CONTAINER).first_child().attribute(ATTR_NAME).as_string();
-      //   }
-      //   else
-      //   {
-      //      LogWarning("GetServerReportedName malformed xml reply received");
-      //   }
-      //}
+      if (auto res = client_.Get(BuildApiPath(CMD_SERVER_INFO), headers_);
+          IsHttpSuccess("GetServerReportedName", res))
+      {
+         if (auto jsonData = JsonSafeParse(res.value().body);
+             jsonData.has_value())
+         {
+            if (auto pmsName = JsonSafeGet<std::string>(jsonData.value(), PTR_SERVER_INFO_PMS_NAME);
+                pmsName.has_value())
+            {
+               return pmsName.value();
+            }
+         }
+         else
+         {
+            LogWarning("GetServerReportedName malformed json reply received");
+         }
+      }
       return std::nullopt;
    }
 }

@@ -8,6 +8,7 @@ namespace loomis
 {
    struct ServerConnectionConfig
    {
+      bool valid{false};
       std::string url;
       std::string apiKey;
    };

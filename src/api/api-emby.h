@@ -61,7 +61,7 @@ namespace loomis
       // Returns true if the server is reachable and the API key is valid
       [[nodiscard]] bool GetValid() override;
       [[nodiscard]] std::optional<std::string> GetServerReportedName() override;
-      [[nodiscard]] std::optional<std::string> GetLibraryId(std::string_view libraryName) override;
+      [[nodiscard]] std::optional<std::string> GetLibraryId(std::string_view libraryName);
 
       std::optional<EmbyItem> GetItem(EmbySearchType type, std::string_view name, std::list<std::pair<std::string_view, std::string_view>> extraSearchArgs = {});
       [[nodiscard]] std::optional<std::string> GetItemIdFromPath(std::string_view path);
@@ -73,15 +73,14 @@ namespace loomis
       bool RemovePlaylistItems(std::string_view playlistId, const std::vector<std::string>& removeIds);
       bool MovePlaylistItem(std::string_view playlistId, std::string_view itemId, uint32_t index);
 
-      void SetLibraryScan(std::string_view libraryId) override;
+      // Tell Emby to scan the passed in library
+      void SetLibraryScan(std::string_view libraryId);
 
    private:
       std::string BuildApiPath(std::string_view path) const;
       void AddApiParam(std::string& url, const std::list<std::pair<std::string_view, std::string_view>>& params) const;
 
       std::string_view GetSearchTypeStr(EmbySearchType type);
-
-      bool IsHttpSuccess(std::string_view name, const httplib::Result& result);
 
       std::string BuildCommaSeparatedList(const std::vector<std::string>& list);
 

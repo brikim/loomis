@@ -11,18 +11,18 @@
 
 namespace loomis
 {
-   class TautulliApi : public ApiBase
+   class JellystatApi : public ApiBase
    {
    public:
-      TautulliApi(const ServerConfig& serverConfig);
-      virtual ~TautulliApi() = default;
+      JellystatApi(const ServerConfig& serverConfig);
+      virtual ~JellystatApi() = default;
 
       // Returns true if the server is reachable and the API key is valid
       [[nodiscard]] bool GetValid() override;
       [[nodiscard]] std::optional<std::string> GetServerReportedName() override;
 
    private:
-      std::string BuildApiPath(std::string_view cmd);
+      std::string BuildApiPath(std::string_view path);
 
       httplib::Client client_;
       httplib::Headers headers_;
