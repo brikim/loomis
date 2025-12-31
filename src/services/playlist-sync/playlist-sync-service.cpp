@@ -79,14 +79,13 @@ namespace loomis
       std::vector<std::string> addIds;
       for (const auto& updatedId : updatedPlaylistIds)
       {
-         std::string_view foundPlaylistId;
-         auto iter = std::ranges::find_if(currentPlaylist.items, [&updatedId](const auto& item) {
+         auto found = std::ranges::any_of(currentPlaylist.items, [&updatedId](const auto& item) {
             return item.id == updatedId;
          });
 
-         if (iter == currentPlaylist.items.end())
+         if (!found)
          {
-            addIds.emplace_back((*iter).playlistId);
+            addIds.emplace_back(updatedId);
          }
       }
 
