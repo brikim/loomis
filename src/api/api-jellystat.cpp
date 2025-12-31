@@ -9,8 +9,11 @@
 
 namespace loomis
 {
-   inline const std::string JELLYSTAT_API_BASE{"/api"};
-   inline const std::string JELLYSTAT_API_GET_CONFIG{"/getconfig"};
+   namespace
+   {
+      const std::string API_BASE{"/api"};
+      const std::string API_GET_CONFIG{"/getconfig"};
+   }
 
    JellystatApi::JellystatApi(const ServerConfig& serverConfig)
       : ApiBase(serverConfig.name, serverConfig.tracker, "JellystatApi", utils::ANSI_CODE_JELLYSTAT)
@@ -27,12 +30,12 @@ namespace loomis
 
    std::string JellystatApi::BuildApiPath(std::string_view path)
    {
-      return std::format("{}{}", JELLYSTAT_API_BASE, path);
+      return std::format("{}{}", API_BASE, path);
    }
 
    bool JellystatApi::GetValid()
    {
-      auto res = client_.Get(BuildApiPath(JELLYSTAT_API_GET_CONFIG), headers_);
+      auto res = client_.Get(BuildApiPath(API_GET_CONFIG), headers_);
       return res.error() == httplib::Error::Success && res.value().status < VALID_HTTP_RESPONSE_MAX;
    }
 

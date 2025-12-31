@@ -9,30 +9,33 @@
 
 namespace loomis
 {
-   constexpr const std::string_view PLEX{"plex"};
-   constexpr const std::string_view EMBY{"emby"};
-   constexpr const std::string_view SERVERS{"servers"};
-   constexpr const std::string_view SERVER_NAME{"server_name"};
-   constexpr const std::string_view URL{"url"};
-   constexpr const std::string_view API_KEY{"api_key"};
-   constexpr const std::string_view TRACKER_URL{"tracker_url"};
-   constexpr const std::string_view TRACKER_API_KEY{"tracker_api_key"};
-   constexpr const std::string_view MEDIA_PATH{"media_path"};
-   constexpr const std::string_view APPRISE_LOGGING{"apprise_logging"};
-   constexpr const std::string_view ENABLED("enabled");
-   constexpr const std::string_view KEY("key");
-   constexpr const std::string_view MESSAGE_TITLE("message_title");
-   constexpr const std::string_view PLAYLIST_SYNC("playlist_sync");
-   constexpr const std::string_view CRON("cron");
-   constexpr const std::string_view PLEX_COLLECTION_SYNC("plex_collection_sync");
-   constexpr const std::string_view SERVER("server");
-   constexpr const std::string_view LIBRARY("library");
-   constexpr const std::string_view COLLECTION_NAME("collection_name");
-   constexpr const std::string_view TARGET_EMBY_SERVERS("target_emby_servers");
-   constexpr const std::string_view TIME_FOR_EMBY_TO_UPDATE("time_for_emby_to_update_seconds");
-   constexpr const std::string_view TIME_BETWEEN_SYNCS("time_between_syncs_seconds");
+   namespace
+   {
+      constexpr const std::string_view PLEX{"plex"};
+      constexpr const std::string_view EMBY{"emby"};
+      constexpr const std::string_view SERVERS{"servers"};
+      constexpr const std::string_view SERVER_NAME{"server_name"};
+      constexpr const std::string_view URL{"url"};
+      constexpr const std::string_view API_KEY{"api_key"};
+      constexpr const std::string_view TRACKER_URL{"tracker_url"};
+      constexpr const std::string_view TRACKER_API_KEY{"tracker_api_key"};
+      constexpr const std::string_view MEDIA_PATH{"media_path"};
+      constexpr const std::string_view APPRISE_LOGGING{"apprise_logging"};
+      constexpr const std::string_view ENABLED("enabled");
+      constexpr const std::string_view KEY("key");
+      constexpr const std::string_view MESSAGE_TITLE("message_title");
+      constexpr const std::string_view PLAYLIST_SYNC("playlist_sync");
+      constexpr const std::string_view CRON("cron");
+      constexpr const std::string_view PLEX_COLLECTION_SYNC("plex_collection_sync");
+      constexpr const std::string_view SERVER("server");
+      constexpr const std::string_view LIBRARY("library");
+      constexpr const std::string_view COLLECTION_NAME("collection_name");
+      constexpr const std::string_view TARGET_EMBY_SERVERS("target_emby_servers");
+      constexpr const std::string_view TIME_FOR_EMBY_TO_UPDATE("time_for_emby_to_update_seconds");
+      constexpr const std::string_view TIME_BETWEEN_SYNCS("time_between_syncs_seconds");
 
-   constexpr const std::string_view DEFAULT_CRON("0 */2");
+      constexpr const std::string_view DEFAULT_CRON("0 */2");
+   }
 
    ConfigReader::ConfigReader()
    {
