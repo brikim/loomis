@@ -21,6 +21,7 @@ namespace loomis
       [[nodiscard]] const std::vector<ServerConfig>& GetEmbyServers() const;
       [[nodiscard]] const AppriseLoggingConfig& GetAppriseLogging() const;
       [[nodiscard]] const PlaylistSyncConfig& GetPlaylistSyncConfig() const;
+      [[nodiscard]] const WatchStateSyncConfig& GetWatchStateSyncConfig() const;
 
    private:
       void ReadConfigFile(const char* path);
@@ -31,6 +32,7 @@ namespace loomis
       void ReadAppriseLogging(const nlohmann::json& jsonData);
 
       void ReadPlaylistSyncConfig(const nlohmann::json& jsonData);
+      void ReadWatchStateSyncConfig(const nlohmann::json& jsonData);
 
       bool configValid_{false};
       ConfigData configData_;

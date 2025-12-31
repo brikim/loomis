@@ -66,6 +66,8 @@ namespace loomis
       std::optional<EmbyItem> GetItem(EmbySearchType type, std::string_view name, std::list<std::pair<std::string_view, std::string_view>> extraSearchArgs = {});
       [[nodiscard]] std::optional<std::string> GetItemIdFromPath(std::string_view path);
 
+      [[nodiscard]] bool GetUserExists(std::string_view name);
+
       [[nodiscard]] bool GetPlaylistExists(std::string_view name);
       [[nodiscard]] std::optional<EmbyPlaylist> GetPlaylist(std::string_view name);
       void CreatePlaylist(std::string_view name, const std::vector<std::string>& itemIds);

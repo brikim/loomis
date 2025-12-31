@@ -46,11 +46,32 @@ namespace loomis
       std::vector<PlaylistPlexCollection> plexCollections;
    };
 
+   struct ServerUser
+   {
+      std::string server;
+      std::string user;
+      bool canSync{false};
+   };
+
+   struct UserSyncConfig
+   {
+      std::vector<ServerUser> plex;
+      std::vector<ServerUser> emby;
+   };
+
+   struct WatchStateSyncConfig
+   {
+      bool enabled{false};
+      std::string cron;
+      std::vector<UserSyncConfig> userSyncs;
+   };
+
    struct ConfigData
    {
       AppriseLoggingConfig appriseLogging;
       std::vector<ServerConfig> plexServers;
       std::vector<ServerConfig> embyServers;
       PlaylistSyncConfig playlistSync;
+      WatchStateSyncConfig watchStateSync;
    };
 }

@@ -24,15 +24,21 @@ namespace loomis
       constexpr const std::string_view ENABLED("enabled");
       constexpr const std::string_view KEY("key");
       constexpr const std::string_view MESSAGE_TITLE("message_title");
-      constexpr const std::string_view PLAYLIST_SYNC("playlist_sync");
+
+      constexpr const std::string_view SERVICE_PLAYLIST_SYNC("playlist_sync");
+      constexpr const std::string_view SERVICE_WATCH_STATE_SYNC("watch_state_sync");
+
       constexpr const std::string_view CRON("cron");
       constexpr const std::string_view PLEX_COLLECTION_SYNC("plex_collection_sync");
       constexpr const std::string_view SERVER("server");
       constexpr const std::string_view LIBRARY("library");
+      constexpr const std::string_view USER_NAME("user_name");
       constexpr const std::string_view COLLECTION_NAME("collection_name");
       constexpr const std::string_view TARGET_EMBY_SERVERS("target_emby_servers");
       constexpr const std::string_view TIME_FOR_EMBY_TO_UPDATE("time_for_emby_to_update_seconds");
       constexpr const std::string_view TIME_BETWEEN_SYNCS("time_between_syncs_seconds");
+      constexpr const std::string_view USERS("users");
+      constexpr const std::string_view CAN_SYNC("can_sync");
 
       constexpr const std::string_view DEFAULT_CRON("0 */2");
    }
@@ -78,6 +84,7 @@ namespace loomis
 
          ReadAppriseLogging(jsonData);
          ReadPlaylistSyncConfig(jsonData);
+         ReadWatchStateSyncConfig(jsonData);
       }
       catch (const std::exception& e)
       {
@@ -164,14 +171,14 @@ namespace loomis
 
    void ConfigReader::ReadPlaylistSyncConfig(const nlohmann::json& jsonData)
    {
-      if (jsonData.contains(PLAYLIST_SYNC) == false
-          || jsonData[PLAYLIST_SYNC].contains(ENABLED) == false
-          || jsonData[PLAYLIST_SYNC][ENABLED].get<std::string>() != "True")
+      if (jsonData.contains(SERVICE_PLAYLIST_SYNC) == false
+          || jsonData[SERVICE_PLAYLIST_SYNC].contains(ENABLED) == false
+          || jsonData[SERVICE_PLAYLIST_SYNC][ENABLED].get<std::string>() != "True")
       {
          return;
       }
 
-      const auto& playlistSyncJson{jsonData[PLAYLIST_SYNC]};
+      const auto& playlistSyncJson{jsonData[SERVICE_PLAYLIST_SYNC]};
 
       if (playlistSyncJson.contains(CRON))
       {
@@ -243,6 +250,88 @@ namespace loomis
       }
    }
 
+   void ConfigReader::ReadWatchStateSyncConfig(const nlohmann::json& jsonData)
+   {
+      if (jsonData.contains(SERVICE_WATCH_STATE_SYNC) == false
+          || jsonData[SERVICE_WATCH_STATE_SYNC].contains(ENABLED) == false
+          || jsonData[SERVICE_WATCH_STATE_SYNC][ENABLED].get<std::string>() != "True")
+      {
+         return;
+      }
+
+      const auto& watchStateConfig = jsonData[SERVICE_WATCH_STATE_SYNC];
+
+      if (watchStateConfig.contains(CRON))
+      {
+         configData_.watchStateSync.cron = watchStateConfig[CRON].get<std::string>();
+      }
+      else
+      {
+         configData_.watchStateSync.cron = DEFAULT_CRON;
+         Logger::Instance().Warning(std::format("Watch State Sync Config missing cron. Using default {}", DEFAULT_CRON));
+      }
+
+      if (watchStateConfig.contains(USERS) && watchStateConfig[USERS].is_array())
+      {
+         auto readUserFunc = [](const nlohmann::json& data) -> std::optional<ServerUser> {
+            if (data.contains(SERVER) && data.contains(USER_NAME))
+            {
+               ServerUser returnUser;
+               returnUser.server = data[SERVER].get<std::string>();
+               returnUser.user = data[USER_NAME].get<std::string>();
+
+               if (data.contains(CAN_SYNC))
+               {
+                  returnUser.canSync = data[CAN_SYNC].get<std::string>() == "True";
+               }
+
+               return returnUser;
+            }
+            return std::nullopt;
+         };
+
+         for (const auto& user : watchStateConfig[USERS])
+         {
+            UserSyncConfig userSync;
+
+            if (user.contains(PLEX) && user[PLEX].is_array())
+            {
+               for (const auto& plexUser : user[PLEX])
+               {
+                  auto serverUser{readUserFunc(plexUser)};
+                  if (serverUser.has_value())
+                  {
+                     userSync.plex.emplace_back(*serverUser);
+                  }
+               }
+            }
+
+            if (user.contains(EMBY) && user[EMBY].is_array())
+            {
+               for (const auto& embyUser : user[EMBY])
+               {
+                  auto serverUser{readUserFunc(embyUser)};
+                  if (serverUser.has_value())
+                  {
+                     userSync.emby.emplace_back(*serverUser);
+                  }
+               }
+            }
+
+            // Check if there are at least 2 users to sync
+            if ((userSync.emby.size() + userSync.plex.size()) >= 2)
+            {
+               configData_.watchStateSync.userSyncs.emplace_back(userSync);
+            }
+         }
+
+         if (!configData_.watchStateSync.userSyncs.empty())
+         {
+            configData_.watchStateSync.enabled = true;
+         }
+      }
+   }
+
    bool ConfigReader::IsConfigValid() const
    {
       return configValid_;
@@ -266,5 +355,10 @@ namespace loomis
    const PlaylistSyncConfig& ConfigReader::GetPlaylistSyncConfig() const
    {
       return configData_.playlistSync;
+   }
+
+   const WatchStateSyncConfig& ConfigReader::GetWatchStateSyncConfig() const
+   {
+      return configData_.watchStateSync;
    }
 }

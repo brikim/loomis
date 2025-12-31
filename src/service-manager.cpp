@@ -3,6 +3,7 @@
 #include "logger/logger.h"
 #include "logger/log-utils.h"
 #include "services/playlist-sync/playlist-sync-service.h"
+#include "services/watch-state-sync/watch-state-sync-service.h"
 
 #include <algorithm>
 #include <format>
@@ -21,6 +22,11 @@ namespace loomis
       if (configReader_->GetPlaylistSyncConfig().enabled)
       {
          services_.emplace_back(std::make_unique<PlaylistSyncService>(configReader_->GetPlaylistSyncConfig(), apiManager_));
+      }
+
+      if (configReader_->GetWatchStateSyncConfig().enabled)
+      {
+         services_.emplace_back(std::make_unique<WatchStateSyncService>(configReader_->GetWatchStateSyncConfig(), apiManager_));
       }
    }
 

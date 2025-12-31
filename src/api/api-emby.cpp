@@ -17,6 +17,7 @@ namespace loomis
       const std::string API_MEDIA_FOLDERS{"/Library/SelectableMediaFolders"};
       const std::string API_ITEMS{"/Items"};
       const std::string API_PLAYLISTS{"/Playlists"};
+      const std::string API_USERS{"/Users"};
 
       constexpr std::string_view SERVER_NAME{"ServerName"};
       constexpr std::string_view NAME{"Name"};
@@ -198,6 +199,30 @@ namespace loomis
          return item.value().id;
       }
       return std::nullopt;
+   }
+
+   bool EmbyApi::GetUserExists(std::string_view name)
+   {
+      auto res = client_.Get(BuildApiPath(API_USERS), emptyHeaders_);
+      if (IsHttpSuccess("GetUserExists", res))
+      {
+         auto data = JsonSafeParse(res.value().body);
+         if (data.has_value() && data.value().is_array())
+         {
+            for (const auto& user : data.value())
+            {
+               auto userName = JsonSafeGet<std::string>(user, NAME);
+               if (userName.has_value())
+               {
+                  if (*userName == name)
+                  {
+                     return true;
+                  }
+               }
+            }
+         }
+      }
+      return false;
    }
 
    bool EmbyApi::GetPlaylistExists(std::string_view name)

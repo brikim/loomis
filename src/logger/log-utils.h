@@ -26,6 +26,7 @@ namespace loomis::utils
    inline const std::string ANSI_CODE_JELLYSTAT{std::format("{}63{}", ANSI_CODE_START, ANSI_CODE_END)};
 
    inline const std::string ANSI_CODE_SERVICE_PLAYLIST_SYNC{std::format("{}171{}", ANSI_CODE_START, ANSI_CODE_END)};
+   inline const std::string ANSI_CODE_SERVICE_WATCH_STATE_SYNC{std::format("{}45{}", ANSI_CODE_START, ANSI_CODE_END)};
 
    inline const std::string ANSI_MONITOR_ADDED{std::format("{}33{}", ANSI_CODE_START, ANSI_CODE_END)};
    inline const std::string ANSI_MONITOR_PROCESSED{std::format("{}34{}", ANSI_CODE_START, ANSI_CODE_END)};
