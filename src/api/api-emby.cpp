@@ -123,7 +123,7 @@ namespace loomis
       auto apiUrl{BuildApiPath(API_ITEMS)};
       AddApiParam(apiUrl, {
          {"Recursive", "true"},
-         {GetSearchTypeStr(type), name},
+         {GetSearchTypeStr(type), GetPercentEncoded(name)},
          {"Fields", "Path"}
       });
       if (!extraSearchArgs.empty())

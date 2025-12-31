@@ -22,6 +22,9 @@ namespace loomis
       [[nodiscard]] virtual std::optional<std::string> GetLibraryId(std::string_view libraryName) = 0;
       virtual void SetLibraryScan(std::string_view libraryId) = 0;
 
+   protected:
+      std::string GetPercentEncoded(std::string_view value);
+
    private:
       std::string name_;
       std::string url_;
