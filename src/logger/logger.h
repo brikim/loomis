@@ -1,7 +1,6 @@
 #pragma once
 
 #include "config-reader/config-reader-types.h"
-#include "log-apprise.h"
 
 #include <memory>
 #include <spdlog/spdlog.h>
@@ -33,6 +32,5 @@ namespace loomis
       virtual ~Logger() = default;
 
       std::shared_ptr<spdlog::logger> logger_;
-      std::unique_ptr<LogApprise> logApprise_;
    };
 }

@@ -337,9 +337,9 @@ namespace loomis
       auto apiUrl{BuildApiPath(API_ITEMS)};
       AddApiParam(apiUrl, {
          {"Recursive", "true"},
-         {"IncludeItemTypes", "Movie,Episode"}, // Singular 'Episode'
+         {"IncludeItemTypes", "Movie"}, // For now just movies are supported in this function
          {"Fields", "Path"},
-         {"IsMissing", "false"}                 // Filter out ghost entries
+         {"IsMissing", "false"}         // Filter out ghost entries
       });
 
       auto res{client_.Get(apiUrl, emptyHeaders_)};

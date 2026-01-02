@@ -2,9 +2,12 @@
 
 #include "logger/ansii-formatter.h"
 #include "logger/ansii-remove-formatter.h"
+#include "logger/log-apprise-sync.h"
 #include "logger/logger-types.h"
 #include "logger/log-utils.h"
 
+#include <spdlog/async.h>
+#include <spdlog/async_logger.h>
 #include <spdlog/sinks/rotating_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 
@@ -15,6 +18,9 @@ namespace loomis
 {
    Logger::Logger()
    {
+      // 8192 is the queue size (must be power of 2), 1 is the number of worker threads
+      spdlog::init_thread_pool(128, 1);
+
       std::vector<spdlog::sink_ptr> sinks;
       auto& consoleSink{sinks.emplace_back(std::make_shared<spdlog::sinks::stdout_color_sink_mt>())};
       consoleSink->set_formatter(std::make_unique<AnsiiFormatter>());
@@ -32,7 +38,11 @@ namespace loomis
          fileSink->set_formatter(std::make_unique<AnsiiRemoveFormatter>());
       }
 
-      logger_ = std::make_shared<spdlog::logger>("loomis", sinks.begin(), sinks.end());
+      logger_ = std::make_shared<spdlog::async_logger>("loomis",
+                                                       sinks.begin(),
+                                                       sinks.end(),
+                                                       spdlog::thread_pool(),
+                                                       spdlog::async_overflow_policy::block);
       logger_->flush_on(spdlog::level::info);
 
 #if defined(_DEBUG) || !defined(NDEBUG)
@@ -44,7 +54,15 @@ namespace loomis
    {
       if (config.enabled)
       {
-         logApprise_ = std::make_unique<LogApprise>(config);
+         auto app_sink = std::make_shared<loomis::apprise_sink_mt>(config);
+
+         // Only notify on Warnings and Errors
+         app_sink->set_level(spdlog::level::warn);
+
+         // Clean pattern for mobile/email notifications (No colors)
+         app_sink->set_pattern("[%l] %v");
+
+         logger_->sinks().push_back(app_sink);
       }
    }
 
@@ -61,30 +79,15 @@ namespace loomis
    void Logger::Warning(const std::string& msg)
    {
       logger_->warn(msg);
-
-      if (logApprise_)
-      {
-         logApprise_->Send(std::format("WARNING: {}", utils::StripAsciiCharacters(msg)));
-      }
    }
 
    void Logger::Error(const std::string& msg)
    {
       logger_->error(msg);
-
-      if (logApprise_)
-      {
-         logApprise_->Send(std::format("ERROR: {}", utils::StripAsciiCharacters(msg)));
-      }
    }
 
    void Logger::Critical(const std::string& msg)
    {
       logger_->critical(msg);
-
-      if (logApprise_)
-      {
-         logApprise_->Send(std::format("CRITICAL: {}", utils::StripAsciiCharacters(msg)));
-      }
    }
 }
