@@ -47,3 +47,13 @@ target_include_directories(loomis PRIVATE include
 target_link_libraries(loomis PRIVATE
 	pugixml-static
 )
+
+if(MSVC)
+    # For Windows/MSVC: Links the Multi-threaded Runtime (LIBCMT) 
+    # instead of the DLL version (MSVCRT)
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+else()
+    # For Linux/Clang/GCC: Link libstdc++ and libgcc statically
+    # This prevents the "GLIBCXX_3.4.34 not found" error in Docker
+    target_link_options(${PROJECT_NAME} PRIVATE -static-libstdc++ -static-libgcc)
+endif()
