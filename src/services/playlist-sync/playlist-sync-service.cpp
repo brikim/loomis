@@ -41,6 +41,11 @@ namespace loomis
                if (embyApi)
                {
                   collection.embyServers.emplace_back(embyServerName);
+
+                  if (std::ranges::find(usedEmbyServers_, embyServerName) == usedEmbyServers_.end())
+                  {
+                     usedEmbyServers_.push_back(embyServerName);
+                  }
                }
                else
                {
@@ -116,47 +121,6 @@ namespace loomis
       }
 
       return {addIds.size(), deleteIds.size()};
-   }
-
-   bool PlaylistSyncService::UpdateToCorrectLocation(EmbyApi* embyApi, const EmbyPlaylist& currentPlaylist, std::string_view id, uint32_t correctIndex)
-   {
-      bool locationChanged{false};
-
-      for (int32_t i = 0; i < currentPlaylist.items.size(); ++i)
-      {
-         const auto& item{currentPlaylist.items[i]};
-         if (id == item.id)
-         {
-            if (i != correctIndex)
-            {
-               if (embyApi->MovePlaylistItem(currentPlaylist.id, item.playlistId, correctIndex))
-               {
-                  // Need to give time for the server to update
-                  std::this_thread::sleep_for(std::chrono::seconds(timeBetweenSyncsSec_));
-
-                  LogTrace(std::format("{} {} moving {} {} {}",
-                                       utils::GetServerName(utils::GetFormattedEmby(), embyApi->GetName()),
-                                       utils::GetTag("playlist", currentPlaylist.name),
-                                       utils::GetTag("item", item.name),
-                                       utils::GetTag("from", std::to_string(i + 1)),
-                                       utils::GetTag("to", std::to_string(correctIndex + 1))));
-
-                  locationChanged = true;
-               }
-               else
-               {
-                  LogWarning(std::format("{} failed {} moving {} to {}",
-                                         utils::GetServerName(utils::GetFormattedEmby(), embyApi->GetName()),
-                                         utils::GetTag("playlist", currentPlaylist.name),
-                                         utils::GetTag("item", item.name),
-                                         utils::GetTag("index", std::to_string(correctIndex + 1))));
-               }
-            }
-            break;
-         }
-      }
-
-      return locationChanged;
    }
 
    void PlaylistSyncService::UpdateEmbyPlaylist(PlexApi* plexApi,
@@ -241,24 +205,35 @@ namespace loomis
 
    void PlaylistSyncService::SyncEmbyPlaylist(PlexApi* plexApi, EmbyApi* embyApi, const PlexCollection& plexCollection)
    {
+      const auto& pathMap = embyApi->GetPathMap();
+
+      if (pathMap.empty() && !plexCollection.items.empty())
+      {
+         LogWarning(std::format("{} path map is empty. {} {} can not be synced.",
+                                utils::GetServerName(utils::GetFormattedEmby(), embyApi->GetName()),
+                                utils::GetServerName(utils::GetFormattedPlex(), plexApi->GetName()),
+                                utils::GetTag("collection", plexCollection.name)));
+         return;
+      }
+
       std::vector<std::string> updatedPlaylistIds;
       for (auto& item : plexCollection.items)
       {
          bool foundItem{false};
          for (auto& path : item.paths)
          {
-            auto embyId{embyApi->GetItemIdFromPath(path)};
-            if (embyId.has_value())
+            auto iter = pathMap.find(path);
+            if (iter != pathMap.end())
             {
                foundItem = true;
-               updatedPlaylistIds.emplace_back(embyId.value());
+               updatedPlaylistIds.emplace_back(iter->second);
                break;
             }
          }
 
          if (!foundItem)
          {
-            LogWarning(std::format("{} sync {} {} item not found {}",
+            LogWarning(std::format("{} sync {} {} {} not found",
                                    utils::GetServerName(utils::GetFormattedEmby(), embyApi->GetName()),
                                    utils::GetServerName(utils::GetFormattedPlex(), plexApi->GetName()),
                                    utils::GetTag("collection", plexCollection.name),
@@ -292,16 +267,28 @@ namespace loomis
 
    void PlaylistSyncService::Run()
    {
+      // Do this once for the run. Rebuild the path map for each used emby server
+      for (const auto& embyServer : usedEmbyServers_)
+      {
+         if (auto* embyApi{GetApiManager()->GetEmbyApi(embyServer)};
+                   embyApi->GetValid())
+         {
+            // Build the path map for all items to prevent hundreds of api calls later
+            embyApi->BuildPathMap();
+         }
+      }
+
       for (auto& plexCollection : plexCollections_)
       {
-         auto* plexApi{GetApiManager()->GetPlexApi(plexCollection.server)};
-         if (plexApi->GetValid())
+         if (auto* plexApi{GetApiManager()->GetPlexApi(plexCollection.server)};
+             plexApi->GetValid())
          {
             for (const auto& embyServer : plexCollection.embyServers)
             {
-               auto* embyApi{GetApiManager()->GetEmbyApi(embyServer)};
-               if (embyApi->GetValid())
+               if (auto* embyApi{GetApiManager()->GetEmbyApi(embyServer)};
+                   embyApi->GetValid())
                {
+                  // Sync this plex collection with the emby server
                   SyncPlexCollection(plexApi, embyApi, plexCollection);
                }
             }

@@ -329,4 +329,45 @@ namespace loomis
       auto res = client_.Post(apiUrl, headers);
       IsHttpSuccess(__func__, res);
    }
+
+   void EmbyApi::BuildPathMap()
+   {
+      pathMap_.clear();
+
+      auto apiUrl{BuildApiPath(API_ITEMS)};
+      AddApiParam(apiUrl, {
+         {"Recursive", "true"},
+         {"IncludeItemTypes", "Movie,Episode"}, // Singular 'Episode'
+         {"Fields", "Path"},
+         {"IsMissing", "false"}                 // Filter out ghost entries
+      });
+
+      auto res{client_.Get(apiUrl, emptyHeaders_)};
+      if (!IsHttpSuccess(__func__, res)) return;
+
+      auto data = JsonSafeParse(res.value().body);
+      if (!data || !data->contains(ITEMS) || !(*data)[ITEMS].is_array()) return;
+
+      const auto& items = (*data)[ITEMS];
+
+      // Pre-allocate memory to prevent re-hashing during the loop
+      pathMap_.reserve(items.size());
+
+      for (const auto& item : items)
+      {
+         // Defensive check: Emby usually guarantees these if requested, 
+         // but null-checks prevent crashes if the DB is in a weird state.
+         if (item.contains("Path") && item.contains("Id") &&
+             !item["Path"].is_null() && !item["Id"].is_null())
+         {
+            pathMap_.emplace(item["Path"].get<std::string>(),
+                             item["Id"].get<std::string>());
+         }
+      }
+   }
+
+   const EmbyPathMap& EmbyApi::GetPathMap() const
+   {
+      return pathMap_;
+   }
 }

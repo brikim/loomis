@@ -2,10 +2,13 @@
 
 #include <cstdint>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace loomis
 {
+   using EmbyPathMap = std::unordered_map<std::string, std::string>;
+
    enum class EmbySearchType
    {
       id,

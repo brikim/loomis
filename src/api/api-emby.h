@@ -40,6 +40,9 @@ namespace loomis
       // Tell Emby to scan the passed in library
       void SetLibraryScan(std::string_view libraryId);
 
+      void BuildPathMap();
+      [[nodiscard]] const EmbyPathMap& GetPathMap() const;
+
    private:
       std::string BuildApiPath(std::string_view path) const;
 
@@ -50,5 +53,6 @@ namespace loomis
       httplib::Client client_;
       httplib::Headers emptyHeaders_;
       httplib::Headers jsonHeaders_{{{"accept", "application/json"}}};
+      EmbyPathMap pathMap_;
    };
 }
