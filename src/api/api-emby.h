@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <list>
 #include <optional>
+#include <shared_mutex>
 #include <string>
 #include <vector>
 
@@ -20,13 +21,14 @@ namespace loomis
       EmbyApi(const ServerConfig& serverConfig);
       virtual ~EmbyApi() = default;
 
+      [[nodiscard]] std::optional<Task> GetTask() override;
+
       // Returns true if the server is reachable and the API key is valid
       [[nodiscard]] bool GetValid() override;
       [[nodiscard]] std::optional<std::string> GetServerReportedName() override;
       [[nodiscard]] std::optional<std::string> GetLibraryId(std::string_view libraryName);
 
       std::optional<EmbyItem> GetItem(EmbySearchType type, std::string_view name, std::list<std::pair<std::string_view, std::string_view>> extraSearchArgs = {});
-      [[nodiscard]] std::optional<std::string> GetItemIdFromPath(std::string_view path);
 
       [[nodiscard]] bool GetUserExists(std::string_view name);
 
@@ -40,19 +42,23 @@ namespace loomis
       // Tell Emby to scan the passed in library
       void SetLibraryScan(std::string_view libraryId);
 
-      void BuildPathMap();
-      [[nodiscard]] const EmbyPathMap& GetPathMap() const;
+      [[nodiscard]] bool GetPathMapEmpty() const;
+      [[nodiscard]] std::optional<std::string> GetIdFromPathMap(const std::string& path);
 
    private:
+      void BuildPathMap();
+      void RunTasks();
+
       std::string BuildApiPath(std::string_view path) const;
 
       std::string_view GetSearchTypeStr(EmbySearchType type);
-
-      std::string BuildCommaSeparatedList(const std::vector<std::string>& list);
 
       httplib::Client client_;
       httplib::Headers emptyHeaders_;
       httplib::Headers jsonHeaders_{{{"accept", "application/json"}}};
       EmbyPathMap pathMap_;
+      EmbyPathMap workingPathMap_;
+
+      mutable std::shared_mutex taskLock_;
    };
 }

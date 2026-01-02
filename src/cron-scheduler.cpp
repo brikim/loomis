@@ -18,9 +18,8 @@ namespace loomis
       try
       {
          auto& cronTask = cronTasks_.emplace_back();
-         cronTask.name = task.name;
+         cronTask.task = task;
          cronTask.cron = cron::make_cron(task.cronExpression);
-         cronTask.func = task.func;
          // Initialize the first run time immediately
          cronTask.nextRun = cron::cron_next(cronTask.cron, std::chrono::system_clock::now());
       }
@@ -53,21 +52,21 @@ namespace loomis
          if (stopToken.stop_requested()) break;
 
          currentTime = std::chrono::system_clock::now();
-         for (auto& task : cronTasks_)
+         for (auto& cronTask : cronTasks_)
          {
-            if (task.nextRun <= currentTime)
+            if (cronTask.nextRun <= currentTime)
             {
-               Logger::Instance().Trace(std::format("Cron Scheduler: Executing {}", task.name));
+               Logger::Instance().Trace(std::format("Cron Scheduler: Executing {}", cronTask.task.name));
                try
                {
-                  task.func();
+                  cronTask.task.func();
                }
                catch (const std::exception& e)
                {
-                  Logger::Instance().Error(std::format("Task {} failed: {}", task.name, e.what()));
+                  Logger::Instance().Error(std::format("Task {} failed: {}", cronTask.task.name, e.what()));
                }
                // Update nextRun for next time
-               task.nextRun = cron::cron_next(task.cron, std::chrono::system_clock::now());
+               cronTask.nextRun = cron::cron_next(cronTask.cron, std::chrono::system_clock::now());
             }
          }
       }
@@ -81,10 +80,13 @@ namespace loomis
       // jthread starts immediately and manages its own lifetime
       runThread_ = std::make_unique<std::jthread>([this](std::stop_token st) { Work(st); });
 
-      for (const auto& task : cronTasks_)
+      for (const auto& cronTask : cronTasks_)
       {
-         Logger::Instance().Info(std::format("{}: Enabled - Schedule: {}",
-                                             task.name, cron::to_cronstr(task.cron)));
+         if (cronTask.task.service)
+         {
+            Logger::Instance().Info(std::format("{}: Enabled - Schedule: {}",
+                                                cronTask.task.name, cronTask.task.cronExpression));
+         }
       }
       return true;
    }

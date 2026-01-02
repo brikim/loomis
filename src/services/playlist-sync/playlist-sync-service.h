@@ -33,6 +33,5 @@ namespace loomis
       uint32_t timeForEmbyUpdateSec_{1u};
       uint32_t timeBetweenSyncsSec_{1u};
       std::vector<PlaylistPlexCollection> plexCollections_;
-      std::vector<std::string> usedEmbyServers_;
    };
 }

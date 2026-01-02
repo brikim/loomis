@@ -25,6 +25,7 @@ namespace loomis
 
    struct Task
    {
+      bool service{false};
       std::string name;
       std::string cronExpression;
       std::function<void()> func;

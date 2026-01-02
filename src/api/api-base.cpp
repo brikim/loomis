@@ -15,6 +15,11 @@ namespace loomis
    {
    }
 
+   std::optional<Task> ApiBase::GetTask()
+   {
+      return std::nullopt;
+   }
+
    const std::string& ApiBase::GetName() const
    {
       return name_;

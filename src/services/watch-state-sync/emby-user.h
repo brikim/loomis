@@ -26,8 +26,8 @@ namespace loomis
       void SyncStateWithPlex(const TautulliHistoryItem* item, std::string_view path, std::string& target);
 
    private:
-      bool SyncWatchedState(const TautulliHistoryItem* item);
-      bool SyncPlayState(const TautulliHistoryItem* item);
+      bool SyncWatchedState(const TautulliHistoryItem* item, std::string_view path);
+      bool SyncPlayState(const TautulliHistoryItem* item, std::string_view path);
 
       bool valid_{false};
       std::function<void(LogType, const std::string&)> logFunc_;

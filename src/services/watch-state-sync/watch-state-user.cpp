@@ -78,27 +78,18 @@ namespace loomis
       return consolidated;
    }
 
-   std::vector<PlexHistoryItem> WatchStateUser::GetPlexPathsForHistoryItems(std::string_view server, const std::vector<const TautulliHistoryItem*> historyItems)
+   std::unordered_map<int32_t, std::string> WatchStateUser::GetPlexPathsForHistoryItems(std::string_view server, const std::vector<const TautulliHistoryItem*> historyItems)
    {
       auto plexApi = apiManager_->GetPlexApi(server);
 
       // Guard Clause: Exit early if API is unavailable
       if (!plexApi || !plexApi->GetValid()) return {};
 
-      std::vector<PlexHistoryItem> returnHistory;
-      returnHistory.reserve(historyItems.size());
+      std::vector<int32_t> ids;
+      ids.reserve(historyItems.size());
+      for (const auto* item : historyItems) ids.push_back(item->id);
 
-      for (const auto* item : historyItems)
-      {
-         if (auto path = plexApi->GetItemPath(item->id);
-             path.has_value())
-         {
-            // Construct the item directly in the vector
-            returnHistory.emplace_back(item, *path);
-         }
-      }
-
-      return returnHistory;
+      return plexApi->GetItemsPaths(ids);
    }
 
    void WatchStateUser::SyncPlexWatchState(const TautulliHistoryItem* item)
@@ -116,14 +107,18 @@ namespace loomis
       auto userHistory{plexUser->GetWatchHistory(historyDate)};
       if (!userHistory) return;
 
-      auto consolodatedHistory{GetConsolodatedHistory(*userHistory)};
-      auto historyWithPaths{GetPlexPathsForHistoryItems(plexUser->GetServer(), consolodatedHistory)};
+      auto consolodatedHistory = GetConsolodatedHistory(*userHistory);
+      auto historyWithPaths = GetPlexPathsForHistoryItems(plexUser->GetServer(), consolodatedHistory);
 
       std::string syncServers;
-      std::ranges::for_each(historyWithPaths, [this, &syncServers](const auto& entry) {
-         for (auto& user : plexUsers_) user->SyncStateWithPlex(entry.item, entry.path, syncServers);
-         for (auto& user : embyUsers_) user->SyncStateWithPlex(entry.item, entry.path, syncServers);
-      });
+      for (const auto* history : consolodatedHistory)
+      {
+         if (auto iter = historyWithPaths.find(history->id); iter != historyWithPaths.end())
+         {
+            for (auto& user : plexUsers_) user->SyncStateWithPlex(history, iter->second, syncServers);
+            for (auto& user : embyUsers_) user->SyncStateWithPlex(history, iter->second, syncServers);
+         }
+      }
    }
 
    void WatchStateUser::Sync()

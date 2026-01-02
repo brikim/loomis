@@ -8,21 +8,11 @@
 
 #include <functional>
 #include <memory>
+#include <unordered_map>
 #include <vector>
 
 namespace loomis
 {
-   struct PlexHistoryItem
-   {
-      const TautulliHistoryItem* item;
-      std::string path;
-
-      PlexHistoryItem(const TautulliHistoryItem* i, std::string p)
-         : item(i), path(std::move(p))
-      {
-      }
-   };
-
    class WatchStateUser
    {
    public:
@@ -45,7 +35,7 @@ namespace loomis
       // Returns no duplicates. These will be thrown out and the latest item of the duplicates will be returned
       std::vector<const TautulliHistoryItem*> GetConsolodatedHistory(const TautulliHistoryItems& historyItems);
 
-      std::vector<PlexHistoryItem> GetPlexPathsForHistoryItems(std::string_view server, const std::vector<const TautulliHistoryItem*> historyItems);
+      std::unordered_map<int32_t, std::string> GetPlexPathsForHistoryItems(std::string_view server, const std::vector<const TautulliHistoryItem*> historyItems);
 
       bool valid_{false};
       ApiManager* apiManager_{nullptr};

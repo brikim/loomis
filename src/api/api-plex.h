@@ -11,6 +11,7 @@
 #include <list>
 #include <optional>
 #include <string>
+#include <unordered_map>
 
 namespace loomis
 {
@@ -25,6 +26,7 @@ namespace loomis
       [[nodiscard]] std::optional<std::string> GetServerReportedName() override;
       [[nodiscard]] std::optional<std::string> GetLibraryId(std::string_view libraryName);
       [[nodiscard]] std::optional<std::string> GetItemPath(int32_t id);
+      [[nodiscard]] std::unordered_map<int32_t, std::string> GetItemsPaths(const std::vector<int32_t> ids);
 
       // Returns if the collection in the library is valid on this server
       [[nodiscard]] bool GetCollectionValid(std::string_view library, std::string_view collection);

@@ -1,5 +1,6 @@
 #include "api-plex.h"
 
+#include "api/api-utils.h"
 #include "logger/logger.h"
 #include "logger/log-utils.h"
 #include "types.h"
@@ -157,6 +158,39 @@ namespace loomis
       }
 
       return filePath;
+   }
+
+   std::unordered_map<int32_t, std::string> PlexApi::GetItemsPaths(const std::vector<int32_t> ids)
+   {
+      auto pathName = API_LIBRARY_DATA + BuildCommaSeparatedList(ids);
+      auto res = client_.Get(BuildApiPath(pathName), headers_);
+
+      if (!IsHttpSuccess(__func__, res)) return {};
+
+      pugi::xml_document doc;
+      auto parse_result = doc.load_buffer(res->body.data(), res->body.size());
+
+      if (parse_result.status != pugi::status_ok) return {};
+
+      auto container = doc.child(ELEM_MEDIA_CONTAINER);
+      if (!container) return {};
+
+      std::unordered_map<int32_t, std::string> results;
+      results.reserve(ids.size());
+
+      for (auto videoNode : container.children(ELEM_VIDEO.data()))
+      {
+         int32_t ratingKey = videoNode.attribute("ratingKey").as_int();
+         std::string filePath = videoNode.child("Media").child("Part").attribute("file").as_string();
+
+         if (ratingKey != 0 && !filePath.empty())
+         {
+            // Use move to transfer the string into the map efficiently
+            results.emplace(ratingKey, std::move(filePath));
+         }
+      }
+
+      return results;
    }
 
    void PlexApi::SetLibraryScan(std::string_view libraryId)

@@ -1,5 +1,6 @@
 #include "api-emby.h"
 
+#include "api/api-utils.h"
 #include "api/json-helper.h"
 #include "logger/logger.h"
 #include "logger/log-utils.h"
@@ -8,6 +9,7 @@
 #include <json/json.hpp>
 
 #include <format>
+#include <mutex>
 #include <numeric>
 #include <ranges>
 
@@ -48,21 +50,23 @@ namespace loomis
    {
       constexpr time_t timeoutSec{5};
       client_.set_connection_timeout(timeoutSec);
+
+      // If the service is valid run any needed tasks
+      if (GetValid()) RunTasks();
+   }
+
+   std::optional<Task> EmbyApi::GetTask()
+   {
+      Task task;
+      task.name = std::format("EmbyApi({})", GetName());
+      task.cronExpression = "0 30 */1 * * *";
+      task.func = [this]() {this->RunTasks(); };
+      return task;
    }
 
    std::string EmbyApi::BuildApiPath(std::string_view path) const
    {
       return std::format("{}{}?api_key={}", API_BASE, path, GetApiKey());
-   }
-
-   std::string EmbyApi::BuildCommaSeparatedList(const std::vector<std::string>& list)
-   {
-      if (list.empty()) return "";
-
-      return std::accumulate(std::next(list.begin()), list.end(), list[0],
-         [](std::string a, const std::string& b) {
-         return std::move(a) + "," + b;
-      });
    }
 
    bool EmbyApi::GetValid()
@@ -186,16 +190,6 @@ namespace loomis
       }
 
       LogWarning(std::format("GetItem returned no valid results {}", utils::GetTag("search", name)));
-      return std::nullopt;
-   }
-
-   std::optional<std::string> EmbyApi::GetItemIdFromPath(std::string_view path)
-   {
-      if (auto item{GetItem(EmbySearchType::path, path)};
-          item.has_value())
-      {
-         return item.value().id;
-      }
       return std::nullopt;
    }
 
@@ -332,12 +326,10 @@ namespace loomis
 
    void EmbyApi::BuildPathMap()
    {
-      pathMap_.clear();
-
       auto apiUrl{BuildApiPath(API_ITEMS)};
       AddApiParam(apiUrl, {
          {"Recursive", "true"},
-         {"IncludeItemTypes", "Movie"}, // For now just movies are supported in this function
+         {"IncludeItemTypes", "Movie,Episode"},
          {"Fields", "Path"},
          {"IsMissing", "false"}         // Filter out ghost entries
       });
@@ -351,7 +343,7 @@ namespace loomis
       const auto& items = (*data)[ITEMS];
 
       // Pre-allocate memory to prevent re-hashing during the loop
-      pathMap_.reserve(items.size());
+      workingPathMap_.reserve(items.size());
 
       for (const auto& item : items)
       {
@@ -360,14 +352,36 @@ namespace loomis
          if (item.contains("Path") && item.contains("Id") &&
              !item["Path"].is_null() && !item["Id"].is_null())
          {
-            pathMap_.emplace(item["Path"].get<std::string>(),
-                             item["Id"].get<std::string>());
+            workingPathMap_.emplace(item["Path"].get<std::string>(),
+                                    item["Id"].get<std::string>());
          }
       }
    }
 
-   const EmbyPathMap& EmbyApi::GetPathMap() const
+   void EmbyApi::RunTasks()
    {
-      return pathMap_;
+      BuildPathMap();
+
+      std::unique_lock lock(taskLock_);
+      std::swap(workingPathMap_, pathMap_);
+      workingPathMap_.clear();
+   }
+
+   bool EmbyApi::GetPathMapEmpty() const
+   {
+      std::shared_lock lock(taskLock_);
+      return pathMap_.empty();
+   }
+
+   std::optional<std::string> EmbyApi::GetIdFromPathMap(const std::string& path)
+   {
+      std::shared_lock lock(taskLock_);
+
+      // Look up the item once
+      if (auto it = pathMap_.find(path); it != pathMap_.end())
+      {
+         return it->second;
+      }
+      return std::nullopt;
    }
 }

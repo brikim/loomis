@@ -55,19 +55,19 @@ namespace loomis
 
    }
 
-   bool EmbyUser::SyncWatchedState(const TautulliHistoryItem* item)
+   bool EmbyUser::SyncWatchedState(const TautulliHistoryItem* item, std::string_view path)
    {
       return false;
    }
 
-   bool EmbyUser::SyncPlayState(const TautulliHistoryItem* item)
+   bool EmbyUser::SyncPlayState(const TautulliHistoryItem* item, std::string_view path)
    {
       return false;
    }
 
    void EmbyUser::SyncStateWithPlex(const TautulliHistoryItem* item, std::string_view path, std::string& target)
    {
-      if (item->watched ? SyncWatchedState(item) : SyncPlayState(item))
+      if (item->watched ? SyncWatchedState(item, path) : SyncPlayState(item, path))
       {
          target = utils::BuildTargetString(target, utils::GetFormattedEmby(), config_.server);
       }

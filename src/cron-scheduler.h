@@ -1,6 +1,7 @@
 #pragma once
 
 #include "types.h"
+
 #include <chrono>
 #include <condition_variable>
 #include <croncpp/croncpp.h>
@@ -14,9 +15,8 @@ namespace loomis
 {
    struct CronTask
    {
-      std::string name;
+      Task task;
       cron::cronexpr cron;
-      std::function<void()> func;
       std::chrono::system_clock::time_point nextRun;
    };
 

@@ -6,6 +6,7 @@
 #include "api/api-plex.h"
 #include "api/api-tautulli.h"
 #include "config-reader/config-reader.h"
+#include "cron-scheduler.h"
 #include "types.h"
 
 #include <memory>
@@ -19,6 +20,8 @@ namespace loomis
    public:
       ApiManager(std::shared_ptr<ConfigReader> configReader);
       virtual ~ApiManager() = default;
+
+      void AddTasks(CronScheduler& cronScheduler);
 
       [[nodiscard]] ApiBase* GetApi(ApiType type, std::string_view name) const;
       [[nodiscard]] PlexApi* GetPlexApi(std::string_view name) const;
@@ -39,6 +42,16 @@ namespace loomis
          auto& api = container.emplace_back(std::make_unique<ApiT>(config));
          api->GetValid() ? LogServerConnectionSuccess(logName, api.get()) : LogServerConnectionError(logName, api.get());
          return api.get();
+      }
+
+      template <typename ContainerT>
+      void InitializeTasks(CronScheduler& cronScheduler, ContainerT& container)
+      {
+         for (auto& api : container)
+         {
+            auto task = api->GetTask();
+            if (task) cronScheduler.Add(*task);
+         }
       }
 
       // In header (private):

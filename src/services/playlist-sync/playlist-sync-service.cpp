@@ -41,11 +41,6 @@ namespace loomis
                if (embyApi)
                {
                   collection.embyServers.emplace_back(embyServerName);
-
-                  if (std::ranges::find(usedEmbyServers_, embyServerName) == usedEmbyServers_.end())
-                  {
-                     usedEmbyServers_.push_back(embyServerName);
-                  }
                }
                else
                {
@@ -205,9 +200,7 @@ namespace loomis
 
    void PlaylistSyncService::SyncEmbyPlaylist(PlexApi* plexApi, EmbyApi* embyApi, const PlexCollection& plexCollection)
    {
-      const auto& pathMap = embyApi->GetPathMap();
-
-      if (pathMap.empty() && !plexCollection.items.empty())
+      if (embyApi->GetPathMapEmpty() && !plexCollection.items.empty())
       {
          LogWarning(std::format("{} path map is empty. {} {} can not be synced.",
                                 utils::GetServerName(utils::GetFormattedEmby(), embyApi->GetName()),
@@ -222,11 +215,10 @@ namespace loomis
          bool foundItem{false};
          for (auto& path : item.paths)
          {
-            auto iter = pathMap.find(path);
-            if (iter != pathMap.end())
+            if (auto id = embyApi->GetIdFromPathMap(path); id)
             {
                foundItem = true;
-               updatedPlaylistIds.emplace_back(iter->second);
+               updatedPlaylistIds.emplace_back(std::move(*id));
                break;
             }
          }
@@ -267,17 +259,6 @@ namespace loomis
 
    void PlaylistSyncService::Run()
    {
-      // Do this once for the run. Rebuild the path map for each used emby server
-      for (const auto& embyServer : usedEmbyServers_)
-      {
-         if (auto* embyApi{GetApiManager()->GetEmbyApi(embyServer)};
-                   embyApi->GetValid())
-         {
-            // Build the path map for all items to prevent hundreds of api calls later
-            embyApi->BuildPathMap();
-         }
-      }
-
       for (auto& plexCollection : plexCollections_)
       {
          if (auto* plexApi{GetApiManager()->GetPlexApi(plexCollection.server)};

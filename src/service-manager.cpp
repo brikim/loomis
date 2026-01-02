@@ -39,6 +39,10 @@ namespace loomis
          return;
       }
 
+      // Add any needed api tasks
+      apiManager_->AddTasks(cronScheduler_);
+
+      // Services are required to have tasks so add
       for (const auto& service : services_)
       {
          cronScheduler_.Add(service->GetTask());

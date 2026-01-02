@@ -39,6 +39,14 @@ namespace loomis
       }
    }
 
+   void ApiManager::AddTasks(CronScheduler& cronScheduler)
+   {
+      InitializeTasks(cronScheduler, plexApis_);
+      InitializeTasks(cronScheduler, tautulliApis_);
+      InitializeTasks(cronScheduler, embyApis_);
+      InitializeTasks(cronScheduler, jellystatApis_);
+   }
+
    void ApiManager::LogServerConnectionSuccess(std::string_view serverName, ApiBase* api)
    {
       auto reported = api->GetServerReportedName();

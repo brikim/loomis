@@ -2,6 +2,7 @@
 
 #include "base.h"
 #include "config-reader/config-reader-types.h"
+#include "types.h"
 
 #include <httplib/httplib.h>
 #include <json/json.hpp>
@@ -16,6 +17,9 @@ namespace loomis
    public:
       ApiBase(std::string_view name, const ServerConnectionConfig& serverConnection, std::string_view className, std::string_view ansiiCode);
       virtual ~ApiBase() = default;
+
+      // Api tasks are optional. Api's can override to perform a task
+      [[nodiscard]] virtual std::optional<Task> GetTask();
 
       [[nodiscard]] const std::string& GetName() const;
       [[nodiscard]] const std::string& GetUrl() const;

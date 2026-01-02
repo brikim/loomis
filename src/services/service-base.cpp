@@ -16,6 +16,7 @@ namespace loomis
       : Base(name, ansiiColor, std::nullopt)
       , apiManager_(apiManager)
    {
+      task_.service = true;
       task_.name = utils::GetAnsiText(name, ansiiColor);
       task_.cronExpression = cronSchedule;
       task_.func = [this]() { this->Run(); };
