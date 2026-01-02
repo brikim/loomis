@@ -30,6 +30,7 @@ ENV CONFIG_PATH='/config'
 ENV LOG_PATH='/logs'
 
 RUN apt update && \
+	apt install -y --no-install-recommends libstdc++6 && \
 	apt upgrade -y && \
 	rm -rf /var/lib/apt/lists/*
 
