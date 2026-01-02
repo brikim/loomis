@@ -37,8 +37,11 @@ namespace loomis::utils
    inline const std::string ANSI_FORMATTED_TAUTULLI(std::format("{}Tautulli{}", ANSI_CODE_TAUTULLI, ANSI_CODE_LOG));
    inline const std::string ANSI_FORMATTED_JELLYSTAT(std::format("{}Jellystat{}", ANSI_CODE_JELLYSTAT, ANSI_CODE_LOG));
 
-   inline std::string GetTag(std::string_view tag, std::string_view value)
+   template <typename T>
+   inline std::string GetTag(std::string_view tag, const T& value)
    {
+      // std::format will handle converting the value to a string 
+      // regardless of whether it is a string, int, or bool.
       return std::format("{}{}{}={}", ANSI_CODE_TAG, tag, ANSI_CODE_LOG, value);
    }
 

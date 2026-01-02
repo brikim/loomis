@@ -17,24 +17,30 @@ namespace loomis
    class ServiceManager
    {
    public:
-      ServiceManager(std::shared_ptr<ConfigReader> configReader);
+      explicit ServiceManager(std::shared_ptr<ConfigReader> configReader);
       virtual ~ServiceManager() = default;
 
+      // Prevents the main thread from exiting
       void Run();
 
+      // Triggers the shutdown sequence
       void ProcessShutdown();
 
    private:
       void CreateServices();
 
+      // Re-ordered slightly for safety
       std::shared_ptr<ConfigReader> configReader_;
       std::shared_ptr<ApiManager> apiManager_;
+
+      // Services often depend on APIs, so declare services after APIs
+      std::vector<std::unique_ptr<ServiceBase>> services_;
+
+      // Scheduler is last to ensure it's first to stop during destruction
       CronScheduler cronScheduler_;
 
       std::atomic_bool shutdownService_{false};
       std::mutex runCvLock_;
       std::condition_variable runCv_;
-
-      std::vector<std::unique_ptr<ServiceBase>> services_;
    };
 }

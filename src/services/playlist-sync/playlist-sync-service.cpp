@@ -74,48 +74,45 @@ namespace loomis
       }
    }
 
-   std::pair<size_t, size_t> PlaylistSyncService::AddRemoveEmbyPlaylistItems(EmbyApi* embyApi, const EmbyPlaylist& currentPlaylist, const std::vector<std::string>& updatedPlaylistIds)
+   std::pair<size_t, size_t> PlaylistSyncService::AddRemoveEmbyPlaylistItems(EmbyApi* embyApi,
+                                                                             const EmbyPlaylist& currentPlaylist,
+                                                                             const std::vector<std::string>& updatedPlaylistIds)
    {
       std::vector<std::string> addIds;
-      for (const auto& updatedId : updatedPlaylistIds)
+      for (const auto& targetId : updatedPlaylistIds)
       {
-         auto found = std::ranges::any_of(currentPlaylist.items, [&updatedId](const auto& item) {
-            return item.id == updatedId;
-         });
+         bool doesNotExist = std::ranges::none_of(currentPlaylist.items,
+             [&targetId](const auto& item) { return item.id == targetId; });
 
-         if (!found)
-         {
-            addIds.emplace_back(updatedId);
-         }
+         if (doesNotExist) addIds.push_back(targetId);
       }
 
       std::vector<std::string> deleteIds;
       for (const auto& item : currentPlaylist.items)
       {
-         auto notFound = std::ranges::none_of(updatedPlaylistIds, [&item](const auto& id) {
-            return item.id == id;
-         });
+         bool doesNotExist = std::ranges::none_of(updatedPlaylistIds,
+             [&item](const auto& targetId) { return item.id == targetId; });
 
-         if (notFound)
-         {
-            deleteIds.emplace_back(item.playlistId);
-         }
+         if (doesNotExist) deleteIds.push_back(item.playlistId);
       }
 
+      auto logPlaylistWarning = [this, &embyApi, &currentPlaylist](bool addErr, const std::vector<std::string>& ids) {
+         LogWarning(std::format("{} failed to {} {} to {}",
+                                utils::GetServerName(utils::GetFormattedEmby(), embyApi->GetName()),
+                                addErr ? "add" : "remove",
+                                utils::GetTag("item_count", ids.size()),
+                                utils::GetTag("playlist", currentPlaylist.name)));
+      };
+
+      // API Calls
       if (!addIds.empty() && !embyApi->AddPlaylistItems(currentPlaylist.id, addIds))
       {
-         LogWarning(std::format("{} failed to add {} to {}",
-                                utils::GetServerName(utils::GetFormattedEmby(), embyApi->GetName()),
-                                utils::GetTag("item_count", std::to_string(addIds.size())),
-                                utils::GetTag("playlist", currentPlaylist.name)));
+         logPlaylistWarning(true, addIds);
       }
 
       if (!deleteIds.empty() && !embyApi->RemovePlaylistItems(currentPlaylist.id, deleteIds))
       {
-         LogWarning(std::format("{} failed to remove {} from {}",
-                                utils::GetServerName(utils::GetFormattedEmby(), embyApi->GetName()),
-                                utils::GetTag("item_count", std::to_string(addIds.size())),
-                                utils::GetTag("playlist", currentPlaylist.name)));
+         logPlaylistWarning(false, deleteIds);
       }
 
       return {addIds.size(), deleteIds.size()};
@@ -162,10 +159,23 @@ namespace loomis
       return locationChanged;
    }
 
-   void PlaylistSyncService::UpdateEmbyPlaylist(PlexApi* plexApi, EmbyApi* embyApi, std::string_view playlistName, const std::vector<std::string>& correctIds)
+   void PlaylistSyncService::UpdateEmbyPlaylist(PlexApi* plexApi,
+                                                EmbyApi* embyApi,
+                                                std::string_view playlistName,
+                                                const std::vector<std::string>& correctIds)
    {
-      auto currentEmbyPlaylist{embyApi->GetPlaylist(playlistName)};
-      if (!currentEmbyPlaylist.has_value())
+      auto currentPlaylist = embyApi->GetPlaylist(playlistName);
+      if (!currentPlaylist) return;
+
+      auto [added, removed] = AddRemoveEmbyPlaylistItems(embyApi, *currentPlaylist, correctIds);
+
+      if (added > 0 || removed > 0)
+      {
+         std::this_thread::sleep_for(std::chrono::seconds(timeForEmbyUpdateSec_));
+         currentPlaylist = embyApi->GetPlaylist(playlistName); // Re-fetch ONCE after structural changes
+      }
+
+      if (!currentPlaylist)
       {
          LogWarning(std::format("{} failed to retrieve {} on update",
                                 utils::GetServerName(utils::GetFormattedEmby(), embyApi->GetName()),
@@ -173,63 +183,59 @@ namespace loomis
          return;
       }
 
-      auto addRemoveResult{AddRemoveEmbyPlaylistItems(embyApi, currentEmbyPlaylist.value(), correctIds)};
-      if (addRemoveResult.first > 0 || addRemoveResult.second > 0)
+      if (currentPlaylist->items.size() != correctIds.size())
       {
-         // Sleep to give Emby time to update for the next step
-         std::this_thread::sleep_for(std::chrono::seconds(timeForEmbyUpdateSec_));
-
-         // Update the playlist to get the latest since it was changed
-         currentEmbyPlaylist = embyApi->GetPlaylist(playlistName);
-      }
-
-      // Detect an error condition. Will not proceed if detected.
-      if (!currentEmbyPlaylist.has_value() || currentEmbyPlaylist.value().items.size() != correctIds.size())
-      {
-         if (!currentEmbyPlaylist.has_value())
-         {
-            LogWarning(std::format("{} failed to retrieve {} on update",
-                                   utils::GetServerName(utils::GetFormattedEmby(), embyApi->GetName()),
-                                   utils::GetTag("playlist", playlistName)));
-         }
-         else
-         {
-            LogWarning(std::format("{} sync {} {} playlist updated failed. Playlist length should be {} but {}",
-                                   utils::GetServerName(utils::GetFormattedEmby(), embyApi->GetName()),
-                                   utils::GetServerName(utils::GetFormattedPlex(), plexApi->GetName()),
-                                   utils::GetTag("collection", playlistName),
-                                   utils::GetTag("length", std::to_string(correctIds.size())),
-                                   utils::GetTag("reported_length", std::to_string(currentEmbyPlaylist.value().items.size()))));
-         }
+         LogWarning(std::format("{} sync {} {} playlist updated failed. Playlist length should be {} but {}",
+                                utils::GetServerName(utils::GetFormattedEmby(), embyApi->GetName()),
+                                utils::GetServerName(utils::GetFormattedPlex(), plexApi->GetName()),
+                                utils::GetTag("collection", playlistName),
+                                utils::GetTag("length", correctIds.size()),
+                                utils::GetTag("reported_length", currentPlaylist->items.size())));
          return;
       }
 
-      // If we are here the size of the updated playlist and the updated playlist ids is the same
-      auto orderChanged = !std::ranges::equal(correctIds, currentEmbyPlaylist.value().items, std::equal_to<>{}, {}, & EmbyPlaylistItem::id);
-      if (orderChanged)
+      // Use a lightweight tracker to avoid copying heavy strings
+      struct MoveTracker
       {
-         for (int32_t i = 0; i < correctIds.size(); ++i)
+         std::string_view id; std::string_view pId;
+      };
+      std::vector<MoveTracker> virtualItems;
+      virtualItems.reserve(currentPlaylist->items.size());
+      for (const auto& item : currentPlaylist->items) virtualItems.push_back({item.id, item.playlistId});
+
+      bool orderChanged = false;
+      for (uint32_t i = 0; i < correctIds.size(); ++i)
+      {
+         // If already correct, skip search
+         if (virtualItems[i].id == correctIds[i]) continue;
+
+         // Efficiency gain: Search from current position 'i'
+         auto it = std::find_if(virtualItems.begin() + i, virtualItems.end(),
+                                [&](const auto& vt) { return vt.id == correctIds[i]; });
+
+         if (it != virtualItems.end())
          {
-            // If the update was successful get the new playlist. This is needed to prevent
-            // unnecessary moves to the emby server.
-            if (UpdateToCorrectLocation(embyApi, currentEmbyPlaylist.value(), correctIds[i], i))
+            if (embyApi->MovePlaylistItem(currentPlaylist->id, it->pId, i))
             {
-               // Moved an item. Get the new playlist
-               currentEmbyPlaylist = embyApi->GetPlaylist(playlistName);
+               auto itemToMove = *it;
+               virtualItems.erase(it);
+               virtualItems.insert(virtualItems.begin() + i, itemToMove);
+               orderChanged = true;
+
+               std::this_thread::sleep_for(std::chrono::milliseconds(200));
             }
          }
       }
 
-      // Log results if needed
-      if (orderChanged || addRemoveResult.first > 0 || addRemoveResult.second > 0)
+      if (orderChanged || added > 0 || removed > 0)
       {
          LogInfo(std::format("Syncing {} {} to {} {} {} {}",
                              utils::GetServerName(utils::GetFormattedPlex(), plexApi->GetName()),
                              utils::GetTag("collection", playlistName),
                              utils::GetServerName(utils::GetFormattedEmby(), embyApi->GetName()),
-                             utils::GetTag("added", std::to_string(addRemoveResult.first)),
-                             utils::GetTag("deleted", std::to_string(addRemoveResult.second)),
-                             utils::GetTag("reordered", orderChanged ? "True" : "False")));
+                             utils::GetTag("added", added),
+                             utils::GetTag("removed", removed),
+                             utils::GetTag("reordered", orderChanged ? "true" : "false")));
       }
    }
 

@@ -33,4 +33,25 @@ namespace loomis
    {
       Logger::Instance().Error(std::format("{} {}", logHeader_, msg));
    }
+
+   void Base::Log(LogType type, const std::string& msg)
+   {
+      switch (type)
+      {
+         case LogType::TRACE:
+            LogTrace(msg);
+            break;
+         case LogType::INFO:
+            LogInfo(msg);
+            break;
+         case LogType::WARN:
+            LogWarning(msg);
+            break;
+         case LogType::ERR:
+            LogError(msg);
+            break;
+         default:
+            break;
+      }
+   }
 }

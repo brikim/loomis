@@ -30,7 +30,20 @@ namespace loomis
       return apiKey_;
    }
 
-   std::string ApiBase::GetPercentEncoded(std::string_view src)
+   void ApiBase::AddApiParam(std::string& url, const std::list<std::pair<std::string_view, std::string_view>>& params) const
+   {
+      if (params.empty()) return;
+
+      for (const auto& [key, value] : params)
+      {
+         char separator = (url.find('?') == std::string::npos) ? '?' : '&';
+
+         // Use the encoding utility on the 'value'
+         url.append(std::format("{}{}={}", separator, key, GetPercentEncoded(value)));
+      }
+   }
+
+   std::string ApiBase::GetPercentEncoded(std::string_view src) const
    {
       // 1. Lookup table for "unreserved" characters (RFC 3986)
       // 0 = needs encoding, 1 = safe
@@ -75,14 +88,24 @@ namespace loomis
 
    bool ApiBase::IsHttpSuccess(std::string_view name, const httplib::Result& result)
    {
-      if (result.error() != httplib::Error::Success || result.value().status >= VALID_HTTP_RESPONSE_MAX)
+      std::string error;
+
+      if (result.error() != httplib::Error::Success)
       {
-         LogWarning(std::format("{} - HTTP error {}",
-                                name,
-                                utils::GetTag("error",
-                                              result.value().status >= VALID_HTTP_RESPONSE_MAX ? std::format("{} - {}", result.value().reason, result.value().body) : httplib::to_string(result.error()))));
-         return false;
+         error = httplib::to_string(result.error());
       }
-      return true;
+      else if (result->status >= 400) // Using 400 is more standard than a custom MAX
+      {
+         error = std::format("Status {}: {} - {}", result->status, result->reason, result->body);
+      }
+      else
+      {
+         // Everything passed
+         return true;
+      }
+
+      // If we reached here, something went wrong
+      LogWarning(std::format("{} - HTTP error {}", name, utils::GetTag("error", error)));
+      return false;
    }
 }

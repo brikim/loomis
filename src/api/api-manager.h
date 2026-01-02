@@ -9,6 +9,7 @@
 #include "types.h"
 
 #include <memory>
+#include <ranges>
 #include <vector>
 
 namespace loomis
@@ -31,6 +32,24 @@ namespace loomis
 
       void LogServerConnectionSuccess(std::string_view serverName, ApiBase* api);
       void LogServerConnectionError(std::string_view serverName, ApiBase* api);
+
+      template <typename ApiT, typename ContainerT>
+      ApiT* InitializeApi(ContainerT& container, const ServerConfig& config, std::string_view logName)
+      {
+         auto& api = container.emplace_back(std::make_unique<ApiT>(config));
+         api->GetValid() ? LogServerConnectionSuccess(logName, api.get()) : LogServerConnectionError(logName, api.get());
+         return api.get();
+      }
+
+      // In header (private):
+      template <typename T>
+      [[nodiscard]] T* FindApi(const std::vector<std::unique_ptr<T>>& container, std::string_view name) const
+      {
+         auto it = std::ranges::find_if(container, [name](const auto& api) {
+            return api->GetName() == name;
+         });
+         return it != container.end() ? it->get() : nullptr;
+      }
 
       std::vector<std::unique_ptr<PlexApi>> plexApis_;
       std::vector<std::unique_ptr<EmbyApi>> embyApis_;

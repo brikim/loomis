@@ -1,5 +1,7 @@
 #pragma once
 
+#include "types.h"
+
 #include <optional>
 #include <string>
 
@@ -17,6 +19,8 @@ namespace loomis
       void LogInfo(const std::string& msg);
       void LogWarning(const std::string& msg);
       void LogError(const std::string& msg);
+
+      void Log(LogType type, const std::string& msg);
 
    private:
       std::string logHeader_;

@@ -23,7 +23,7 @@ namespace loomis
          Logger::Instance().Warning(std::format("JSON parse {} {} {} {}",
                                                 utils::GetTag("file", location.file_name()),
                                                 utils::GetTag("function_name", location.function_name()),
-                                                utils::GetTag("line_num", std::to_string(location.line())),
+                                                utils::GetTag("line_num", location.line()),
                                                 utils::GetTag("error", e.what())));
          return std::nullopt;
       }
@@ -44,7 +44,7 @@ namespace loomis
          Logger::Instance().Warning(std::format("JSON get {} {} {} {} {}",
                                                 utils::GetTag("file", location.file_name()),
                                                 utils::GetTag("function_name", location.function_name()),
-                                                utils::GetTag("line_num", std::to_string(location.line())),
+                                                utils::GetTag("line_num", location.line()),
                                                 utils::GetTag("key", key),
                                                 utils::GetTag("error", e.what())));
       }
@@ -66,7 +66,7 @@ namespace loomis
          Logger::Instance().Warning(std::format("JSON get pointer {} {} {} {} {}",
                                                 utils::GetTag("file", location.file_name()),
                                                 utils::GetTag("function_name", location.function_name()),
-                                                utils::GetTag("line_num", std::to_string(location.line())),
+                                                utils::GetTag("line_num", location.line()),
                                                 utils::GetTag("ptr", ptr.to_string()),
                                                 utils::GetTag("error", e.what())));
       }

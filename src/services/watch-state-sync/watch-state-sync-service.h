@@ -3,6 +3,10 @@
 #include "api/api-manager.h"
 #include "config-reader/config-reader-types.h"
 #include "services/service-base.h"
+#include "services/watch-state-sync/emby-user.h"
+#include "services/watch-state-sync/plex-user.h"
+#include "services/watch-state-sync/watch-state-user.h"
+
 #include "types.h"
 
 #include <optional>
@@ -20,10 +24,8 @@ namespace loomis
       void Run() override;
 
    private:
-      bool CheckValidUser(ApiType type, ApiType trackerType, const ServerUser& serverUser);
-
       void Init(const WatchStateSyncConfig& config);
 
-      std::vector<UserSyncConfig> watchStateUsers_;
+      std::vector<std::unique_ptr<WatchStateUser>> users_;
    };
 }

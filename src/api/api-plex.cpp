@@ -14,9 +14,11 @@ namespace loomis
       const std::string API_BASE{""};
       const std::string API_SERVERS{"/servers"};
       const std::string API_LIBRARIES{"/library/sections/"};
+      const std::string API_LIBRARY_DATA{"/library/metadata/"};
 
       constexpr std::string_view ELEM_MEDIA_CONTAINER{"MediaContainer"};
       constexpr std::string_view ELEM_MEDIA{"Media"};
+      constexpr std::string_view ELEM_VIDEO{"Video"};
 
       constexpr std::string_view ATTR_NAME{"name"};
       constexpr std::string_view ATTR_KEY{"key"};
@@ -57,7 +59,14 @@ namespace loomis
 
    std::string PlexApi::BuildApiPath(std::string_view path)
    {
-      return std::format("{}{}?X-Plex-Token={}", API_BASE, path, GetApiKey());
+      // Determine if we should start the query string or append to it
+      char separator = (path.find('?') == std::string_view::npos) ? '?' : '&';
+
+      return std::format("{}{}{}X-Plex-Token={}",
+                         API_BASE,
+                         path,
+                         separator,
+                         GetApiKey());
    }
 
    bool PlexApi::GetValid()
@@ -68,139 +77,164 @@ namespace loomis
 
    std::optional<std::string> PlexApi::GetServerReportedName()
    {
-      httplib::Headers header;
-      if (auto res = client_.Get(BuildApiPath(API_SERVERS), header);
-          res.error() == httplib::Error::Success)
+      auto res = client_.Get(BuildApiPath(API_SERVERS), headers_);
+
+      if (!IsHttpSuccess(__func__, res)) return std::nullopt;
+
+      pugi::xml_document doc;
+      if (doc.load_buffer(res->body.data(), res->body.size()).status != pugi::status_ok)
       {
-         pugi::xml_document data;
-         if (data.load_buffer(res.value().body.c_str(), res.value().body.size()).status == pugi::status_ok
-             && data.child(ELEM_MEDIA_CONTAINER)
-             && data.child(ELEM_MEDIA_CONTAINER).first_child()
-             && data.child(ELEM_MEDIA_CONTAINER).first_child().attribute(ATTR_NAME))
-         {
-            return data.child(ELEM_MEDIA_CONTAINER).first_child().attribute(ATTR_NAME).as_string();
-         }
-         else
-         {
-            LogWarning("GetServerReportedName malformed xml reply received");
-         }
+         LogWarning(std::format("{} - Malformed XML reply received", __func__));
+         return std::nullopt;
       }
-      return std::nullopt;
+
+      pugi::xpath_node serverNode = doc.select_node("//Server[@name]");
+
+      if (!serverNode)
+      {
+         LogWarning(std::format("{} - No Server element with a name attribute found", __func__));
+         return std::nullopt;
+      }
+
+      return serverNode.node().attribute(ATTR_NAME).as_string();
    }
 
    std::optional<std::string> PlexApi::GetLibraryId(std::string_view libraryName)
    {
-      if (auto res = client_.Get(BuildApiPath(API_LIBRARIES), headers_);
-          res.error() == httplib::Error::Success)
+      auto res = client_.Get(BuildApiPath(API_LIBRARIES), headers_);
+
+      if (!IsHttpSuccess(__func__, res)) return std::nullopt;
+
+      pugi::xml_document doc;
+      if (doc.load_buffer(res->body.data(), res->body.size()).status != pugi::status_ok)
       {
-         pugi::xml_document data;
-         if (data.load_buffer(res.value().body.c_str(), res.value().body.size()).status == pugi::status_ok
-             && data.child(ELEM_MEDIA_CONTAINER))
-         {
-            for (const auto& library : data.child(ELEM_MEDIA_CONTAINER))
-            {
-               if (library
-                   && library.attribute(ATTR_TITLE)
-                   && library.attribute(ATTR_TITLE).as_string() == libraryName
-                   && library.attribute(ATTR_KEY))
-               {
-                  return library.attribute(ATTR_KEY).as_string();
-               }
-            }
-         }
+         return std::nullopt;
       }
-      return std::nullopt;
+
+      std::string query = std::format("//{}[@{}='{}']", "Directory", ATTR_TITLE, libraryName);
+      pugi::xpath_node libraryNode = doc.select_node(query.c_str());
+
+      if (!libraryNode)
+      {
+         return std::nullopt;
+      }
+
+      std::string key = libraryNode.node().attribute(ATTR_KEY).as_string();
+
+      return key.empty() ? std::nullopt : std::make_optional(key);
+   }
+
+   std::optional<std::string> PlexApi::GetItemPath(int32_t id)
+   {
+      auto pathName = API_LIBRARY_DATA + std::to_string(id);
+      auto res = client_.Get(BuildApiPath(pathName), headers_);
+
+      if (!IsHttpSuccess(__func__, res))
+      {
+         return std::nullopt;
+      }
+
+      pugi::xml_document doc;
+      auto parse_result = doc.load_buffer(res->body.data(), res->body.size());
+
+      if (parse_result.status != pugi::status_ok)
+      {
+         return std::nullopt;
+      }
+
+      auto container = doc.child(ELEM_MEDIA_CONTAINER);
+      if (!container) return std::nullopt;
+
+      auto videoNode = container.child(ELEM_VIDEO);
+      if (!videoNode) return std::nullopt;
+
+      auto partNode = videoNode.child("Media").child("Part");
+
+      std::string filePath = partNode.attribute("file").as_string();
+      if (filePath.empty())
+      {
+         return std::nullopt;
+      }
+
+      return filePath;
    }
 
    void PlexApi::SetLibraryScan(std::string_view libraryId)
    {
       auto apiUrl = BuildApiPath(std::format("{}{}/refresh", API_LIBRARIES, libraryId));
-      if (auto res = client_.Get(apiUrl, headers_);
-          res.error() != httplib::Error::Success
-          || res.value().status >= VALID_HTTP_RESPONSE_MAX)
-      {
-         LogWarning(std::format("Library Scan {}",
-                                utils::GetTag("error", res.error() != httplib::Error::Success
-                                              ? std::to_string(static_cast<int>(res.error()))
-                                              : std::format("{} - {}", res.value().reason, res.value().body))
-         ));
-      }
+      auto res = client_.Get(apiUrl, headers_);
+      IsHttpSuccess(__func__, res);
    }
 
-   const pugi::xml_node* PlexApi::GetCollectionNode(std::string_view library, std::string_view collection)
+   pugi::xml_node PlexApi::GetCollectionNode(std::string_view library, std::string_view collection)
    {
-      auto libraryId{GetLibraryId(library)};
-      if (!libraryId.has_value())
+      auto libraryId = GetLibraryId(library);
+      if (!libraryId) return {}; // Returns a "null" node
+
+      std::string apiUrl = BuildApiPath(std::format("{}{}/all", API_LIBRARIES, *libraryId));
+      apiUrl += std::format("&type={}&title={}",
+                            static_cast<int>(PlexSearchTypes::collection),
+                            collection);
+
+      auto res = client_.Get(apiUrl, headers_);
+
+      if (!IsHttpSuccess(__func__, res)) return {};
+
+      if (collectionDoc_.load_buffer(res->body.data(), res->body.size()).status != pugi::status_ok)
       {
-         return nullptr;
+         return {};
       }
 
-      auto apiUrl = BuildApiPath(std::format("{}{}/all", API_LIBRARIES, libraryId.value()));
-      apiUrl.append(std::format("&type={}", static_cast<int>(PlexSearchTypes::collection), collection));
-      if (auto res = client_.Get(apiUrl, headers_);
-          res.error() == httplib::Error::Success)
-      {
-         if (collectionDoc_.load_buffer(res.value().body.c_str(), res.value().body.size()).status == pugi::status_ok
-             && collectionDoc_.child(ELEM_MEDIA_CONTAINER))
-         {
-            for (const auto& plexCollection : collectionDoc_.child(ELEM_MEDIA_CONTAINER))
-            {
-               if (plexCollection.attribute(ATTR_TITLE)
-                   && collection == plexCollection.attribute(ATTR_TITLE).as_string())
-               {
-                  return &plexCollection;
-               }
-            }
-         }
-      }
-      return nullptr;
+      std::string query = std::format("//{}[@{}='{}']", "Directory", ATTR_TITLE, collection);
+      pugi::xpath_node match = collectionDoc_.select_node(query.c_str());
+
+      return match.node();
    }
 
    bool PlexApi::GetCollectionValid(std::string_view library, std::string_view collection)
    {
-      return GetCollectionNode(library, collection) != nullptr;
+      return !GetCollectionNode(library, collection).empty();
    }
 
-   std::optional<PlexCollection> PlexApi::GetCollection(std::string_view library, std::string_view collection)
+   std::optional<PlexCollection> PlexApi::GetCollection(std::string_view library, std::string_view collectionName)
    {
-      if (auto* node{GetCollectionNode(library, collection)};
-          node != nullptr
-          && node->attribute(ATTR_KEY))
+      auto node = GetCollectionNode(library, collectionName);
+      if (node.empty()) return std::nullopt;
+
+      auto key = node.attribute(ATTR_KEY).as_string();
+      if (std::string_view(key).empty()) return std::nullopt;
+
+      auto res = client_.Get(BuildApiPath(key), headers_);
+      if (!IsHttpSuccess(__func__, res)) return std::nullopt;
+
+      pugi::xml_document doc;
+      if (doc.load_buffer(res->body.data(), res->body.size()).status != pugi::status_ok) return std::nullopt;
+
+      auto container = doc.child(ELEM_MEDIA_CONTAINER);
+      if (!container) return std::nullopt;
+
+      PlexCollection collection;
+      collection.name = collectionName;
+
+      for (auto itemNode : container.children())
       {
-         auto apiUrl = BuildApiPath(node->attribute(ATTR_KEY).as_string());
-         if (auto res = client_.Get(apiUrl, headers_);
-             res.error() == httplib::Error::Success)
+         // Skip items without media info
+         auto mediaNode = itemNode.child(ELEM_MEDIA);
+         if (!mediaNode) continue;
+
+         auto& item = collection.items.emplace_back();
+         item.title = itemNode.attribute(ATTR_TITLE).as_string();
+
+         // 4. Extract paths from Media -> Part hierarchy
+         for (auto partNode : itemNode.select_nodes("Media/Part"))
          {
-            pugi::xml_document data;
-            if (data.load_buffer(res.value().body.c_str(), res.value().body.size()).status == pugi::status_ok
-                && data.child(ELEM_MEDIA_CONTAINER))
+            if (auto path = partNode.node().attribute("file").as_string(); *path)
             {
-               PlexCollection  returnCollection;
-               returnCollection.name = collection;
-
-               for (const auto& itemNode : data.child(ELEM_MEDIA_CONTAINER))
-               {
-                  if (itemNode.attribute(ATTR_TITLE)
-                      && itemNode.child(ELEM_MEDIA))
-                  {
-                     auto& collectionItem{returnCollection.items.emplace_back()};
-                     collectionItem.title = itemNode.attribute(ATTR_TITLE).as_string();
-
-                     for (const auto& mediaNode : itemNode.child(ELEM_MEDIA))
-                     {
-                        if (mediaNode.attribute(ATTR_FILE))
-                        {
-                           collectionItem.paths.emplace_back(mediaNode.attribute(ATTR_FILE).as_string());
-                        }
-                     }
-                  }
-               }
-
-               return returnCollection;
+               item.paths.emplace_back(path);
             }
          }
       }
 
-      return std::nullopt;
+      return collection;
    }
 }

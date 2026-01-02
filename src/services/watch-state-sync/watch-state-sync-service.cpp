@@ -15,62 +15,24 @@ namespace loomis
       Init(config);
    }
 
-   bool WatchStateSyncService::CheckValidUser(ApiType type, ApiType trackerType, const ServerUser& serverUser)
-   {
-      auto* api{GetApiManager()->GetApi(type, serverUser.server)};
-      auto* trackerApi{GetApiManager()->GetApi(trackerType, serverUser.server)};
-      if (api && trackerApi)
-      {
-         return true;
-      }
-      else
-      {
-         if (!api)
-         {
-            LogWarning(std::format("{} api not found for {}",
-                                   utils::GetServerName(utils::GetFormattedApiName(type), serverUser.server),
-                                   utils::GetTag("user", serverUser.user)));
-         }
-
-         if (!trackerApi)
-         {
-            LogWarning(std::format("{} tracker api not found for {}. Required for this service.",
-                                   utils::GetServerName(utils::GetFormattedApiName(trackerType), serverUser.server),
-                                   utils::GetTag("user", serverUser.user)));
-         }
-      }
-      return false;
-   }
-
    void WatchStateSyncService::Init(const WatchStateSyncConfig& config)
    {
       for (const auto& configUser : config.userSyncs)
       {
-         UserSyncConfig watchStateUser;
-
-         std::ranges::for_each(configUser.plex, [this, &watchStateUser](const auto& configPlexUser) {
-            if (this->CheckValidUser(ApiType::PLEX, ApiType::TAUTULLI, configPlexUser))
-            {
-               watchStateUser.plex.emplace_back(configPlexUser);
-            }
-         });
-
-         std::ranges::for_each(configUser.emby, [this, &watchStateUser](const auto& configEmbyUser) {
-            if (this->CheckValidUser(ApiType::EMBY, ApiType::JELLYSTAT, configEmbyUser))
-            {
-               watchStateUser.emby.emplace_back(configEmbyUser);
-            }
-         });
-
-         if ((watchStateUser.plex.size() + watchStateUser.emby.size()) >= 2)
+         auto watchStateUser{std::make_unique<WatchStateUser>(configUser,
+                                                              GetApiManager(),
+                                                              [this](LogType type, const std::string& msg) { this->Log(type, msg); })};
+         if (watchStateUser->GetValid())
          {
-            watchStateUsers_.emplace_back(watchStateUser);
+            users_.emplace_back(std::move(watchStateUser));
          }
       }
    }
 
    void WatchStateSyncService::Run()
    {
-
+      std::ranges::for_each(users_, [](auto& user) {
+         user->Sync();
+      });
    }
 }

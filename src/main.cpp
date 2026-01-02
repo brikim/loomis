@@ -11,7 +11,8 @@ std::unique_ptr<loomis::ServiceManager> SERVICE_MANAGER;
 
 void signal_handler(int signal_num)
 {
-   if (signal_num == SIGINT || signal_num == SIGTERM)
+   if ((signal_num == SIGINT || signal_num == SIGTERM)
+       && SERVICE_MANAGER)
    {
       SERVICE_MANAGER->ProcessShutdown();
    }

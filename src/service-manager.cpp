@@ -7,7 +7,6 @@
 
 #include <algorithm>
 #include <format>
-#include <ranges>
 
 namespace loomis
 {
@@ -34,7 +33,16 @@ namespace loomis
    {
       CreateServices();
 
-      std::ranges::for_each(services_, [this](const auto& service) { this->cronScheduler_.Add(service->GetTask()); });
+      if (services_.empty())
+      {
+         Logger::Instance().Warning("No services are enabled in the configuration.");
+         return;
+      }
+
+      for (const auto& service : services_)
+      {
+         cronScheduler_.Add(service->GetTask());
+      }
 
       // If the scheduler successfully started hold the run thread. If not no work to do.
       if (cronScheduler_.Start())
@@ -42,8 +50,6 @@ namespace loomis
          // Hold the main thread until shutdown is requested
          std::unique_lock<std::mutex> cvUniqueLock(runCvLock_);
          runCv_.wait(cvUniqueLock, [this] { return shutdownService_.load(); });
-
-         cronScheduler_.Shutdown();
       }
       else
       {
@@ -57,8 +63,12 @@ namespace loomis
    {
       Logger::Instance().Info("Shutdown request received");
 
-      std::unique_lock<std::mutex> cvUniqueLock(runCvLock_);
-      shutdownService_.store(true);
-      runCv_.notify_all();
+      cronScheduler_.Shutdown();
+
+      {
+         std::unique_lock<std::mutex> cvUniqueLock(runCvLock_);
+         shutdownService_.store(true);
+         runCv_.notify_all();
+      }
    }
 }

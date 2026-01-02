@@ -1,10 +1,10 @@
 #pragma once
 
 #include "api/api-base.h"
+#include "api/api-emby-types.h"
 #include "config-reader/config-reader-types.h"
 
 #include <httplib/httplib.h>
-#include <json/json.hpp>
 
 #include <cstdint>
 #include <list>
@@ -14,44 +14,6 @@
 
 namespace loomis
 {
-   enum class EmbySearchType
-   {
-      id,
-      name,
-      path
-   };
-
-   struct EmbyItemSeries
-   {
-      std::string name;
-      uint32_t seasonNum{0u};
-      uint32_t episodeNum{0u};
-   };
-
-   struct EmbyItem
-   {
-      std::string name;
-      std::string id;
-      std::string path;
-      std::string type;
-      EmbyItemSeries series;
-      uint64_t runTimeTicks{0u};
-   };
-
-   struct EmbyPlaylistItem
-   {
-      std::string name;
-      std::string id;
-      std::string playlistId;
-   };
-
-   struct EmbyPlaylist
-   {
-      std::string name;
-      std::string id;
-      std::vector<EmbyPlaylistItem> items;
-   };
-
    class EmbyApi : public ApiBase
    {
    public:
@@ -80,7 +42,6 @@ namespace loomis
 
    private:
       std::string BuildApiPath(std::string_view path) const;
-      void AddApiParam(std::string& url, const std::list<std::pair<std::string_view, std::string_view>>& params) const;
 
       std::string_view GetSearchTypeStr(EmbySearchType type);
 

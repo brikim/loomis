@@ -29,7 +29,10 @@ target_sources(loomis PRIVATE
 	src/logger/logger.cpp
 	src/services/service-base.cpp
 	src/services/playlist-sync/playlist-sync-service.cpp
+	src/services/watch-state-sync/emby-user.cpp
+	src/services/watch-state-sync/plex-user.cpp
 	src/services/watch-state-sync/watch-state-sync-service.cpp
+	src/services/watch-state-sync/watch-state-user.cpp
 	src/base.cpp
 	src/main.cpp
 	src/cron-scheduler.cpp

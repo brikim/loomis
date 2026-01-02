@@ -1,12 +1,9 @@
 #pragma once
 
 #include "types.h"
-
-#include <croncpp/croncpp.h>
-
-#include <atomic>
 #include <chrono>
 #include <condition_variable>
+#include <croncpp/croncpp.h>
 #include <functional>
 #include <mutex>
 #include <string>
@@ -19,7 +16,7 @@ namespace loomis
    {
       std::string name;
       cron::cronexpr cron;
-      std::function<void(void)> func;
+      std::function<void()> func;
       std::chrono::system_clock::time_point nextRun;
    };
 
@@ -27,26 +24,29 @@ namespace loomis
    {
    public:
       CronScheduler() = default;
-      virtual ~CronScheduler() = default;
+      // Ensure the thread is stopped before the object is destroyed
+      ~CronScheduler()
+      {
+         Shutdown();
+      }
 
-      // Add a task to the scheduler
+      // Standardize: Add tasks before starting
       void Add(const Task& task);
 
-      // Start the scheduleres. Returns success.
       bool Start();
-
-      // Shutdown the scheduler thread
       void Shutdown();
 
    private:
+      // The worker thread logic
       void Work(std::stop_token stopToken);
 
       std::vector<CronTask> cronTasks_;
 
-      std::atomic_bool shutdown_{false};
-
+      // Mutex and CV_ANY are required for the C++20 stop_token pattern
       std::mutex cvLock_;
-      std::condition_variable cv_;
+      std::condition_variable_any cv_;
+
+      // jthread manages its own stop_state and joins on destruction
       std::unique_ptr<std::jthread> runThread_;
    };
 }

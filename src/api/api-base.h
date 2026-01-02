@@ -25,8 +25,10 @@ namespace loomis
       [[nodiscard]] virtual std::optional<std::string> GetServerReportedName() = 0;
 
    protected:
+      void AddApiParam(std::string& url, const std::list<std::pair<std::string_view, std::string_view>>& params) const;
+
       // Encode the source string to percent encoding
-      std::string GetPercentEncoded(std::string_view src);
+      std::string GetPercentEncoded(std::string_view src) const;
 
       // Returns if the http request was successful and outputs to the log if not successful
       bool IsHttpSuccess(std::string_view name, const httplib::Result& result);
