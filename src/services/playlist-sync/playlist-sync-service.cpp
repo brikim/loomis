@@ -27,10 +27,10 @@ namespace loomis
          {
             if (plexApi->GetValid() && !plexApi->GetCollectionValid(plexCollection.library, plexCollection.collectionName))
             {
-               LogWarning(std::format("{} {} {} not found on server",
-                                      utils::GetServerName(utils::GetFormattedPlex(), plexCollection.server),
-                                      utils::GetTag("library", plexCollection.library),
-                                      utils::GetTag("collection", plexCollection.collectionName)));
+               LogWarning("{} {} {} not found on server",
+                          utils::GetServerName(utils::GetFormattedPlex(), plexCollection.server),
+                          utils::GetTag("library", plexCollection.library),
+                          utils::GetTag("collection", plexCollection.collectionName));
                continue;
             }
 
@@ -44,10 +44,10 @@ namespace loomis
                }
                else
                {
-                  LogWarning(std::format("{} api not found for {} {}",
-                                         utils::GetServerName(utils::GetFormattedEmby(), embyServerName),
-                                         utils::GetServerName(utils::GetFormattedPlex(), plexCollection.server),
-                                         utils::GetTag("collection", plexCollection.collectionName)));
+                  LogWarning("{} api not found for {} {}",
+                             utils::GetServerName(utils::GetFormattedEmby(), embyServerName),
+                             utils::GetServerName(utils::GetFormattedPlex(), plexCollection.server),
+                             utils::GetTag("collection", plexCollection.collectionName));
                }
             }
 
@@ -61,15 +61,17 @@ namespace loomis
             }
             else
             {
-               LogWarning(std::format("{} {} {} no emby servers to sync ... skipping",
-                                      utils::GetServerName(utils::GetFormattedPlex(), plexCollection.server),
-                                      utils::GetTag("library", plexCollection.library),
-                                      utils::GetTag("collection", plexCollection.collectionName)));
+               LogWarning("{} {} {} no emby servers to sync ... skipping",
+                          utils::GetServerName(utils::GetFormattedPlex(), plexCollection.server),
+                          utils::GetTag("library", plexCollection.library),
+                          utils::GetTag("collection", plexCollection.collectionName));
             }
          }
          else
          {
-            LogWarning(std::format("No {} found with {} ... Skipping", utils::GetFormattedPlex(), utils::GetTag("server_name", plexCollection.server)));
+            LogWarning("No {} found with {} ... Skipping",
+                       utils::GetFormattedPlex(),
+                       utils::GetTag("server_name", plexCollection.server));
          }
       }
    }
@@ -97,11 +99,11 @@ namespace loomis
       }
 
       auto logPlaylistWarning = [this, &embyApi, &currentPlaylist](bool addErr, const std::vector<std::string>& ids) {
-         LogWarning(std::format("{} failed to {} {} to {}",
-                                utils::GetServerName(utils::GetFormattedEmby(), embyApi->GetName()),
-                                addErr ? "add" : "remove",
-                                utils::GetTag("item_count", ids.size()),
-                                utils::GetTag("playlist", currentPlaylist.name)));
+         LogWarning("{} failed to {} {} to {}",
+                    utils::GetServerName(utils::GetFormattedEmby(), embyApi->GetName()),
+                    addErr ? "add" : "remove",
+                    utils::GetTag("item_count", ids.size()),
+                    utils::GetTag("playlist", currentPlaylist.name));
       };
 
       // API Calls
@@ -136,20 +138,20 @@ namespace loomis
 
       if (!currentPlaylist)
       {
-         LogWarning(std::format("{} failed to retrieve {} on update",
-                                utils::GetServerName(utils::GetFormattedEmby(), embyApi->GetName()),
-                                utils::GetTag("playlist", playlistName)));
+         LogWarning("{} failed to retrieve {} on update",
+                    utils::GetServerName(utils::GetFormattedEmby(), embyApi->GetName()),
+                    utils::GetTag("playlist", playlistName));
          return;
       }
 
       if (currentPlaylist->items.size() != correctIds.size())
       {
-         LogWarning(std::format("{} sync {} {} playlist updated failed. Playlist length should be {} but {}",
-                                utils::GetServerName(utils::GetFormattedEmby(), embyApi->GetName()),
-                                utils::GetServerName(utils::GetFormattedPlex(), plexApi->GetName()),
-                                utils::GetTag("collection", playlistName),
-                                utils::GetTag("length", correctIds.size()),
-                                utils::GetTag("reported_length", currentPlaylist->items.size())));
+         LogWarning("{} sync {} {} playlist updated failed. Playlist length should be {} but {}",
+                    utils::GetServerName(utils::GetFormattedEmby(), embyApi->GetName()),
+                    utils::GetServerName(utils::GetFormattedPlex(), plexApi->GetName()),
+                    utils::GetTag("collection", playlistName),
+                    utils::GetTag("length", correctIds.size()),
+                    utils::GetTag("reported_length", currentPlaylist->items.size()));
          return;
       }
 
@@ -188,13 +190,13 @@ namespace loomis
 
       if (orderChanged || added > 0 || removed > 0)
       {
-         LogInfo(std::format("Syncing {} {} to {} {} {} {}",
-                             utils::GetServerName(utils::GetFormattedPlex(), plexApi->GetName()),
-                             utils::GetTag("collection", playlistName),
-                             utils::GetServerName(utils::GetFormattedEmby(), embyApi->GetName()),
-                             utils::GetTag("added", added),
-                             utils::GetTag("removed", removed),
-                             utils::GetTag("reordered", orderChanged ? "true" : "false")));
+         LogInfo("Syncing {} {} to {} {} {} {}",
+                 utils::GetServerName(utils::GetFormattedPlex(), plexApi->GetName()),
+                 utils::GetTag("collection", playlistName),
+                 utils::GetServerName(utils::GetFormattedEmby(), embyApi->GetName()),
+                 utils::GetTag("added", added),
+                 utils::GetTag("removed", removed),
+                 utils::GetTag("reordered", orderChanged ? "true" : "false"));
       }
    }
 
@@ -202,10 +204,10 @@ namespace loomis
    {
       if (embyApi->GetPathMapEmpty() && !plexCollection.items.empty())
       {
-         LogWarning(std::format("{} path map is empty. {} {} can not be synced.",
-                                utils::GetServerName(utils::GetFormattedEmby(), embyApi->GetName()),
-                                utils::GetServerName(utils::GetFormattedPlex(), plexApi->GetName()),
-                                utils::GetTag("collection", plexCollection.name)));
+         LogWarning("{} path map is empty. {} {} can not be synced.",
+                    utils::GetServerName(utils::GetFormattedEmby(), embyApi->GetName()),
+                    utils::GetServerName(utils::GetFormattedPlex(), plexApi->GetName()),
+                    utils::GetTag("collection", plexCollection.name));
          return;
       }
 
@@ -225,11 +227,11 @@ namespace loomis
 
          if (!foundItem)
          {
-            LogWarning(std::format("{} sync {} {} {} not found",
-                                   utils::GetServerName(utils::GetFormattedEmby(), embyApi->GetName()),
-                                   utils::GetServerName(utils::GetFormattedPlex(), plexApi->GetName()),
-                                   utils::GetTag("collection", plexCollection.name),
-                                   utils::GetTag("item", item.title)));
+            LogWarning("{} sync {} {} {} not found",
+                       utils::GetServerName(utils::GetFormattedEmby(), embyApi->GetName()),
+                       utils::GetServerName(utils::GetFormattedPlex(), plexApi->GetName()),
+                       utils::GetTag("collection", plexCollection.name),
+                       utils::GetTag("item", item.title));
          }
       }
 
@@ -241,10 +243,10 @@ namespace loomis
       {
          embyApi->CreatePlaylist(plexCollection.name, updatedPlaylistIds);
 
-         LogInfo(std::format("Creating {} {} on {}",
-                             utils::GetServerName(utils::GetFormattedPlex(), plexApi->GetName()),
-                             utils::GetTag("collection", plexCollection.name),
-                             utils::GetServerName(utils::GetFormattedEmby(), embyApi->GetName())));
+         LogInfo("Creating {} {} on {}",
+                 utils::GetServerName(utils::GetFormattedPlex(), plexApi->GetName()),
+                 utils::GetTag("collection", plexCollection.name),
+                 utils::GetServerName(utils::GetFormattedEmby(), embyApi->GetName()));
       }
    }
 

@@ -1,6 +1,9 @@
 ﻿#include "watch-state-sync-service.h"
 
 #include "logger/log-utils.h"
+#include "services/watch-state-sync/watch-state-logger.h"
+
+#include <spdlog/spdlog.h>
 
 #include <algorithm>
 #include <format>
@@ -19,9 +22,7 @@ namespace loomis
    {
       for (const auto& configUser : config.userSyncs)
       {
-         auto watchStateUser{std::make_unique<WatchStateUser>(configUser,
-                                                              GetApiManager(),
-                                                              [this](LogType type, const std::string& msg) { this->Log(type, msg); })};
+         auto watchStateUser{std::make_unique<WatchStateUser>(configUser, GetApiManager(), WatchStateLogger(*this))};
          if (watchStateUser->GetValid())
          {
             users_.emplace_back(std::move(watchStateUser));

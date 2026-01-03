@@ -65,29 +65,4 @@ namespace loomis
          logger_->sinks().push_back(app_sink);
       }
    }
-
-   void Logger::Trace(const std::string& msg)
-   {
-      logger_->trace(msg);
-   }
-
-   void Logger::Info(const std::string& msg)
-   {
-      logger_->info(msg);
-   }
-
-   void Logger::Warning(const std::string& msg)
-   {
-      logger_->warn(msg);
-   }
-
-   void Logger::Error(const std::string& msg)
-   {
-      logger_->error(msg);
-   }
-
-   void Logger::Critical(const std::string& msg)
-   {
-      logger_->critical(msg);
-   }
 }

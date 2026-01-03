@@ -15,7 +15,7 @@ namespace loomis
    {
    }
 
-   std::optional<Task> ApiBase::GetTask()
+   std::optional<std::vector<Task>> ApiBase::GetTaskList()
    {
       return std::nullopt;
    }
@@ -110,7 +110,7 @@ namespace loomis
       }
 
       // If we reached here, something went wrong
-      LogWarning(std::format("{} - HTTP error {}", name, utils::GetTag("error", error)));
+      LogWarning("{} - HTTP error {}", name, utils::GetTag("error", error));
       return false;
    }
 }

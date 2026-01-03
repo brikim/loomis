@@ -4,7 +4,6 @@
 #include "logger/log-utils.h"
 
 #include <cstdlib>
-#include <format>
 #include <fstream>
 
 namespace loomis
@@ -65,7 +64,7 @@ namespace loomis
       std::ifstream f(pathFileName);
       if (f.is_open() == false)
       {
-         Logger::Instance().Error(std::format("Config file {} not found!", pathFileName));
+         Logger::Instance().Error("Config file {} not found!", pathFileName);
          return;
       }
 
@@ -88,7 +87,7 @@ namespace loomis
       }
       catch (const std::exception& e)
       {
-         Logger::Instance().Error(std::format("{} parsing has an error {}", pathFileName, e.what()));
+         Logger::Instance().Error("{} parsing has an error {}", pathFileName, e.what());
          return;
       }
    }
@@ -107,12 +106,12 @@ namespace loomis
              || serverConfigJson.contains(API_KEY) == false
              || serverConfigJson.contains(MEDIA_PATH) == false)
          {
-            Logger::Instance().Error(std::format("{} server config invalid {} {} {} {}",
-                                                 utils::GetFormattedApiName(apiType),
-                                                 utils::GetTag(SERVER_NAME, serverConfigJson.contains(SERVER_NAME) ? serverConfigJson[SERVER_NAME].get<std::string>() : "ERROR"),
-                                                 utils::GetTag(URL, serverConfigJson.contains(URL) ? serverConfigJson[URL].get<std::string>() : "ERROR"),
-                                                 utils::GetTag(API_KEY, serverConfigJson.contains(API_KEY) ? serverConfigJson[API_KEY].get<std::string>() : "ERROR"),
-                                                 utils::GetTag(MEDIA_PATH, serverConfigJson.contains(MEDIA_PATH) ? serverConfigJson[MEDIA_PATH].get<std::string>() : "ERROR")));
+            Logger::Instance().Error("{} server config invalid {} {} {} {}",
+                                     utils::GetFormattedApiName(apiType),
+                                     utils::GetTag(SERVER_NAME, serverConfigJson.contains(SERVER_NAME) ? serverConfigJson[SERVER_NAME].get<std::string>() : "ERROR"),
+                                     utils::GetTag(URL, serverConfigJson.contains(URL) ? serverConfigJson[URL].get<std::string>() : "ERROR"),
+                                     utils::GetTag(API_KEY, serverConfigJson.contains(API_KEY) ? serverConfigJson[API_KEY].get<std::string>() : "ERROR"),
+                                     utils::GetTag(MEDIA_PATH, serverConfigJson.contains(MEDIA_PATH) ? serverConfigJson[MEDIA_PATH].get<std::string>() : "ERROR"));
             break;
          }
 
@@ -131,7 +130,10 @@ namespace loomis
          }
          else
          {
-            Logger::Instance().Warning(std::format("Tracker {}/{} not set for {}. Some services may not be available", TRACKER_URL, TRACKER_API_KEY, utils::GetFormattedApiName(apiType)));
+            Logger::Instance().Warning("Tracker {}/{} not set for {}. Some services may not be available",
+                                       TRACKER_URL,
+                                       TRACKER_API_KEY,
+                                       utils::GetFormattedApiName(apiType));
          }
       }
    }
@@ -187,7 +189,7 @@ namespace loomis
       else
       {
          configData_.playlistSync.cron = DEFAULT_CRON;
-         Logger::Instance().Warning(std::format("Playlist Sync Config missing cron. Using default {}", DEFAULT_CRON));
+         Logger::Instance().Warning("Playlist Sync Config missing cron. Using default {}", DEFAULT_CRON);
       }
 
       if (playlistSyncJson.contains(TIME_FOR_EMBY_TO_UPDATE))
@@ -210,7 +212,8 @@ namespace loomis
                 || plexCollection.contains(COLLECTION_NAME) == false
                 || plexCollection.contains(TARGET_EMBY_SERVERS) == false)
             {
-               Logger::Instance().Warning(std::format("Playlist Sync Config error reading in plex collection {}", utils::GetTag("index", std::to_string(index))));
+               Logger::Instance().Warning("Playlist Sync Config error reading in plex collection {}",
+                                          utils::GetTag("index", std::to_string(index)));
                continue;
             }
 
@@ -227,7 +230,9 @@ namespace loomis
                }
                else
                {
-                  Logger::Instance().Warning(std::format("Playlist Sync Config - Error reading in plex collection! Each {} requires a {} {} ", TARGET_EMBY_SERVERS, SERVER, utils::GetTag("index", std::to_string(index))));
+                  Logger::Instance().Warning("Playlist Sync Config - Error reading in plex collection! Each {} requires a {} {} ",
+                                             TARGET_EMBY_SERVERS,
+                                             SERVER, utils::GetTag("index", std::to_string(index)));
                }
             }
 
@@ -268,7 +273,7 @@ namespace loomis
       else
       {
          configData_.watchStateSync.cron = DEFAULT_CRON;
-         Logger::Instance().Warning(std::format("Watch State Sync Config missing cron. Using default {}", DEFAULT_CRON));
+         Logger::Instance().Warning("Watch State Sync Config missing cron. Using default {}", DEFAULT_CRON);
       }
 
       if (watchStateConfig.contains(USERS) && watchStateConfig[USERS].is_array())

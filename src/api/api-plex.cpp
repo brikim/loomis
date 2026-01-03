@@ -85,7 +85,7 @@ namespace loomis
       pugi::xml_document doc;
       if (doc.load_buffer(res->body.data(), res->body.size()).status != pugi::status_ok)
       {
-         LogWarning(std::format("{} - Malformed XML reply received", __func__));
+         LogWarning("{} - Malformed XML reply received", std::string(__func__));
          return std::nullopt;
       }
 
@@ -93,7 +93,7 @@ namespace loomis
 
       if (!serverNode)
       {
-         LogWarning(std::format("{} - No Server element with a name attribute found", __func__));
+         LogWarning("{} - No Server element with a name attribute found", __func__);
          return std::nullopt;
       }
 

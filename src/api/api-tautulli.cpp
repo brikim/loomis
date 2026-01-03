@@ -85,7 +85,7 @@ namespace loomis
       auto jsonData = JsonSafeParse(res->body);
       if (!jsonData)
       {
-         LogWarning(std::format("{} - malformed json reply received", __func__));
+         LogWarning("{} - malformed json reply received", __func__);
          return std::nullopt;
       }
 
@@ -100,7 +100,7 @@ namespace loomis
       auto jsonData = JsonSafeParse(res->body);
       if (!jsonData)
       {
-         LogWarning(std::format("{} - Malformed JSON reply received", __func__));
+         LogWarning("{} - Malformed JSON reply received", __func__);
          return std::nullopt;
       }
 

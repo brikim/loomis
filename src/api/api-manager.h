@@ -49,8 +49,11 @@ namespace loomis
       {
          for (auto& api : container)
          {
-            auto task = api->GetTask();
-            if (task) cronScheduler.Add(*task);
+            auto taskList = api->GetTaskList();
+            if (taskList)
+            {
+               for (const auto& task : *taskList) cronScheduler.Add(task);
+            }
          }
       }
 

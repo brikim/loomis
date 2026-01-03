@@ -3,15 +3,13 @@
 #include "logger/logger.h"
 #include "logger/log-utils.h"
 
-#include <format>
-
 namespace loomis
 {
    void CronScheduler::Add(const Task& task)
    {
       if (runThread_)
       {
-         Logger::Instance().Error(std::format("Cron Scheduler: Attempted to add task {} after start", task.name));
+         Logger::Instance().Error("Cron Scheduler: Attempted to add task {} after start", task.name);
          return;
       }
 
@@ -22,11 +20,15 @@ namespace loomis
          cronTask.cron = cron::make_cron(task.cronExpression);
          // Initialize the first run time immediately
          cronTask.nextRun = cron::cron_next(cronTask.cron, std::chrono::system_clock::now());
+
+         Logger::Instance().Trace("Cron Scheduler: Added task {} with {}",
+                                  utils::GetTag("name", cronTask.task.name),
+                                  utils::GetTag("cron", cronTask.task.cronExpression));
       }
       catch (const cron::bad_cronexpr& ex)
       {
-         Logger::Instance().Error(std::format("Cron Scheduler: {} bad CRON {} - {}",
-                                              task.name, task.cronExpression, ex.what()));
+         Logger::Instance().Error("Cron Scheduler: {} bad CRON {} - {}",
+                                  task.name, task.cronExpression, ex.what());
       }
    }
 
@@ -56,14 +58,16 @@ namespace loomis
          {
             if (cronTask.nextRun <= currentTime)
             {
-               Logger::Instance().Trace(std::format("Cron Scheduler: Executing {}", cronTask.task.name));
+               Logger::Instance().Trace("Cron Scheduler: Running task {} with {}",
+                                        utils::GetTag("name", cronTask.task.name),
+                                        utils::GetTag("cron", cronTask.task.cronExpression));
                try
                {
                   cronTask.task.func();
                }
                catch (const std::exception& e)
                {
-                  Logger::Instance().Error(std::format("Task {} failed: {}", cronTask.task.name, e.what()));
+                  Logger::Instance().Error("Task {} failed: {}", cronTask.task.name, e.what());
                }
                // Update nextRun for next time
                cronTask.nextRun = cron::cron_next(cronTask.cron, std::chrono::system_clock::now());
@@ -84,8 +88,8 @@ namespace loomis
       {
          if (cronTask.task.service)
          {
-            Logger::Instance().Info(std::format("{}: Enabled - Schedule: {}",
-                                                cronTask.task.name, cronTask.task.cronExpression));
+            Logger::Instance().Info("{}: Enabled - Schedule: {}",
+                                    cronTask.task.name, cronTask.task.cronExpression);
          }
       }
       return true;

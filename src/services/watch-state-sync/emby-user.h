@@ -5,6 +5,7 @@
 #include "api/api-manager.h"
 #include "api/api-tautulli-types.h"
 #include "config-reader/config-reader-types.h"
+#include "services/watch-state-sync/watch-state-logger.h"
 #include "types.h"
 
 #include <functional>
@@ -16,7 +17,7 @@ namespace loomis
    public:
       EmbyUser(const ServerUser& config,
                ApiManager* apiManager,
-               const std::function<void(LogType, const std::string&)>& logFunc);
+               WatchStateLogger logger);
       virtual ~EmbyUser() = default;
 
       [[nodiscard]] bool GetValid() const;
@@ -30,7 +31,7 @@ namespace loomis
       bool SyncPlayState(const TautulliHistoryItem* item, std::string_view path);
 
       bool valid_{false};
-      std::function<void(LogType, const std::string&)> logFunc_;
+      WatchStateLogger logger_;
       ServerUser config_;
 
       EmbyApi* embyApi_{nullptr};

@@ -72,7 +72,7 @@ namespace loomis::utils
 
    inline std::string GetServiceHeader(std::string_view ansiiCode, std::string_view name)
    {
-      return std::format("{}{}{}:", ansiiCode, name, ANSI_CODE_LOG);
+      return std::format("{}{}{}", ansiiCode, name, ANSI_CODE_LOG);
    }
 
    inline std::string_view GetFormattedApiName(ApiType type)

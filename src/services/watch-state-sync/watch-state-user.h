@@ -4,6 +4,7 @@
 #include "config-reader/config-reader-types.h"
 #include "services/watch-state-sync/emby-user.h"
 #include "services/watch-state-sync/plex-user.h"
+#include "services/watch-state-sync/watch-state-logger.h"
 #include "types.h"
 
 #include <functional>
@@ -18,7 +19,7 @@ namespace loomis
    public:
       WatchStateUser(const UserSyncConfig& config,
                      ApiManager* apiManager,
-                     const std::function<void(LogType, const std::string&)>& logFunc);
+                     WatchStateLogger logger);
       virtual ~WatchStateUser() = default;
 
       [[nodiscard]] bool GetValid() const;
@@ -39,7 +40,7 @@ namespace loomis
 
       bool valid_{false};
       ApiManager* apiManager_{nullptr};
-      std::function<void(LogType, const std::string&)> logFunc_;
+      WatchStateLogger logger_;
 
       std::vector<std::unique_ptr<PlexUser>> plexUsers_;
       std::vector<std::unique_ptr<EmbyUser>> embyUsers_;

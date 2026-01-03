@@ -31,10 +31,12 @@ target_include_directories(loomis PRIVATE
     include
     src       # Allows #include "api/api-base.h"
     external
+    external/spdlog/include
 )
 
 target_link_libraries(loomis PRIVATE
     pugixml-static
+    spdlog
 )
 
 # --- Portability & Static Linking ---

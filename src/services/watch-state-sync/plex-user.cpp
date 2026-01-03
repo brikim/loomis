@@ -6,8 +6,8 @@ namespace loomis
 {
    PlexUser::PlexUser(const ServerUser& config,
                       ApiManager* apiManager,
-                      const std::function<void(LogType, const std::string&)>& logFunc)
-      : logFunc_(logFunc)
+                      WatchStateLogger logger)
+      : logger_(logger)
       , config_(config)
    {
       // Do some quick checking on the users and make sure the api in the config exists.
@@ -20,9 +20,9 @@ namespace loomis
          // Will get users from tautulli for plex. Do a small pre-check and warn the system.
          if (trackerApi_->GetValid() && !trackerApi_->GetUserInfo(config_.user).has_value())
          {
-            logFunc_(LogType::WARN, std::format("{} not found on {}. Is user name correct?",
-                                                utils::GetTag("user", config_.user),
-                                                utils::GetServerName(utils::GetFormattedTautulli(), config_.server)));
+            logger_.LogWarning("{} not found on {}. Is user name correct?",
+                               utils::GetTag("user", config_.user),
+                               utils::GetServerName(utils::GetFormattedTautulli(), config_.server));
          }
 
          valid_ = true;
@@ -31,16 +31,16 @@ namespace loomis
       {
          if (!api_)
          {
-            logFunc_(LogType::WARN, std::format("{} api not found for {}",
-                                                utils::GetServerName(utils::GetFormattedPlex(), config_.server),
-                                                utils::GetTag("user", config_.user)));
+            logger_.LogWarning("{} api not found for {}",
+                               utils::GetServerName(utils::GetFormattedPlex(), config_.server),
+                               utils::GetTag("user", config_.user));
          }
 
          if (!trackerApi_)
          {
-            logFunc_(LogType::WARN, std::format("{} tracker api not found for {}. Required for this service.",
-                                                utils::GetServerName(utils::GetFormattedTautulli(), config_.server),
-                                                utils::GetTag("user", config_.user)));
+            logger_.LogWarning("{} tracker api not found for {}. Required for this service.",
+                               utils::GetServerName(utils::GetFormattedTautulli(), config_.server),
+                               utils::GetTag("user", config_.user));
          }
       }
    }

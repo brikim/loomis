@@ -50,17 +50,17 @@ namespace loomis
    void ApiManager::LogServerConnectionSuccess(std::string_view serverName, ApiBase* api)
    {
       auto reported = api->GetServerReportedName();
-      Logger::Instance().Info(std::format("Connected to {}({}) successfully.{}",
-                                          serverName, api->GetName(),
-                                          reported ? std::format(" Server reported {}", utils::GetTag("name", *reported)) : ""));
+      Logger::Instance().Info("Connected to {}({}) successfully.{}",
+                              serverName, api->GetName(),
+                              reported ? std::format(" Server reported {}", utils::GetTag("name", *reported)) : "");
    }
 
    void ApiManager::LogServerConnectionError(std::string_view serverName, ApiBase* api)
    {
-      Logger::Instance().Warning(std::format("{}({}) server not available. Is this correct? {} {}",
-                                             serverName, api->GetName(),
-                                             utils::GetTag("url", api->GetUrl()),
-                                             utils::GetTag("api_key", api->GetApiKey())));
+      Logger::Instance().Warning("{}({}) server not available. Is this correct? {} {}",
+                                 serverName, api->GetName(),
+                                 utils::GetTag("url", api->GetUrl()),
+                                 utils::GetTag("api_key", api->GetApiKey()));
    }
 
    PlexApi* ApiManager::GetPlexApi(std::string_view name) const

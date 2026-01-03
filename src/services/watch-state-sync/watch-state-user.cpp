@@ -10,24 +10,24 @@ namespace loomis
 {
    WatchStateUser::WatchStateUser(const UserSyncConfig& config,
                                   ApiManager* apiManager,
-                                  const std::function<void(LogType, const std::string&)>& logFunc)
+                                  WatchStateLogger logger)
       : apiManager_(apiManager)
-      , logFunc_(logFunc)
+      , logger_(logger)
    {
-      std::ranges::for_each(config.plex, [this, &apiManager, &logFunc](const auto& configPlexUser) {
+      std::ranges::for_each(config.plex, [this, &apiManager](const auto& configPlexUser) {
          auto plexUser{std::make_unique<PlexUser>(configPlexUser,
                                                   apiManager,
-                                                  logFunc)};
+                                                  logger_)};
          if (plexUser->GetValid())
          {
             this->plexUsers_.emplace_back(std::move(plexUser));
          }
       });
 
-      std::ranges::for_each(config.emby, [this, &apiManager, &logFunc](const auto& configEmbyUser) {
+      std::ranges::for_each(config.emby, [this, &apiManager](const auto& configEmbyUser) {
          auto embyUser{std::make_unique<EmbyUser>(configEmbyUser,
                                                   apiManager,
-                                                  logFunc)};
+                                                  logger_)};
          if (embyUser->GetValid())
          {
             this->embyUsers_.emplace_back(std::move(embyUser));

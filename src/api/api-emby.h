@@ -6,10 +6,11 @@
 
 #include <httplib/httplib.h>
 
+#include <chrono>
 #include <cstdint>
 #include <list>
+#include <mutex>
 #include <optional>
-#include <shared_mutex>
 #include <string>
 #include <vector>
 
@@ -21,7 +22,7 @@ namespace loomis
       EmbyApi(const ServerConfig& serverConfig);
       virtual ~EmbyApi() = default;
 
-      [[nodiscard]] std::optional<Task> GetTask() override;
+      [[nodiscard]] std::optional<std::vector<Task>> GetTaskList() override;
 
       // Returns true if the server is reachable and the API key is valid
       [[nodiscard]] bool GetValid() override;
@@ -46,9 +47,11 @@ namespace loomis
       [[nodiscard]] std::optional<std::string> GetIdFromPathMap(const std::string& path);
 
    private:
-      void BuildPathMap();
-      void RunTasks();
+      void BuildPathMap(const std::chrono::system_clock::time_point& time);
+      void RunPathMapQuickCheck();
+      void RunPathMapFullUpdate();
 
+      bool HasLibraryChanged();
       std::string BuildApiPath(std::string_view path) const;
 
       std::string_view GetSearchTypeStr(EmbySearchType type);
@@ -56,9 +59,12 @@ namespace loomis
       httplib::Client client_;
       httplib::Headers emptyHeaders_;
       httplib::Headers jsonHeaders_{{{"accept", "application/json"}}};
+
+      std::string lastSyncTimestamp_;
+      std::chrono::system_clock::time_point pathMapUpdateTime_;
       EmbyPathMap pathMap_;
       EmbyPathMap workingPathMap_;
 
-      mutable std::shared_mutex taskLock_;
+      mutable std::mutex taskLock_;
    };
 }

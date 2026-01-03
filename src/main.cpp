@@ -4,7 +4,6 @@
 #include "version.h"
 
 #include <csignal>
-#include <format>
 #include <memory>
 
 std::unique_ptr<loomis::ServiceManager> SERVICE_MANAGER;
@@ -34,7 +33,7 @@ int main()
       return 1;
    }
 
-   loomis::Logger::Instance().Info(std::format("Loomis {} Starting", loomis::LOOMIS_VERSION));
+   loomis::Logger::Instance().Info("Loomis {} Starting", loomis::LOOMIS_VERSION);
 
    SERVICE_MANAGER = std::make_unique<loomis::ServiceManager>(configReader);
 

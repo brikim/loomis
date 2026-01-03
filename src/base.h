@@ -1,6 +1,10 @@
 #pragma once
 
+#include "logger/logger.h"
 #include "types.h"
+
+#include <spdlog/fmt/fmt.h>
+#include <spdlog/spdlog.h>
 
 #include <optional>
 #include <string>
@@ -13,16 +17,53 @@ namespace loomis
       Base(std::string_view className, std::string_view ansiiCode, std::optional<std::string_view> classExtra);
       virtual ~Base() = default;
 
-   protected:
-      // Log functions used by the base items to insert service header into message
-      void LogTrace(const std::string& msg);
-      void LogInfo(const std::string& msg);
-      void LogWarning(const std::string& msg);
-      void LogError(const std::string& msg);
+      template<typename... Args>
+      void LogTrace(spdlog::format_string_t<Args...> fmt, Args &&...args)
+      {
+         Logger::Instance().TraceWithHeader(header_, fmt, std::forward<Args>(args)...);
+      }
 
-      void Log(LogType type, const std::string& msg);
+      template<typename... Args>
+      void LogInfo(spdlog::format_string_t<Args...> fmt, Args &&...args)
+      {
+         Logger::Instance().InfoWithHeader(header_, fmt, std::forward<Args>(args)...);
+      }
+
+      template<typename... Args>
+      void LogWarning(spdlog::format_string_t<Args...> fmt, Args&&... args)
+      {
+         Logger::Instance().WarningWithHeader(header_, fmt, std::forward<Args>(args)...);
+      }
+
+      template<typename... Args>
+      void LogError(std::string_view fmt, Args &&...args)
+      {
+         Logger::Instance().ErrorWithHeader(header_, fmt, std::forward<Args>(args)...);
+      }
+
+      template<typename... Args>
+      void Log(LogType type, std::string_view fmt, Args &&...args)
+      {
+         switch (type)
+         {
+            case LogType::TRACE:
+               LogTrace(fmt, std::forward<Args>(args)...);
+               break;
+            case LogType::INFO:
+               LogInfo(fmt, std::forward<Args>(args)...);
+               break;
+            case LogType::WARN:
+               LogWarning(fmt, std::forward<Args>(args)...);
+               break;
+            case LogType::ERR:
+               LogError(fmt, std::forward<Args>(args)...);
+               break;
+            default:
+               break;
+         }
+      }
 
    private:
-      std::string logHeader_;
+      std::string header_;
    };
 }

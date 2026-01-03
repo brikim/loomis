@@ -1,6 +1,7 @@
 #pragma once
 
-#include <spdlog/spdlog.h>
+#include <spdlog/formatter.h>
+#include <spdlog/pattern_formatter.h>
 
 namespace loomis
 {

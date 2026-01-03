@@ -52,16 +52,24 @@ namespace loomis
       client_.set_connection_timeout(timeoutSec);
 
       // If the service is valid run any needed tasks
-      if (GetValid()) RunTasks();
+      if (GetValid()) RunPathMapFullUpdate();
    }
 
-   std::optional<Task> EmbyApi::GetTask()
+   std::optional<std::vector<Task>> EmbyApi::GetTaskList()
    {
-      Task task;
-      task.name = std::format("EmbyApi({})", GetName());
-      task.cronExpression = "0 30 */1 * * *";
-      task.func = [this]() {this->RunTasks(); };
-      return task;
+      std::vector<Task> tasks;
+
+      auto& quickCheck = tasks.emplace_back();
+      quickCheck.name = std::format("EmbyApi({}) - Path Map Quick Check", GetName());
+      quickCheck.cronExpression = "0 */5 * * * *";
+      quickCheck.func = [this]() {this->RunPathMapQuickCheck(); };
+
+      auto& fullUpdate = tasks.emplace_back();
+      fullUpdate.name = std::format("EmbyApi({}) - Path Map Full Update", GetName());
+      fullUpdate.cronExpression = "0 0 4 * * *";
+      fullUpdate.func = [this]() {this->RunPathMapFullUpdate(); };
+
+      return tasks;
    }
 
    std::string EmbyApi::BuildApiPath(std::string_view path) const
@@ -189,7 +197,7 @@ namespace loomis
          }
       }
 
-      LogWarning(std::format("GetItem returned no valid results {}", utils::GetTag("search", name)));
+      LogWarning("GetItem returned no valid results {}", utils::GetTag("search", name));
       return std::nullopt;
    }
 
@@ -315,7 +323,6 @@ namespace loomis
       AddApiParam(apiUrl, {
          {"Recursive", "true"},
          {"ImageRefreshMode", "Default"},
-         //{"MetadataRefreshMode", ""}, // optional paramater
          {"ReplaceAllImages", "false"},
          {"ReplaceAllMetadata", "false"}
       });
@@ -324,13 +331,13 @@ namespace loomis
       IsHttpSuccess(__func__, res);
    }
 
-   void EmbyApi::BuildPathMap()
+   void EmbyApi::BuildPathMap(const std::chrono::system_clock::time_point& time)
    {
       auto apiUrl{BuildApiPath(API_ITEMS)};
       AddApiParam(apiUrl, {
          {"Recursive", "true"},
          {"IncludeItemTypes", "Movie,Episode"},
-         {"Fields", "Path"},
+         {"Fields", "Path,DateModified"},
          {"IsMissing", "false"}         // Filter out ghost entries
       });
 
@@ -345,6 +352,7 @@ namespace loomis
       // Pre-allocate memory to prevent re-hashing during the loop
       workingPathMap_.reserve(items.size());
 
+      std::string lastSyncTimestamp;
       for (const auto& item : items)
       {
          // Defensive check: Emby usually guarantees these if requested, 
@@ -354,28 +362,76 @@ namespace loomis
          {
             workingPathMap_.emplace(item["Path"].get<std::string>(),
                                     item["Id"].get<std::string>());
+
+            if (auto newestItemDate = JsonSafeGet<std::string>(item, "DateModified");
+                newestItemDate.has_value() && newestItemDate.value() > lastSyncTimestamp)
+            {
+               lastSyncTimestamp = std::move(newestItemDate.value());
+            }
          }
+      }
+
+      // Update the main path map
+      if (!workingPathMap_.empty())
+      {
+         std::lock_guard lock(taskLock_);
+         std::swap(workingPathMap_, pathMap_);
+         lastSyncTimestamp_ = lastSyncTimestamp;
+         pathMapUpdateTime_ = time;
+      }
+
+      workingPathMap_.clear();
+   }
+
+   bool EmbyApi::HasLibraryChanged()
+   {
+      auto apiUrl = BuildApiPath(API_ITEMS);
+      AddApiParam(apiUrl, {
+          {"Recursive", "true"},
+          {"IncludeItemTypes", "Movie,Episode"},
+          {"SortBy", "DateModified"},
+          {"SortOrder", "Descending"},
+          {"Limit", "1"},
+          {"Fields", "DateModified"}
+      });
+
+      auto res = client_.Get(apiUrl, emptyHeaders_);
+      if (!IsHttpSuccess(__func__, res)) return false;
+
+      auto data = JsonSafeParse(res.value().body);
+      if (data && data->contains(ITEMS) && !(*data)[ITEMS].empty())
+      {
+         auto newestItemDate = JsonSafeGet<std::string>((*data)[ITEMS][0], "DateModified");
+         if (newestItemDate.has_value() && newestItemDate.value() > lastSyncTimestamp_)
+         {
+            return true;
+         }
+      }
+      return false;
+   }
+
+   void EmbyApi::RunPathMapQuickCheck()
+   {
+      if (GetPathMapEmpty() || HasLibraryChanged())
+      {
+         BuildPathMap(std::chrono::system_clock::now());
       }
    }
 
-   void EmbyApi::RunTasks()
+   void EmbyApi::RunPathMapFullUpdate()
    {
-      BuildPathMap();
-
-      std::unique_lock lock(taskLock_);
-      std::swap(workingPathMap_, pathMap_);
-      workingPathMap_.clear();
+      BuildPathMap(std::chrono::system_clock::now());
    }
 
    bool EmbyApi::GetPathMapEmpty() const
    {
-      std::shared_lock lock(taskLock_);
+      std::lock_guard lock(taskLock_);
       return pathMap_.empty();
    }
 
    std::optional<std::string> EmbyApi::GetIdFromPathMap(const std::string& path)
    {
-      std::shared_lock lock(taskLock_);
+      std::lock_guard lock(taskLock_);
 
       // Look up the item once
       if (auto it = pathMap_.find(path); it != pathMap_.end())

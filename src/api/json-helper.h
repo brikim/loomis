@@ -5,7 +5,6 @@
 
 #include <json/json.hpp>
 
-#include <format>
 #include <optional>
 #include <source_location>
 #include <string>
@@ -20,11 +19,11 @@ namespace loomis
       }
       catch (std::exception& e)
       {
-         Logger::Instance().Warning(std::format("JSON parse {} {} {} {}",
-                                                utils::GetTag("file", location.file_name()),
-                                                utils::GetTag("function_name", location.function_name()),
-                                                utils::GetTag("line_num", location.line()),
-                                                utils::GetTag("error", e.what())));
+         Logger::Instance().Warning("JSON parse {} {} {} {}",
+                                    utils::GetTag("file", location.file_name()),
+                                    utils::GetTag("function_name", location.function_name()),
+                                    utils::GetTag("line_num", location.line()),
+                                    utils::GetTag("error", e.what()));
          return std::nullopt;
       }
    }
@@ -41,12 +40,12 @@ namespace loomis
       }
       catch (std::exception& e)
       {
-         Logger::Instance().Warning(std::format("JSON get {} {} {} {} {}",
-                                                utils::GetTag("file", location.file_name()),
-                                                utils::GetTag("function_name", location.function_name()),
-                                                utils::GetTag("line_num", location.line()),
-                                                utils::GetTag("key", key),
-                                                utils::GetTag("error", e.what())));
+         Logger::Instance().Warning("JSON get {} {} {} {} {}",
+                                    utils::GetTag("file", location.file_name()),
+                                    utils::GetTag("function_name", location.function_name()),
+                                    utils::GetTag("line_num", location.line()),
+                                    utils::GetTag("key", key),
+                                    utils::GetTag("error", e.what()));
       }
       return std::nullopt;
    }
@@ -63,12 +62,12 @@ namespace loomis
       }
       catch (std::exception& e)
       {
-         Logger::Instance().Warning(std::format("JSON get pointer {} {} {} {} {}",
-                                                utils::GetTag("file", location.file_name()),
-                                                utils::GetTag("function_name", location.function_name()),
-                                                utils::GetTag("line_num", location.line()),
-                                                utils::GetTag("ptr", ptr.to_string()),
-                                                utils::GetTag("error", e.what())));
+         Logger::Instance().Warning("JSON get pointer {} {} {} {} {}",
+                                    utils::GetTag("file", location.file_name()),
+                                    utils::GetTag("function_name", location.function_name()),
+                                    utils::GetTag("line_num", location.line()),
+                                    utils::GetTag("ptr", ptr.to_string()),
+                                    utils::GetTag("error", e.what()));
       }
       return std::nullopt;
    }
