@@ -24,15 +24,16 @@ namespace loomis
 
       void Update();
 
-      void SyncStateWithPlex(const TautulliHistoryItem* item, std::string_view path, std::string& target);
+      void SyncStateWithPlex(const TautulliHistoryItem* item, const std::string& path, std::string& target);
 
    private:
-      bool SyncWatchedState(const TautulliHistoryItem* item, std::string_view path);
-      bool SyncPlayState(const TautulliHistoryItem* item, std::string_view path);
+      bool SyncWatchedState(const TautulliHistoryItem* item, const std::string& path);
+      bool SyncPlayState(const TautulliHistoryItem* item, const std::string& path);
 
       bool valid_{false};
       WatchStateLogger logger_;
       ServerUser config_;
+      std::string userId_;
 
       EmbyApi* embyApi_{nullptr};
       JellystatApi* jellystatApi_{nullptr};

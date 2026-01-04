@@ -160,11 +160,9 @@ namespace loomis
       return filePath;
    }
 
-   std::unordered_map<int32_t, std::string> PlexApi::GetItemsPaths(const std::vector<int32_t> ids)
+   std::unordered_map<int32_t, std::string> PlexApi::GetItemsPaths(const std::vector<int32_t>& ids)
    {
-      auto pathName = API_LIBRARY_DATA + BuildCommaSeparatedList(ids);
-      auto res = client_.Get(BuildApiPath(pathName), headers_);
-
+      auto res = client_.Get(BuildApiPath(API_LIBRARY_DATA + BuildCommaSeparatedList(ids)), headers_);
       if (!IsHttpSuccess(__func__, res)) return {};
 
       pugi::xml_document doc;

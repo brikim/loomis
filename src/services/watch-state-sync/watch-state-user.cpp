@@ -105,11 +105,9 @@ namespace loomis
    void WatchStateUser::SyncPlexState(PlexUser* plexUser, std::string_view historyDate)
    {
       auto userHistory{plexUser->GetWatchHistory(historyDate)};
-      if (!userHistory) return;
+      if (!userHistory || userHistory->items.empty()) return;
 
       auto consolodatedHistory = GetConsolodatedHistory(*userHistory);
-      if (consolodatedHistory.empty()) return;
-
       auto historyWithPaths = GetPlexPathsForHistoryItems(plexUser->GetServer(), consolodatedHistory);
 
       std::string syncServers;
@@ -117,8 +115,10 @@ namespace loomis
       {
          if (auto iter = historyWithPaths.find(history->id); iter != historyWithPaths.end())
          {
-            for (auto& user : plexUsers_) user->SyncStateWithPlex(history, iter->second, syncServers);
-            for (auto& user : embyUsers_) user->SyncStateWithPlex(history, iter->second, syncServers);
+            for (auto& user : plexUsers_)
+               if (user->GetValid()) user->SyncStateWithPlex(history, iter->second, syncServers);
+            for (auto& user : embyUsers_)
+               if (user->GetValid()) user->SyncStateWithPlex(history, iter->second, syncServers);
          }
       }
    }

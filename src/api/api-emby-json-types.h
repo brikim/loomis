@@ -54,11 +54,17 @@ namespace loomis
    struct JsonEmbyUser
    {
       std::string Name;
+      std::string Id;
    };
 
    struct JsonEmbyLibrary
    {
       std::string Name;
       std::string Id;
+   };
+
+   struct JsonTotalRecordCount
+   {
+      int32_t TotalRecordCount;
    };
 }
