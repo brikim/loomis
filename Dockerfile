@@ -12,14 +12,15 @@ RUN echo "deb http://deb.debian.org/debian sid main" | tee -a /etc/apt/sources.l
     cmake \
     && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /app
+# Create the build directory
+WORKDIR /app/build
 
 # Copy source code into the container
-COPY . /app
+COPY . /app/src
 
 # Configure and build the project
 ENV CXX=clang++
-RUN cmake -DCMAKE_BUILD_TYPE=Release . && \
+RUN cmake ../src -DCMAKE_BUILD_TYPE=Release && \
     cmake --build . -j 4
 
 # --- Stage 2: Runtime Environment ---
@@ -34,7 +35,7 @@ RUN apt update && \
 	rm -rf /var/lib/apt/lists/*
 
 # Copy only the compiled executable from the 'build' stage
-COPY --from=build /app/loomis /usr/local/bin/loomis
+COPY --from=build /app/build/loomis /usr/local/bin/loomis
 
 # Command to run the application
 CMD ["/usr/local/bin/loomis"]
