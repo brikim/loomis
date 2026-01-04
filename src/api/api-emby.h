@@ -53,7 +53,7 @@ namespace loomis
 
       bool HasLibraryChanged();
       std::string BuildApiPath(std::string_view path) const;
-      std::string BuildApiPathWithParams(std::string_view path, const std::list<std::pair<std::string_view, std::string_view>>& params) const;
+      std::string BuildApiParamsPath(std::string_view path, const std::list<std::pair<std::string_view, std::string_view>>& params) const;
 
       std::string_view GetSearchTypeStr(EmbySearchType type);
 

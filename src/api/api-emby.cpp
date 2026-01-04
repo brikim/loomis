@@ -65,7 +65,7 @@ namespace loomis
       return std::format("{}{}?api_key={}", API_BASE, path, GetApiKey());
    }
 
-   std::string EmbyApi::BuildApiPathWithParams(std::string_view path, const std::list<std::pair<std::string_view, std::string_view>>& params) const
+   std::string EmbyApi::BuildApiParamsPath(std::string_view path, const std::list<std::pair<std::string_view, std::string_view>>& params) const
    {
       std::string apiPath = BuildApiPath(path);
       AddApiParam(apiPath, params);
@@ -143,16 +143,14 @@ namespace loomis
 
    std::optional<EmbyItem> EmbyApi::GetItem(EmbySearchType type, std::string_view name, std::list<std::pair<std::string_view, std::string_view>> extraSearchArgs)
    {
-      auto apiUrl{BuildApiPath(API_ITEMS)};
-      AddApiParam(apiUrl, {
-          {"Recursive", "true"},
-          {GetSearchTypeStr(type), name},
-          {"Fields", "Path,SeriesName,RunTimeTicks"} // Ensure we ask for what we need
-      });
+      std::list<std::pair<std::string_view, std::string_view>> params = {
+         {"Recursive", "true"},
+         {GetSearchTypeStr(type), name},
+         {"Fields", "Path,SeriesName,RunTimeTicks"} // Ensure we ask for what we need
+      };
+      params.splice(params.end(), extraSearchArgs);
 
-      if (!extraSearchArgs.empty()) AddApiParam(apiUrl, extraSearchArgs);
-
-      auto res{client_.Get(apiUrl, emptyHeaders_)};
+      auto res{client_.Get(BuildApiParamsPath(API_ITEMS, params), emptyHeaders_)};
       if (!IsHttpSuccess(__func__, res)) return std::nullopt;
 
       JsonEmbyItemsResponse response;
@@ -228,9 +226,7 @@ namespace loomis
       auto item = GetItem(EmbySearchType::name, name, {{"IncludeItemTypes", "Playlist"}});
       if (!item.has_value()) return std::nullopt;
 
-      auto apiUrl = BuildApiPath(std::format("{}/{}/Items", API_PLAYLISTS, item->id));
-      auto res = client_.Get(apiUrl, emptyHeaders_);
-
+      auto res = client_.Get(BuildApiPath(std::format("{}/{}/Items", API_PLAYLISTS, item->id)), emptyHeaders_);
       if (!IsHttpSuccess(__func__, res)) return std::nullopt;
 
       // Parse the entire "Items" array directly into our struct
@@ -261,21 +257,18 @@ namespace loomis
 
    void EmbyApi::CreatePlaylist(std::string_view name, const std::vector<std::string>& itemIds)
    {
-      auto apiUrl = BuildApiPath(API_PLAYLISTS);
-      AddApiParam(apiUrl, {
+      const auto apiUrl = BuildApiParamsPath(API_PLAYLISTS, {
          {NAME, name},
          {IDS, BuildCommaSeparatedList(itemIds)},
          {MEDIA_TYPE, MOVIES}
       });
-
       auto res{client_.Post(apiUrl, jsonHeaders_)};
       IsHttpSuccess(__func__, res);
    }
 
    bool EmbyApi::AddPlaylistItems(std::string_view playlistId, const std::vector<std::string>& addIds)
    {
-      auto apiUrl{BuildApiPath(std::format("{}/{}/Items", API_PLAYLISTS, playlistId))};
-      AddApiParam(apiUrl, {
+      auto apiUrl = BuildApiParamsPath(std::format("{}/{}/Items", API_PLAYLISTS, playlistId), {
          {IDS, BuildCommaSeparatedList(addIds)}
       });
       auto res{client_.Post(apiUrl, jsonHeaders_)};
@@ -284,8 +277,7 @@ namespace loomis
 
    bool EmbyApi::RemovePlaylistItems(std::string_view playlistId, const std::vector<std::string>& removeIds)
    {
-      auto apiUrl{BuildApiPath(std::format("{}/{}/Items/Delete", API_PLAYLISTS, playlistId))};
-      AddApiParam(apiUrl, {
+      const auto apiUrl = BuildApiParamsPath(std::format("{}/{}/Items/Delete", API_PLAYLISTS, playlistId), {
          {ENTRY_IDS, BuildCommaSeparatedList(removeIds)}
       });
       auto res{client_.Post(apiUrl, jsonHeaders_)};
@@ -305,8 +297,7 @@ namespace loomis
          {"accept", "*/*"}
       };
 
-      auto apiUrl = BuildApiPath(std::format("/Items/{}/Refresh", libraryId));
-      AddApiParam(apiUrl, {
+      const auto apiUrl = BuildApiParamsPath(std::format("/Items/{}/Refresh", libraryId), {
          {"Recursive", "true"},
          {"ImageRefreshMode", "Default"},
          {"ReplaceAllImages", "false"},
@@ -319,7 +310,7 @@ namespace loomis
 
    void EmbyApi::BuildPathMap()
    {
-      const auto apiUrl = BuildApiPathWithParams(API_ITEMS, {
+      const auto apiUrl = BuildApiParamsPath(API_ITEMS, {
           {"Recursive", "true"},
           {"IncludeItemTypes", "Movie,Episode"},
           {"Fields", "Path,DateModified"},
@@ -368,8 +359,7 @@ namespace loomis
 
    bool EmbyApi::HasLibraryChanged()
    {
-      // Use the static approach we discussed for performance
-      static const auto apiUrl = BuildApiPathWithParams(API_ITEMS, {
+      const auto apiUrl = BuildApiParamsPath(API_ITEMS, {
           {"Recursive", "true"},
           {"IncludeItemTypes", "Movie,Episode"},
           {"SortBy", "DateModified"},
