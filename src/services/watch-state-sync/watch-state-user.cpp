@@ -108,6 +108,8 @@ namespace loomis
       if (!userHistory) return;
 
       auto consolodatedHistory = GetConsolodatedHistory(*userHistory);
+      if (consolodatedHistory.empty()) return;
+
       auto historyWithPaths = GetPlexPathsForHistoryItems(plexUser->GetServer(), consolodatedHistory);
 
       std::string syncServers;

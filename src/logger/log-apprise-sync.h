@@ -20,7 +20,7 @@ namespace loomis
       explicit apprise_sink(const AppriseLoggingConfig& config)
          : client_(config.url)
          , key_(config.key)
-         , title_(config.title)
+         , title_(config.message_title)
       {
       }
 

@@ -18,10 +18,10 @@ namespace loomis
       if (embyApi_ && jellystatApi_)
       {
          // Will get users from emby. Do a small pre-check and warn the system.
-         if (embyApi_->GetValid() && !embyApi_->GetUserExists(config_.user))
+         if (embyApi_->GetValid() && !embyApi_->GetUserExists(config_.user_name))
          {
             logger_.LogWarning("{} not found on {}. Is user name correct?",
-                               utils::GetTag("user", config_.user),
+                               utils::GetTag("user", config_.user_name),
                                utils::GetServerName(utils::GetFormattedEmby(), config_.server));
          }
 
@@ -33,14 +33,14 @@ namespace loomis
          {
             logger_.LogWarning("{} api not found for {}",
                                utils::GetServerName(utils::GetFormattedEmby(), config_.server),
-                               utils::GetTag("user", config_.user));
+                               utils::GetTag("user", config_.user_name));
          }
 
          if (!jellystatApi_)
          {
             logger_.LogWarning("{} tracker api not found for {}. Required for this service.",
                                utils::GetServerName(utils::GetFormattedJellystat(), config_.server),
-                               utils::GetTag("user", config_.user));
+                               utils::GetTag("user", config_.user_name));
          }
       }
    }

@@ -5,7 +5,6 @@
 #include "config-reader/config-reader-types.h"
 
 #include <httplib/httplib.h>
-#include <json/json.hpp>
 
 #include <cstdint>
 #include <list>
@@ -20,6 +19,8 @@ namespace loomis
       TautulliApi(const ServerConfig& serverConfig);
       virtual ~TautulliApi() = default;
 
+      [[nodiscard]] std::optional<std::vector<Task>> GetTaskList() override;
+
       // Returns true if the server is reachable and the API key is valid
       [[nodiscard]] bool GetValid() override;
       [[nodiscard]] std::optional<std::string> GetServerReportedName() override;
@@ -30,9 +31,16 @@ namespace loomis
 
    private:
       std::string BuildApiPath(std::string_view cmd);
-      const nlohmann::json* GetJsonResponseData(const nlohmann::json& data);
+
+      // Server should be responding before making this call
+      uint32_t GetWatchedPercent();
+
+      bool ReadMonitoringData();
+      void RunSettingsUpdate();
 
       httplib::Client client_;
       httplib::Headers headers_;
+
+      std::optional<uint32_t> watchedPercent_;
    };
 }

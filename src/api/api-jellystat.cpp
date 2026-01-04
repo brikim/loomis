@@ -2,8 +2,6 @@
 
 #include "logger/log-utils.h"
 
-#include <json/json.hpp>
-
 #include <format>
 #include <ranges>
 
@@ -16,7 +14,7 @@ namespace loomis
    }
 
    JellystatApi::JellystatApi(const ServerConfig& serverConfig)
-      : ApiBase(serverConfig.name, serverConfig.tracker, "JellystatApi", utils::ANSI_CODE_JELLYSTAT)
+      : ApiBase(serverConfig.server_name, serverConfig.tracker_url, serverConfig.tracker_api_key, "JellystatApi", utils::ANSI_CODE_JELLYSTAT)
       , client_(GetUrl())
    {
       headers_ = {

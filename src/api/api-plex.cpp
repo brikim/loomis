@@ -51,7 +51,7 @@ namespace loomis
    };
 
    PlexApi::PlexApi(const ServerConfig& serverConfig)
-      : ApiBase(serverConfig.name, serverConfig.main, "PlexApi", utils::ANSI_CODE_PLEX)
+      : ApiBase(serverConfig.server_name, serverConfig.url, serverConfig.api_key, "PlexApi", utils::ANSI_CODE_PLEX)
       , client_(GetUrl())
    {
       constexpr time_t timeoutSec{5};

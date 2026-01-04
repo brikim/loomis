@@ -7,11 +7,15 @@
 
 namespace loomis
 {
-   ApiBase::ApiBase(std::string_view name, const ServerConnectionConfig& serverConnection, std::string_view className, std::string_view ansiiCode)
+   ApiBase::ApiBase(std::string_view name,
+                    std::string_view url,
+                    std::string_view apiKey,
+                    std::string_view className,
+                    std::string_view ansiiCode)
       : Base(className, ansiiCode, name)
       , name_(name)
-      , url_(serverConnection.url)
-      , apiKey_(serverConnection.apiKey)
+      , url_(url)
+      , apiKey_(apiKey)
    {
    }
 
@@ -91,7 +95,7 @@ namespace loomis
       return result;
    }
 
-   bool ApiBase::IsHttpSuccess(std::string_view name, const httplib::Result& result)
+   bool ApiBase::IsHttpSuccess(std::string_view name, const httplib::Result& result, bool log)
    {
       std::string error;
 
@@ -109,8 +113,7 @@ namespace loomis
          return true;
       }
 
-      // If we reached here, something went wrong
-      LogWarning("{} - HTTP error {}", name, utils::GetTag("error", error));
+      if (log) LogWarning("{} - HTTP error {}", name, utils::GetTag("error", error));
       return false;
    }
 }

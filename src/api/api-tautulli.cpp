@@ -1,8 +1,10 @@
 #include "api-tautulli.h"
 
-#include "api/json-helper.h"
+#include "api/api-tautulli-json-types.h"
 #include "logger/log-utils.h"
 #include "version.h"
+
+#include <glaze/glaze.hpp>
 
 #include <format>
 #include <ranges>
@@ -13,35 +15,21 @@ namespace loomis
    {
       const std::string API_BASE{"/api/v2"};
 
-      const std::string CMD_GET_INFO{"get_tautulli_info"};
+      const std::string CMD_GET_SERVER_FRIENDLY_NAME("get_server_friendly_name");
+      const std::string CMD_GET_SETTINGS{"get_settings"};
       const std::string CMD_GET_USERS("get_users");
       const std::string CMD_GET_HISTORY("get_history");
-
       const std::string CMD_SERVER_INFO{"get_server_info"};
-      const auto PTR_SERVER_INFO_DATA = "/response/data"_json_pointer;
-      const auto PTR_SERVER_INFO_PMS_NAME = "/response/data/pms_name"_json_pointer;
 
-      constexpr std::string_view RESPONSE{"response"};
-      constexpr std::string_view DATA{"data"};
-      constexpr std::string_view PMS_NAME{"pms_name"};
-      constexpr std::string_view USER_NAME{"username"};
       constexpr std::string_view USER("user");
-      constexpr std::string_view USER_ID("user_id");
-      constexpr std::string_view FRIENDLY_NAME("friendly_name");
       constexpr std::string_view INCLUDE_ACTIVITY("include_activity");
       constexpr std::string_view AFTER("after");
-      constexpr std::string_view TITLE("title");
-      constexpr std::string_view FULL_TITLE("full_title");
-      constexpr std::string_view WATCHED_STATUS("watched_status");
-      constexpr std::string_view RATING_KEY("rating_key");
-      constexpr std::string_view STOPPED("stopped");
-      constexpr std::string_view PERCENT_COMPLETE("percent_complete");
 
       const std::string USER_AGENT{std::format("Loomis/{}", LOOMIS_VERSION)};
    }
 
    TautulliApi::TautulliApi(const ServerConfig& serverConfig)
-      : ApiBase(serverConfig.name, serverConfig.tracker, "TautulliApi", utils::ANSI_CODE_TAUTULLI)
+      : ApiBase(serverConfig.server_name, serverConfig.tracker_url, serverConfig.tracker_api_key, "TautulliApi", utils::ANSI_CODE_TAUTULLI)
       , client_(GetUrl())
    {
       constexpr time_t timeoutSec{5};
@@ -52,27 +40,27 @@ namespace loomis
       headers_.insert({"Accept", "application/json"});
    }
 
+   std::optional<std::vector<Task>> TautulliApi::GetTaskList()
+   {
+      std::vector<Task> tasks;
+
+      auto& fullUpdate = tasks.emplace_back();
+      fullUpdate.name = std::format("TautulliApi({}) - Settings Update", GetName());
+      fullUpdate.cronExpression = "0 50 3 * * *";
+      fullUpdate.func = [this]() {this->RunSettingsUpdate(); };
+
+      return tasks;
+   }
+
    std::string TautulliApi::BuildApiPath(std::string_view cmd)
    {
       return std::format("{}?apikey={}&cmd={}", API_BASE, GetApiKey(), cmd);
    }
 
-   const nlohmann::json* TautulliApi::GetJsonResponseData(const nlohmann::json& data)
-   {
-      // Find "response"
-      auto respIt = data.find(RESPONSE);
-      if (respIt == data.end()) return nullptr;
-
-      // Find "data" inside "response"
-      auto dataIt = respIt->find(DATA);
-      if (dataIt == respIt->end()) return nullptr;
-
-      return &(*dataIt);
-   }
-
    bool TautulliApi::GetValid()
    {
-      auto res = client_.Get(BuildApiPath(CMD_GET_INFO), headers_);
+      auto apiPath = BuildApiPath(CMD_GET_SERVER_FRIENDLY_NAME);
+      auto res = client_.Get(apiPath, headers_);
       return res.error() == httplib::Error::Success && res.value().status < VALID_HTTP_RESPONSE_MAX;
    }
 
@@ -80,16 +68,24 @@ namespace loomis
    {
       auto res = client_.Get(BuildApiPath(CMD_SERVER_INFO), headers_);
 
-      if (!IsHttpSuccess(__func__, res)) return std::nullopt;
-
-      auto jsonData = JsonSafeParse(res->body);
-      if (!jsonData)
+      if (!IsHttpSuccess(__func__, res))
       {
-         LogWarning("{} - malformed json reply received", __func__);
          return std::nullopt;
       }
 
-      return JsonSafeGet<std::string>(*jsonData, PTR_SERVER_INFO_PMS_NAME);
+      JsonTautulliResponse<JsonTautulliServerInfo> serverResponse;
+      if (auto ec = glz::read < glz::opts{.error_on_unknown_keys = false} > (serverResponse, res.value().body))
+      {
+         LogWarning("{} - JSON Parse Error: {}",
+                    __func__, glz::format_error(ec, res.value().body));
+         return std::nullopt;
+      }
+
+      if (serverResponse.response.data.pms_name.empty())
+      {
+         return std::nullopt;
+      }
+      return std::move(serverResponse.response.data.pms_name);
    }
 
    std::optional<TautulliUserInfo> TautulliApi::GetUserInfo(std::string_view name)
@@ -97,36 +93,54 @@ namespace loomis
       auto res = client_.Get(BuildApiPath(CMD_GET_USERS), headers_);
       if (!IsHttpSuccess(__func__, res)) return std::nullopt;
 
-      auto jsonData = JsonSafeParse(res->body);
-      if (!jsonData)
+      JsonTautulliResponse<std::vector<JsonUserInfo>> serverResponse;
+      if (auto ec = glz::read < glz::opts{.error_on_unknown_keys = false} > (serverResponse, res.value().body))
       {
-         LogWarning("{} - Malformed JSON reply received", __func__);
+         LogWarning("{} - JSON Parse Error: {}",
+                    __func__, glz::format_error(ec, res.value().body));
          return std::nullopt;
       }
 
-      const auto* dataPtr = GetJsonResponseData(*jsonData);
-      if (!dataPtr || !dataPtr->is_array())
-      {
-         return std::nullopt;
-      }
-
-      auto it = std::ranges::find_if(*dataPtr, [&](const auto& item) {
-         return JsonSafeGet<std::string>(item, USER_NAME).value_or("") == name;
+      auto it = std::ranges::find_if(serverResponse.response.data, [&](const auto& item) {
+         return item.username == name;
       });
 
-      if (it == dataPtr->end())
+      if (it == serverResponse.response.data.end())
       {
          return std::nullopt;
       }
 
-      TautulliUserInfo info;
-      auto friendlyName = JsonSafeGet<std::string>(*it, FRIENDLY_NAME);
+      return TautulliUserInfo{it->user_id, std::move(it->friendly_name)};
+   }
 
-      info.id = JsonSafeGet<int32_t>(*it, USER_ID).value_or(0);
-      info.friendlyNameValid = friendlyName.has_value();
-      info.friendlyName = friendlyName.value_or("");
+   bool TautulliApi::ReadMonitoringData()
+   {
+      auto apiPath = BuildApiPath(CMD_GET_SETTINGS);
+      AddApiParam(apiPath, {
+          {"key", "Monitoring"},
+      });
 
-      return info;
+      auto res = client_.Get(apiPath, headers_);
+      if (!IsHttpSuccess(__func__, res, false)) return false;
+
+      JsonTautulliResponse<JsonTautulliMonitorInfo> serverResponse;
+      if (auto ec = glz::read < glz::opts{.error_on_unknown_keys = false} > (serverResponse, res.value().body))
+      {
+         LogWarning("{} - JSON Parse Error: {}",
+                    __func__, glz::format_error(ec, res.value().body));
+         return false;
+      }
+
+      watchedPercent_ = serverResponse.response.data.movie_watched_percent;
+      return true;
+   }
+
+   uint32_t TautulliApi::GetWatchedPercent()
+   {
+      if (watchedPercent_) return *watchedPercent_;
+
+      constexpr uint32_t defaultWatchedPercent = 85;
+      return ReadMonitoringData() ? *watchedPercent_ : defaultWatchedPercent;
    }
 
    std::optional<TautulliHistoryItems> TautulliApi::GetWatchHistoryForUser(std::string_view user, std::string_view dateForHistory)
@@ -141,37 +155,36 @@ namespace loomis
       auto res = client_.Get(apiPath, headers_);
       if (!IsHttpSuccess(__func__, res)) return std::nullopt;
 
-      auto jsonData = JsonSafeParse(res->body);
-      if (!jsonData) return std::nullopt;
-
-      const auto* dataPtr = GetJsonResponseData(*jsonData);
-
-      // Safety check: Ensure the pointer is valid and the 'data' field is an array
-      if (!dataPtr || !dataPtr->contains(DATA) || !(*dataPtr)[DATA].is_array())
+      JsonTautulliResponse<JsonTautulliHistoryData> serverResponse;
+      if (auto ec = glz::read < glz::opts{.error_on_unknown_keys = false} > (serverResponse, res.value().body))
       {
+         LogWarning("{} - JSON Parse Error: {}",
+                    __func__, glz::format_error(ec, res.value().body));
          return std::nullopt;
       }
 
-      const auto& historyArray = (*dataPtr)[DATA];
-      if (historyArray.empty()) return std::nullopt;
-
-      // 4. Map to Structs
       TautulliHistoryItems returnHistory;
-      returnHistory.items.reserve(historyArray.size());
+      returnHistory.items.reserve(serverResponse.response.data.data.size());
 
-      for (const auto& item : historyArray)
+      // Get the watched percent outside of the loop. Could potentially make a network call.
+      auto watchedPercent = GetWatchedPercent();
+      for (auto& item : serverResponse.response.data.data)
       {
-         // Use C++20 designated initializers for maximum clarity
          returnHistory.items.emplace_back(TautulliHistoryItem{
-             .name = JsonSafeGet<std::string>(item, TITLE).value_or(""),
-             .fullName = JsonSafeGet<std::string>(item, FULL_TITLE).value_or(""),
-             .id = JsonSafeGet<int32_t>(item, RATING_KEY).value_or(0),
-             .watched = (JsonSafeGet<int32_t>(item, WATCHED_STATUS).value_or(0) == 1),
-             .timeWatchedEpoch = JsonSafeGet<int64_t>(item, STOPPED).value_or(0),
-             .playbackPercentage = JsonSafeGet<int32_t>(item, PERCENT_COMPLETE).value_or(0)
+             .name = std::move(item.title),
+             .fullName = std::move(item.full_title),
+             .id = item.rating_key,
+             .watched = item.percent_complete >= watchedPercent,
+             .timeWatchedEpoch = item.stopped,
+             .playbackPercentage = item.percent_complete
          });
       }
 
       return returnHistory;
+   }
+
+   void TautulliApi::RunSettingsUpdate()
+   {
+      ReadMonitoringData();
    }
 }

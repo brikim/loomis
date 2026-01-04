@@ -5,7 +5,6 @@
 #include "types.h"
 
 #include <httplib/httplib.h>
-#include <json/json.hpp>
 
 #include <optional>
 #include <string>
@@ -15,7 +14,11 @@ namespace loomis
    class ApiBase : public Base
    {
    public:
-      ApiBase(std::string_view name, const ServerConnectionConfig& serverConnection, std::string_view className, std::string_view ansiiCode);
+      ApiBase(std::string_view name,
+              std::string_view url,
+              std::string_view apiKey,
+              std::string_view className,
+              std::string_view ansiiCode);
       virtual ~ApiBase() = default;
 
       // Api tasks are optional. Api's can override to perform a task
@@ -35,7 +38,7 @@ namespace loomis
       std::string GetPercentEncoded(std::string_view src) const;
 
       // Returns if the http request was successful and outputs to the log if not successful
-      bool IsHttpSuccess(std::string_view name, const httplib::Result& result);
+      bool IsHttpSuccess(std::string_view name, const httplib::Result& result, bool log = true);
 
    private:
       std::string name_;

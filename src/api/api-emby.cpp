@@ -2,7 +2,6 @@
 
 #include "api/api-emby-json-types.h"
 #include "api/api-utils.h"
-#include "api/json-helper.h"
 #include "logger/log-utils.h"
 #include "types.h"
 
@@ -34,7 +33,7 @@ namespace loomis
    }
 
    EmbyApi::EmbyApi(const ServerConfig& serverConfig)
-      : ApiBase(serverConfig.name, serverConfig.main, "EmbyApi", utils::ANSI_CODE_EMBY)
+      : ApiBase(serverConfig.server_name, serverConfig.url, serverConfig.api_key, "EmbyApi", utils::ANSI_CODE_EMBY)
       , client_(GetUrl())
    {
       constexpr time_t timeoutSec{5};

@@ -12,49 +12,49 @@ namespace loomis
    PlaylistSyncService::PlaylistSyncService(const PlaylistSyncConfig& config,
                                             std::shared_ptr<ApiManager> apiManager)
       : ServiceBase("Playlist Sync", utils::ANSI_CODE_SERVICE_PLAYLIST_SYNC, apiManager, config.cron)
-      , timeForEmbyUpdateSec_(config.timeForEmbyUpdateSec)
-      , timeBetweenSyncsSec_(config.timeBetweenSyncSec)
+      , timeForEmbyUpdateSec_(config.time_for_emby_to_update_seconds)
+      , timeBetweenSyncsSec_(config.time_between_syncs_seconds)
    {
       Init(config);
    }
 
    void PlaylistSyncService::Init(const PlaylistSyncConfig& config)
    {
-      for (const auto& plexCollection : config.plexCollections)
+      for (const auto& plexCollection : config.plex_collection_sync)
       {
          auto plexApi{GetApiManager()->GetPlexApi(plexCollection.server)};
          if (plexApi != nullptr)
          {
-            if (plexApi->GetValid() && !plexApi->GetCollectionValid(plexCollection.library, plexCollection.collectionName))
+            if (plexApi->GetValid() && !plexApi->GetCollectionValid(plexCollection.library, plexCollection.collection_name))
             {
                LogWarning("{} {} {} not found on server",
                           utils::GetServerName(utils::GetFormattedPlex(), plexCollection.server),
                           utils::GetTag("library", plexCollection.library),
-                          utils::GetTag("collection", plexCollection.collectionName));
+                          utils::GetTag("collection", plexCollection.collection_name));
                continue;
             }
 
             PlaylistPlexCollection collection;
-            for (const auto& embyServerName : plexCollection.embyServers)
+            for (const auto& embyServerName : plexCollection.target_emby_servers)
             {
-               auto* embyApi{GetApiManager()->GetEmbyApi(embyServerName)};
+               auto* embyApi{GetApiManager()->GetEmbyApi(embyServerName.server)};
                if (embyApi)
                {
-                  collection.embyServers.emplace_back(embyServerName);
+                  collection.target_emby_servers.emplace_back(embyServerName);
                }
                else
                {
                   LogWarning("{} api not found for {} {}",
-                             utils::GetServerName(utils::GetFormattedEmby(), embyServerName),
+                             utils::GetServerName(utils::GetFormattedEmby(), embyServerName.server),
                              utils::GetServerName(utils::GetFormattedPlex(), plexCollection.server),
-                             utils::GetTag("collection", plexCollection.collectionName));
+                             utils::GetTag("collection", plexCollection.collection_name));
                }
             }
 
             // If there are no emby servers to sync do add to collections
-            if (!collection.embyServers.empty())
+            if (!collection.target_emby_servers.empty())
             {
-               collection.collectionName = plexCollection.collectionName;
+               collection.collection_name = plexCollection.collection_name;
                collection.server = plexCollection.server;
                collection.library = plexCollection.library;
                plexCollections_.emplace_back(plexCollection);
@@ -64,7 +64,7 @@ namespace loomis
                LogWarning("{} {} {} no emby servers to sync ... skipping",
                           utils::GetServerName(utils::GetFormattedPlex(), plexCollection.server),
                           utils::GetTag("library", plexCollection.library),
-                          utils::GetTag("collection", plexCollection.collectionName));
+                          utils::GetTag("collection", plexCollection.collection_name));
             }
          }
          else
@@ -252,7 +252,7 @@ namespace loomis
 
    void PlaylistSyncService::SyncPlexCollection(PlexApi* plexApi, EmbyApi* embyApi, const PlaylistPlexCollection& collection)
    {
-      auto plexCollection{plexApi->GetCollection(collection.library, collection.collectionName)};
+      auto plexCollection{plexApi->GetCollection(collection.library, collection.collection_name)};
       if (plexCollection.has_value())
       {
          SyncEmbyPlaylist(plexApi, embyApi, plexCollection.value());
@@ -266,9 +266,9 @@ namespace loomis
          if (auto* plexApi{GetApiManager()->GetPlexApi(plexCollection.server)};
              plexApi->GetValid())
          {
-            for (const auto& embyServer : plexCollection.embyServers)
+            for (const auto& embyServer : plexCollection.target_emby_servers)
             {
-               if (auto* embyApi{GetApiManager()->GetEmbyApi(embyServer)};
+               if (auto* embyApi{GetApiManager()->GetEmbyApi(embyServer.server)};
                    embyApi->GetValid())
                {
                   // Sync this plex collection with the emby server

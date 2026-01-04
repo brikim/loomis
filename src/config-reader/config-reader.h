@@ -3,7 +3,6 @@
 #include "config-reader/config-reader-types.h"
 #include "types.h"
 
-#include <json/json.hpp>
 #include <span>
 #include <vector>
 
@@ -25,14 +24,6 @@ namespace loomis
 
    private:
       void ReadConfigFile(const char* path);
-
-      void ReadServerConfig(ApiType apiType, const nlohmann::json& jsonData, std::vector<ServerConfig>& servers);
-      bool ReadServers(const nlohmann::json& jsonData);
-
-      void ReadAppriseLogging(const nlohmann::json& jsonData);
-
-      void ReadPlaylistSyncConfig(const nlohmann::json& jsonData);
-      void ReadWatchStateSyncConfig(const nlohmann::json& jsonData);
 
       bool configValid_{false};
       ConfigData configData_;

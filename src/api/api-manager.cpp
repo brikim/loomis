@@ -19,7 +19,7 @@ namespace loomis
       {
          InitializeApi<PlexApi>(plexApis_, server, utils::GetFormattedPlex());
 
-         if (server.tracker.valid)
+         if (!server.tracker_url.empty())
          {
             InitializeApi<TautulliApi>(tautulliApis_, server, utils::GetFormattedTautulli());
          }
@@ -32,7 +32,7 @@ namespace loomis
       {
          InitializeApi<EmbyApi>(embyApis_, server, utils::GetFormattedEmby());
 
-         if (server.tracker.valid)
+         if (!server.tracker_url.empty())
          {
             InitializeApi<JellystatApi>(jellystatApis_, server, utils::GetFormattedJellystat());
          }

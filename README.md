@@ -93,20 +93,29 @@ A configuration file is required to use Loomis. Create a config.conf file in the
     },
 
     "apprise_logging": {
-        "enabled": "True",
+        "enabled": true,
         "url": "http://0.0.0.0:0",
         "key": "apprise",
         "message_title": "Test loomis notification"
     },
 
     "playlist_sync": {
-        "enabled": "True",
+        "enabled": true,
         "cron_comment": "Non-Standard cron expression. First digit is seconds so leave this as 0 if this accuracy is not needed and fill in the rest with standard cron expression",
         "cron": "0 0 */2 * * *",
         "time_for_emby_to_update_seconds": 1,
         "time_between_syncs_seconds": 1,
         "plex_collection_sync": [
             {"server": "Server1", "library": "Server1_LibraryName", "collection_name": "plexCollectionName", "target_emby_servers": [{"server": "Server1"}, {"server": "Server2"}]}
+        ]
+    },
+
+    "watch_state_sync": {
+        "enabled": true,
+        "cron_run_rate": "0 0 */2 * * *",
+        "users": [
+            {"plex": [{"server": "Server1", "user_name": "User1", "can_sync": true}], "emby": [{"server": "Server1", "user_name": "User1"}, {"server": "Server2", "user_name": "User1"}]},
+            {"plex": [{"server": "Server1", "user_name": "User2", "can_sync": false}], "emby": [{"server": "Server1", "user_name": "User2"}, {"server": "Server2", "user_name": "User2"}]}
         ]
     }
 }

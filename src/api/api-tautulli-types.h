@@ -9,7 +9,6 @@ namespace loomis
    struct TautulliUserInfo
    {
       int32_t id{0};
-      bool friendlyNameValid{false};
       std::string friendlyName;
    };
 

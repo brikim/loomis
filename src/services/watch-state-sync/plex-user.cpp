@@ -18,10 +18,10 @@ namespace loomis
       if (api_ && trackerApi_)
       {
          // Will get users from tautulli for plex. Do a small pre-check and warn the system.
-         if (trackerApi_->GetValid() && !trackerApi_->GetUserInfo(config_.user).has_value())
+         if (trackerApi_->GetValid() && !trackerApi_->GetUserInfo(config_.user_name))
          {
             logger_.LogWarning("{} not found on {}. Is user name correct?",
-                               utils::GetTag("user", config_.user),
+                               utils::GetTag("user", config_.user_name),
                                utils::GetServerName(utils::GetFormattedTautulli(), config_.server));
          }
 
@@ -33,14 +33,14 @@ namespace loomis
          {
             logger_.LogWarning("{} api not found for {}",
                                utils::GetServerName(utils::GetFormattedPlex(), config_.server),
-                               utils::GetTag("user", config_.user));
+                               utils::GetTag("user", config_.user_name));
          }
 
          if (!trackerApi_)
          {
             logger_.LogWarning("{} tracker api not found for {}. Required for this service.",
                                utils::GetServerName(utils::GetFormattedTautulli(), config_.server),
-                               utils::GetTag("user", config_.user));
+                               utils::GetTag("user", config_.user_name));
          }
       }
    }
@@ -62,7 +62,7 @@ namespace loomis
 
    std::optional<std::string_view> PlexUser::GetFriendlyName() const
    {
-      if (userInfo_.friendlyNameValid)
+      if (!userInfo_.friendlyName.empty())
       {
          return userInfo_.friendlyName;
       }
@@ -71,12 +71,12 @@ namespace loomis
 
    std::optional<TautulliHistoryItems> PlexUser::GetWatchHistory(std::string_view historyDate)
    {
-      return trackerApi_->GetWatchHistoryForUser(config_.user, historyDate);
+      return trackerApi_->GetWatchHistoryForUser(config_.user_name, historyDate);
    }
 
    void PlexUser::Update()
    {
-      auto userInfo{trackerApi_->GetUserInfo(config_.user)};
+      auto userInfo{trackerApi_->GetUserInfo(config_.user_name)};
       valid_ = userInfo.has_value();
       if (valid_) userInfo_ = *userInfo;
    }
