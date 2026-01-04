@@ -42,8 +42,16 @@ target_link_libraries(loomis PRIVATE
 )
 
 # --- Portability & Static Linking ---
-if(NOT MSVC)
+if(UNIX)
     target_link_options(loomis PRIVATE -static-libstdc++ -static-libgcc)
+
+    find_package(OpenSSL REQUIRED)
+    add_definitions(-DCPPHTTPLIB_OPENSSL_SUPPORT)
+    target_link_libraries(loomis PRIVATE OpenSSL::SSL OpenSSL::Crypto)
+else()
+    # On Windows, you can skip SSL or use a different method 
+    # if you aren't testing HTTPS locally.
+    message(STATUS "Skipping SSL for non-Linux build")
 endif()
 
 # --- Extra: Compile Definitions ---

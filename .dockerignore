@@ -1,0 +1,15 @@
+# Ignore local build artifacts
+build/
+bin/
+out/
+**/*.user
+**/*.sublime-*
+**/CMakeCache.txt
+**/CMakeFiles/
+**/cmake_install.cmake
+**/Makefile
+
+# Ignore git and IDE settings
+.git/
+.vscode/
+.idea/

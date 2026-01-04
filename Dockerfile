@@ -2,40 +2,41 @@
 FROM debian:trixie-slim AS build
 LABEL maintainer="BK"
 
-# Install build dependencies: g++, cmake, make, etc.
-RUN echo "deb http://deb.debian.org/debian sid main" | tee -a /etc/apt/sources.list && \
-	apt update && \
-	apt upgrade -y && \
-    apt install -y --no-install-recommends \
+RUN apt-get update && apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends \
     build-essential \
-	clang \
     cmake \
+    ninja-build \
+    ca-certificates \
+    libssl-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Create the build directory
-WORKDIR /app/build
+ENV CC=gcc
+ENV CXX=g++
 
-# Copy source code into the container
-COPY . /app/src
+WORKDIR /app
 
-# Configure and build the project
-ENV CXX=clang++
-RUN cmake ../src -DCMAKE_BUILD_TYPE=Release && \
-    cmake --build . -j 4
+COPY . .
+
+RUN cmake -G Ninja -B build -S . -DCMAKE_BUILD_TYPE=Release && \
+    cmake --build build
 
 # --- Stage 2: Runtime Environment ---
 FROM debian:trixie-slim AS runtime
+
+RUN apt-get update && apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends \
+    ca-certificates \
+    tzdata \
+    libssl3 \
+    && rm -rf /var/lib/apt/lists/*
 
 ENV TZ=America/Chicago
 ENV CONFIG_PATH='/config'
 ENV LOG_PATH='/logs'
 
-RUN apt update && \
-	apt upgrade -y && \
-	rm -rf /var/lib/apt/lists/*
-
-# Copy only the compiled executable from the 'build' stage
 COPY --from=build /app/build/loomis /usr/local/bin/loomis
 
-# Command to run the application
+RUN chmod +x /usr/local/bin/loomis
+
 CMD ["/usr/local/bin/loomis"]
