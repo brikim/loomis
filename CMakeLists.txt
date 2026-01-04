@@ -32,11 +32,13 @@ target_include_directories(loomis PRIVATE
     src       # Allows #include "api/api-base.h"
     external
     external/spdlog/include
+    external/glaze/include
 )
 
 target_link_libraries(loomis PRIVATE
     pugixml-static
     spdlog
+    glaze::glaze
 )
 
 # --- Portability & Static Linking ---

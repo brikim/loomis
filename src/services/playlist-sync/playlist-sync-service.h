@@ -26,7 +26,7 @@ namespace loomis
 
       // Returns added then deleted item numbers in the pair
       std::pair<size_t, size_t> AddRemoveEmbyPlaylistItems(EmbyApi* embyApi, const EmbyPlaylist& currentPlaylist, const std::vector<std::string>& updatedPlaylistIds);
-      void UpdateEmbyPlaylist(PlexApi* plexApi, EmbyApi* embyApi, std::string_view playlistName, const std::vector<std::string>& correctIds);
+      void UpdateEmbyPlaylist(PlexApi* plexApi, EmbyApi* embyApi, EmbyPlaylist embyPlaylist, const std::vector<std::string>& correctIds);
       void SyncEmbyPlaylist(PlexApi* plexApi, EmbyApi* embyApi, const PlexCollection& plexCollection);
       void SyncPlexCollection(PlexApi* plexApi, EmbyApi* embyApi, const PlaylistPlexCollection& collection);
 

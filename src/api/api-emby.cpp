@@ -1,12 +1,12 @@
 #include "api-emby.h"
 
+#include "api/api-emby-json-types.h"
 #include "api/api-utils.h"
 #include "api/json-helper.h"
-#include "logger/logger.h"
 #include "logger/log-utils.h"
 #include "types.h"
 
-#include <json/json.hpp>
+#include <glaze/glaze.hpp>
 
 #include <format>
 #include <mutex>
@@ -24,23 +24,12 @@ namespace loomis
       const std::string API_PLAYLISTS{"/Playlists"};
       const std::string API_USERS{"/Users"};
 
-      constexpr std::string_view SERVER_NAME{"ServerName"};
       constexpr std::string_view NAME{"Name"};
-      constexpr std::string_view ID{"Id"};
       constexpr std::string_view IDS{"Ids"};
-      constexpr std::string_view ITEMS{"Items"};
-      constexpr std::string_view TYPE{"Type"};
       constexpr std::string_view PATH{"Path"};
-
-      constexpr std::string_view TOTAL_RECORD_COUNT{"TotalRecordCount"};
       constexpr std::string_view MEDIA_TYPE{"MediaType"};
       constexpr std::string_view MOVIES{"Movies"};
       constexpr std::string_view SEARCH_TERM{"SearchTerm"};
-      constexpr std::string_view SERIES_NAME{"SeriesName"};
-      constexpr std::string_view PARENT_INDEX_NUMBER{"ParentIndexNumber"};
-      constexpr std::string_view INDEX_NUMBER{"IndexNumber"};
-      constexpr std::string_view RUN_TIME_TICKS{"RunTimeTicks"};
-      constexpr std::string_view PLAYLIST_ITEM_ID{"PlaylistItemId"};
       constexpr std::string_view ENTRY_IDS{"EntryIds"};
    }
 
@@ -52,7 +41,7 @@ namespace loomis
       client_.set_connection_timeout(timeoutSec);
 
       // If the service is valid run any needed tasks
-      if (GetValid()) RunPathMapFullUpdate();
+      if (GetValid()) BuildPathMap();
    }
 
    std::optional<std::vector<Task>> EmbyApi::GetTaskList()
@@ -61,12 +50,12 @@ namespace loomis
 
       auto& quickCheck = tasks.emplace_back();
       quickCheck.name = std::format("EmbyApi({}) - Path Map Quick Check", GetName());
-      quickCheck.cronExpression = "0 */5 * * * *";
+      quickCheck.cronExpression = "30 */5 * * * *";
       quickCheck.func = [this]() {this->RunPathMapQuickCheck(); };
 
       auto& fullUpdate = tasks.emplace_back();
       fullUpdate.name = std::format("EmbyApi({}) - Path Map Full Update", GetName());
-      fullUpdate.cronExpression = "0 0 4 * * *";
+      fullUpdate.cronExpression = "0 45 3 * * *";
       fullUpdate.func = [this]() {this->RunPathMapFullUpdate(); };
 
       return tasks;
@@ -75,6 +64,13 @@ namespace loomis
    std::string EmbyApi::BuildApiPath(std::string_view path) const
    {
       return std::format("{}{}?api_key={}", API_BASE, path, GetApiKey());
+   }
+
+   std::string EmbyApi::BuildApiPathWithParams(std::string_view path, const std::list<std::pair<std::string_view, std::string_view>>& params) const
+   {
+      std::string apiPath = BuildApiPath(path);
+      AddApiParam(apiPath, params);
+      return apiPath;
    }
 
    bool EmbyApi::GetValid()
@@ -92,19 +88,19 @@ namespace loomis
          return std::nullopt;
       }
 
-      auto data = JsonSafeParse(res.value().body);
-      if (!data.has_value())
+      JsonServerResponse serverResponse;
+      if (auto ec = glz::read < glz::opts{.error_on_unknown_keys = false} > (serverResponse, res.value().body))
       {
+         Logger::Instance().Warning("{} - JSON Parse Error: {}",
+                                    __func__, glz::format_error(ec, res.value().body));
          return std::nullopt;
       }
 
-      auto serverName = JsonSafeGet<std::string>(data.value(), SERVER_NAME);
-      if (serverName.has_value())
+      if (serverResponse.ServerName.empty())
       {
-         return std::move(serverName).value();
+         return std::nullopt;
       }
-
-      return std::nullopt;
+      return std::move(serverResponse.ServerName);
    }
 
    std::optional<std::string> EmbyApi::GetLibraryId(std::string_view libraryName)
@@ -113,20 +109,23 @@ namespace loomis
 
       if (!IsHttpSuccess(__func__, res)) return std::nullopt;
 
-      auto data = JsonSafeParse(res.value().body);
-      if (!data || !data->is_array()) return std::nullopt;
-
-      for (const auto& library : *data)
+      std::vector<JsonEmbyLibrary> jsonLibraries;
+      if (auto ec = glz::read < glz::opts{.error_on_unknown_keys = false} > (jsonLibraries, res.value().body))
       {
-         // Compare directly against the JSON internal string
-         // This avoids creating a new std::string for every iteration
-         if (library.contains(NAME) && library[NAME].get_ref<const std::string&>() == libraryName)
-         {
-            auto libId = JsonSafeGet<std::string>(library, ID);
-            if (libId) return std::move(libId).value();
-         }
+         Logger::Instance().Warning("{} - JSON Parse Error: {}",
+                                    __func__, glz::format_error(ec, res.value().body));
+         return std::nullopt;
       }
 
+      auto it = std::ranges::find_if(jsonLibraries, [&](const auto& lib) {
+         return lib.Name == libraryName;
+      });
+
+      if (it != jsonLibraries.end())
+      {
+         // Move the ID out of our temporary vector and return it
+         return std::move(it->Id);
+      }
       return std::nullopt;
    }
 
@@ -147,9 +146,9 @@ namespace loomis
    {
       auto apiUrl{BuildApiPath(API_ITEMS)};
       AddApiParam(apiUrl, {
-         {"Recursive", "true"},
-         {GetSearchTypeStr(type), name},
-         {"Fields", "Path"}
+          {"Recursive", "true"},
+          {GetSearchTypeStr(type), name},
+          {"Fields", "Path,SeriesName,RunTimeTicks"} // Ensure we ask for what we need
       });
 
       if (!extraSearchArgs.empty()) AddApiParam(apiUrl, extraSearchArgs);
@@ -157,47 +156,45 @@ namespace loomis
       auto res{client_.Get(apiUrl, emptyHeaders_)};
       if (!IsHttpSuccess(__func__, res)) return std::nullopt;
 
-      auto data = JsonSafeParse(res.value().body);
-      if (!data || !data->contains(ITEMS) || !(*data)[ITEMS].is_array()) return std::nullopt;
-
-      std::string_view jsonKey;
-      switch (type)
+      JsonEmbyItemsResponse response;
+      if (auto ec = glz::read < glz::opts{.error_on_unknown_keys = false} > (response, res.value().body))
       {
-         case EmbySearchType::id:   jsonKey = ID;   break; // Search "Ids", but check "Id"
-         case EmbySearchType::path: jsonKey = PATH; break; // Search "Path", check "Path"
-         case EmbySearchType::name: jsonKey = NAME; break; // Search "SearchTerm", check "Name"
+         Logger::Instance().Warning("{} - JSON Parse Error: {}", __func__, glz::format_error(ec, res.value().body));
+         return std::nullopt;
       }
 
-      for (const auto& item : (*data)[ITEMS])
+      // Use a lambda to find the specific item based on the search type
+      auto it = std::ranges::find_if(response.Items, [&](const JsonEmbyItem& item) {
+         switch (type)
+         {
+            case EmbySearchType::id:   return item.Id == name;
+            case EmbySearchType::path: return item.Path == name;
+            case EmbySearchType::name: return item.Name == name;
+            default: return false;
+         }
+      });
+
+      if (it != response.Items.end())
       {
-         bool isMatch = false;
-         if (item.contains(jsonKey) && item[jsonKey].is_string())
-         {
-            isMatch = (item[jsonKey].get_ref<const std::string&>() == name);
-         }
+         auto& match = *it;
+         EmbyItem returnItem;
 
-         if (isMatch)
-         {
-            EmbyItem returnItem;
+         // Move flat data
+         returnItem.id = std::move(match.Id);
+         returnItem.type = std::move(match.Type);
+         returnItem.name = std::move(match.Name);
+         returnItem.path = std::move(match.Path);
+         returnItem.runTimeTicks = match.RunTimeTicks;
 
-            // Helper to fill the struct using your existing JsonSafeGet logic
-            // We use std::move because these are temporary values being put into our struct
-            if (auto val = JsonSafeGet<std::string>(item, ID))   returnItem.id = std::move(*val);
-            if (auto val = JsonSafeGet<std::string>(item, TYPE)) returnItem.type = std::move(*val);
-            if (auto val = JsonSafeGet<std::string>(item, NAME)) returnItem.name = std::move(*val);
-            if (auto val = JsonSafeGet<std::string>(item, PATH)) returnItem.path = std::move(*val);
+         // Populate nested series data
+         returnItem.series.name = std::move(match.SeriesName);
+         returnItem.series.seasonNum = match.ParentIndexNumber;
+         returnItem.series.episodeNum = match.IndexNumber;
 
-            if (auto val = JsonSafeGet<std::string>(item, SERIES_NAME)) returnItem.series.name = std::move(*val);
-
-            returnItem.series.seasonNum = JsonSafeGet<uint32_t>(item, PARENT_INDEX_NUMBER).value_or(0u);
-            returnItem.series.episodeNum = JsonSafeGet<uint32_t>(item, INDEX_NUMBER).value_or(0u);
-            returnItem.runTimeTicks = JsonSafeGet<uint64_t>(item, RUN_TIME_TICKS).value_or(0u);
-
-            return returnItem;
-         }
+         return returnItem;
       }
 
-      LogWarning("GetItem returned no valid results {}", utils::GetTag("search", name));
+      LogWarning("{} returned no valid results {}", __func__, utils::GetTag("search", name));
       return std::nullopt;
    }
 
@@ -205,26 +202,21 @@ namespace loomis
    {
       auto res = client_.Get(BuildApiPath(API_USERS), emptyHeaders_);
 
-      // 1. Guard Clause: Return false immediately if the HTTP call fails
       if (!IsHttpSuccess(__func__, res)) return false;
 
-      // 2. Parse JSON and verify it's an array
-      auto data = JsonSafeParse(res.value().body);
-      if (!data || !data->is_array()) return false;
-
-      // 3. Optimized Loop: No heap allocations
-      for (const auto& user : *data)
+      // Parse into a vector of our minimal user structs
+      std::vector<JsonEmbyUser> users;
+      if (auto ec = glz::read < glz::opts{.error_on_unknown_keys = false} > (users, res.value().body))
       {
-         // Verify key exists and is a string
-         if (user.contains(NAME)
-             && user[NAME].is_string()
-             && user[NAME].get_ref<const std::string&>() == name)
-         {
-            return true;
-         }
+         Logger::Instance().Warning("{} - JSON Parse Error: {}",
+                                    __func__, glz::format_error(ec, res.value().body));
+         return false;
       }
 
-      return false;
+      // Use any_of to find a match - stops immediately when found
+      return std::ranges::any_of(users, [&](const auto& user) {
+         return user.Name == name;
+      });
    }
 
    bool EmbyApi::GetPlaylistExists(std::string_view name)
@@ -242,33 +234,28 @@ namespace loomis
 
       if (!IsHttpSuccess(__func__, res)) return std::nullopt;
 
-      auto jsonData = JsonSafeParse(res.value().body);
-      if (!jsonData || !jsonData->contains(ITEMS) || !(*jsonData)[ITEMS].is_array())
+      // Parse the entire "Items" array directly into our struct
+      JsonEmbyPlaylistItemsResponse response;
+      if (auto ec = glz::read < glz::opts{.error_on_unknown_keys = false} > (response, res.value().body))
       {
+         Logger::Instance().Warning("{} - JSON Parse Error: {}",
+                                    __func__, glz::format_error(ec, res.value().body));
          return std::nullopt;
       }
 
+      // Initialize our return object
       EmbyPlaylist returnPlaylist;
       returnPlaylist.name = std::move(item->name);
       returnPlaylist.id = std::move(item->id);
 
-      const auto& itemsArray = (*jsonData)[ITEMS];
-      returnPlaylist.items.reserve(itemsArray.size()); // Optimization: Prevent vector reallocations
-
-      for (const auto& jsonItem : itemsArray)
-      {
-         auto& pItem = returnPlaylist.items.emplace_back();
-
-         // Use std::move to transfer strings from the JSON temporary directly into the struct
-         if (auto val = JsonSafeGet<std::string>(jsonItem, ID))
-            pItem.id = std::move(*val);
-
-         if (auto val = JsonSafeGet<std::string>(jsonItem, NAME))
-            pItem.name = std::move(*val);
-
-         if (auto val = JsonSafeGet<std::string>(jsonItem, PLAYLIST_ITEM_ID))
-            pItem.playlistId = std::move(*val);
-      }
+      returnPlaylist.items.reserve(response.Items.size());
+      std::ranges::transform(response.Items, std::back_inserter(returnPlaylist.items), [](auto& item) {
+         return EmbyPlaylistItem{
+             std::move(item.Name),
+             std::move(item.Id),
+             std::move(item.PlaylistItemId)
+         };
+      });
 
       return returnPlaylist;
    }
@@ -331,53 +318,50 @@ namespace loomis
       IsHttpSuccess(__func__, res);
    }
 
-   void EmbyApi::BuildPathMap(const std::chrono::system_clock::time_point& time)
+   void EmbyApi::BuildPathMap()
    {
-      auto apiUrl{BuildApiPath(API_ITEMS)};
-      AddApiParam(apiUrl, {
-         {"Recursive", "true"},
-         {"IncludeItemTypes", "Movie,Episode"},
-         {"Fields", "Path,DateModified"},
-         {"IsMissing", "false"}         // Filter out ghost entries
+      const auto apiUrl = BuildApiPathWithParams(API_ITEMS, {
+          {"Recursive", "true"},
+          {"IncludeItemTypes", "Movie,Episode"},
+          {"Fields", "Path,DateModified"},
+          {"IsMissing", "false"}
       });
 
-      auto res{client_.Get(apiUrl, emptyHeaders_)};
+      auto res = client_.Get(apiUrl, emptyHeaders_);
       if (!IsHttpSuccess(__func__, res)) return;
 
-      auto data = JsonSafeParse(res.value().body);
-      if (!data || !data->contains(ITEMS) || !(*data)[ITEMS].is_array()) return;
-
-      const auto& items = (*data)[ITEMS];
-
-      // Pre-allocate memory to prevent re-hashing during the loop
-      workingPathMap_.reserve(items.size());
-
-      std::string lastSyncTimestamp;
-      for (const auto& item : items)
+      PathRebuildItems response;
+      if (auto ec = glz::read < glz::opts{.error_on_unknown_keys = false} > (response, res.value().body))
       {
-         // Defensive check: Emby usually guarantees these if requested, 
-         // but null-checks prevent crashes if the DB is in a weird state.
-         if (item.contains("Path") && item.contains("Id") &&
-             !item["Path"].is_null() && !item["Id"].is_null())
-         {
-            workingPathMap_.emplace(item["Path"].get<std::string>(),
-                                    item["Id"].get<std::string>());
+         Logger::Instance().Warning("{} - JSON Parse Error: {}",
+             __func__, glz::format_error(ec, res.value().body)); // Log the start of the string for context
+         return;
+      }
 
-            if (auto newestItemDate = JsonSafeGet<std::string>(item, "DateModified");
-                newestItemDate.has_value() && newestItemDate.value() > lastSyncTimestamp)
+      workingPathMap_.reserve(response.Items.size());
+      std::string localMaxTimestamp;
+
+      for (auto& item : response.Items)
+      {
+         // Check for empty because a missing field in JSON results in an empty string in the struct
+         if (!item.Path.empty() && !item.Id.empty())
+         {
+            // Move strings to avoid allocations
+            workingPathMap_.emplace(std::move(item.Path), std::move(item.Id));
+
+            // Track the newest timestamp
+            if (item.DateModified > localMaxTimestamp)
             {
-               lastSyncTimestamp = std::move(newestItemDate.value());
+               localMaxTimestamp = std::move(item.DateModified);
             }
          }
       }
 
-      // Update the main path map
       if (!workingPathMap_.empty())
       {
          std::lock_guard lock(taskLock_);
          std::swap(workingPathMap_, pathMap_);
-         lastSyncTimestamp_ = lastSyncTimestamp;
-         pathMapUpdateTime_ = time;
+         lastSyncTimestamp_ = std::move(localMaxTimestamp);
       }
 
       workingPathMap_.clear();
@@ -385,8 +369,8 @@ namespace loomis
 
    bool EmbyApi::HasLibraryChanged()
    {
-      auto apiUrl = BuildApiPath(API_ITEMS);
-      AddApiParam(apiUrl, {
+      // Use the static approach we discussed for performance
+      static const auto apiUrl = BuildApiPathWithParams(API_ITEMS, {
           {"Recursive", "true"},
           {"IncludeItemTypes", "Movie,Episode"},
           {"SortBy", "DateModified"},
@@ -398,29 +382,30 @@ namespace loomis
       auto res = client_.Get(apiUrl, emptyHeaders_);
       if (!IsHttpSuccess(__func__, res)) return false;
 
-      auto data = JsonSafeParse(res.value().body);
-      if (data && data->contains(ITEMS) && !(*data)[ITEMS].empty())
+      PathRebuildItems response;
+      if (auto ec = glz::read < glz::opts{.error_on_unknown_keys = false} > (response, res.value().body))
       {
-         auto newestItemDate = JsonSafeGet<std::string>((*data)[ITEMS][0], "DateModified");
-         if (newestItemDate.has_value() && newestItemDate.value() > lastSyncTimestamp_)
-         {
-            return true;
-         }
+         Logger::Instance().Warning("{} - JSON Parse Error: {}",
+             __func__, glz::format_error(ec, res.value().body)); // Log the start of the string for context
+         return false;
       }
-      return false;
+
+      return !response.Items.empty()
+         && !response.Items[0].DateModified.empty()
+         && response.Items[0].DateModified > lastSyncTimestamp_;
    }
 
    void EmbyApi::RunPathMapQuickCheck()
    {
       if (GetPathMapEmpty() || HasLibraryChanged())
       {
-         BuildPathMap(std::chrono::system_clock::now());
+         BuildPathMap();
       }
    }
 
    void EmbyApi::RunPathMapFullUpdate()
    {
-      BuildPathMap(std::chrono::system_clock::now());
+      BuildPathMap();
    }
 
    bool EmbyApi::GetPathMapEmpty() const

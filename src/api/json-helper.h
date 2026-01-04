@@ -11,8 +11,10 @@
 
 namespace loomis
 {
-   inline std::optional<nlohmann::json> JsonSafeParse(const std::string& rawJson, const std::source_location location = std::source_location::current())
+   inline std::optional<nlohmann::json> JsonSafeParse(std::string_view rawJson, const std::source_location location = std::source_location::current())
    {
+      if (rawJson.empty()) return std::nullopt;
+
       try
       {
          return nlohmann::json::parse(rawJson);

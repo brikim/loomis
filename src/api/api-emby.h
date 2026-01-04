@@ -47,12 +47,13 @@ namespace loomis
       [[nodiscard]] std::optional<std::string> GetIdFromPathMap(const std::string& path);
 
    private:
-      void BuildPathMap(const std::chrono::system_clock::time_point& time);
+      void BuildPathMap();
       void RunPathMapQuickCheck();
       void RunPathMapFullUpdate();
 
       bool HasLibraryChanged();
       std::string BuildApiPath(std::string_view path) const;
+      std::string BuildApiPathWithParams(std::string_view path, const std::list<std::pair<std::string_view, std::string_view>>& params) const;
 
       std::string_view GetSearchTypeStr(EmbySearchType type);
 
@@ -61,7 +62,6 @@ namespace loomis
       httplib::Headers jsonHeaders_{{{"accept", "application/json"}}};
 
       std::string lastSyncTimestamp_;
-      std::chrono::system_clock::time_point pathMapUpdateTime_;
       EmbyPathMap pathMap_;
       EmbyPathMap workingPathMap_;
 

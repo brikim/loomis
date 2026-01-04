@@ -122,36 +122,36 @@ namespace loomis
 
    void PlaylistSyncService::UpdateEmbyPlaylist(PlexApi* plexApi,
                                                 EmbyApi* embyApi,
-                                                std::string_view playlistName,
+                                                EmbyPlaylist currentPlaylist,
                                                 const std::vector<std::string>& correctIds)
    {
-      auto currentPlaylist = embyApi->GetPlaylist(playlistName);
-      if (!currentPlaylist) return;
-
-      auto [added, removed] = AddRemoveEmbyPlaylistItems(embyApi, *currentPlaylist, correctIds);
+      auto [added, removed] = AddRemoveEmbyPlaylistItems(embyApi, currentPlaylist, correctIds);
 
       if (added > 0 || removed > 0)
       {
          std::this_thread::sleep_for(std::chrono::seconds(timeForEmbyUpdateSec_));
-         currentPlaylist = embyApi->GetPlaylist(playlistName); // Re-fetch ONCE after structural changes
-      }
-
-      if (!currentPlaylist)
-      {
-         LogWarning("{} failed to retrieve {} on update",
+         auto updatedPlaylist = embyApi->GetPlaylist(currentPlaylist.name); // Re-fetch ONCE after structural changes
+         if (updatedPlaylist)
+         {
+            currentPlaylist = std::move(*updatedPlaylist);
+         }
+         else
+         {
+            LogWarning("{} failed to retrieve {} on update",
                     utils::GetServerName(utils::GetFormattedEmby(), embyApi->GetName()),
-                    utils::GetTag("playlist", playlistName));
-         return;
+                    utils::GetTag("playlist", currentPlaylist.name));
+            return;
+         }
       }
 
-      if (currentPlaylist->items.size() != correctIds.size())
+      if (currentPlaylist.items.size() != correctIds.size())
       {
          LogWarning("{} sync {} {} playlist updated failed. Playlist length should be {} but {}",
                     utils::GetServerName(utils::GetFormattedEmby(), embyApi->GetName()),
                     utils::GetServerName(utils::GetFormattedPlex(), plexApi->GetName()),
-                    utils::GetTag("collection", playlistName),
+                    utils::GetTag("collection", currentPlaylist.name),
                     utils::GetTag("length", correctIds.size()),
-                    utils::GetTag("reported_length", currentPlaylist->items.size()));
+                    utils::GetTag("reported_length", currentPlaylist.items.size()));
          return;
       }
 
@@ -161,8 +161,8 @@ namespace loomis
          std::string_view id; std::string_view pId;
       };
       std::vector<MoveTracker> virtualItems;
-      virtualItems.reserve(currentPlaylist->items.size());
-      for (const auto& item : currentPlaylist->items) virtualItems.push_back({item.id, item.playlistId});
+      virtualItems.reserve(currentPlaylist.items.size());
+      for (const auto& item : currentPlaylist.items) virtualItems.push_back({item.id, item.playlistId});
 
       bool orderChanged = false;
       for (uint32_t i = 0; i < correctIds.size(); ++i)
@@ -176,7 +176,7 @@ namespace loomis
 
          if (it != virtualItems.end())
          {
-            if (embyApi->MovePlaylistItem(currentPlaylist->id, it->pId, i))
+            if (embyApi->MovePlaylistItem(currentPlaylist.id, it->pId, i))
             {
                auto itemToMove = *it;
                virtualItems.erase(it);
@@ -192,7 +192,7 @@ namespace loomis
       {
          LogInfo("Syncing {} {} to {} {} {} {}",
                  utils::GetServerName(utils::GetFormattedPlex(), plexApi->GetName()),
-                 utils::GetTag("collection", playlistName),
+                 utils::GetTag("collection", currentPlaylist.name),
                  utils::GetServerName(utils::GetFormattedEmby(), embyApi->GetName()),
                  utils::GetTag("added", added),
                  utils::GetTag("removed", removed),
@@ -217,7 +217,7 @@ namespace loomis
          bool foundItem{false};
          for (auto& path : item.paths)
          {
-            if (auto id = embyApi->GetIdFromPathMap(path); id)
+            if (auto id = embyApi->GetIdFromPathMap(path))
             {
                foundItem = true;
                updatedPlaylistIds.emplace_back(std::move(*id));
@@ -235,9 +235,9 @@ namespace loomis
          }
       }
 
-      if (embyApi->GetPlaylistExists(plexCollection.name))
+      if (auto currentEmbyPlaylist = embyApi->GetPlaylist(plexCollection.name))
       {
-         UpdateEmbyPlaylist(plexApi, embyApi, plexCollection.name, updatedPlaylistIds);
+         UpdateEmbyPlaylist(plexApi, embyApi, std::move(*currentEmbyPlaylist), updatedPlaylistIds);
       }
       else
       {
