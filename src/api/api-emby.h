@@ -31,7 +31,10 @@ namespace loomis
 
       std::optional<EmbyItem> GetItem(EmbySearchType type, std::string_view name, std::list<std::pair<std::string_view, std::string_view>> extraSearchArgs = {});
 
-      [[nodiscard]] bool GetUserExists(std::string_view name);
+      [[nodiscard]] std::optional<EmbyUserData> GetUser(std::string_view name);
+
+      [[nodiscard]] bool GetWatchedStatus(std::string_view userId, std::string_view itemId);
+      bool SetWatchedStatus(std::string_view userId, std::string_view itemId);
 
       [[nodiscard]] bool GetPlaylistExists(std::string_view name);
       [[nodiscard]] std::optional<EmbyPlaylist> GetPlaylist(std::string_view name);

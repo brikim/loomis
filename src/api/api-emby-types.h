@@ -46,4 +46,10 @@ namespace loomis
       std::string id;
       std::vector<EmbyPlaylistItem> items;
    };
+
+   struct EmbyUserData
+   {
+      std::string name;
+      std::string id;
+   };
 }

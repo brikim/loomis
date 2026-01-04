@@ -195,11 +195,11 @@ namespace loomis
       return std::nullopt;
    }
 
-   bool EmbyApi::GetUserExists(std::string_view name)
+   std::optional<EmbyUserData> EmbyApi::GetUser(std::string_view name)
    {
       auto res = client_.Get(BuildApiPath(API_USERS), emptyHeaders_);
 
-      if (!IsHttpSuccess(__func__, res)) return false;
+      if (!IsHttpSuccess(__func__, res)) return std::nullopt;
 
       // Parse into a vector of our minimal user structs
       std::vector<JsonEmbyUser> users;
@@ -207,13 +207,44 @@ namespace loomis
       {
          Logger::Instance().Warning("{} - JSON Parse Error: {}",
                                     __func__, glz::format_error(ec, res.value().body));
-         return false;
+         return std::nullopt;
       }
 
       // Use any_of to find a match - stops immediately when found
-      return std::ranges::any_of(users, [&](const auto& user) {
+      auto iter = std::ranges::find_if(users, [&](const auto& user) {
          return user.Name == name;
       });
+
+      if (iter == users.end()) return std::nullopt;
+
+      return EmbyUserData{std::move(iter->Name), std::move(iter->Id)};
+   }
+
+   bool EmbyApi::GetWatchedStatus(std::string_view userId, std::string_view itemId)
+   {
+      const auto apiUrl = BuildApiParamsPath(std::format("{}/{}/Items", API_USERS, userId), {
+         {IDS, itemId},
+         {"IsPlayed", "true"}
+      });
+      auto res = client_.Get(apiUrl, emptyHeaders_);
+      if (!IsHttpSuccess(__func__, res)) return false;
+
+      JsonTotalRecordCount response;
+      if (auto ec = glz::read < glz::opts{.error_on_unknown_keys = false} > (response, res.value().body))
+      {
+         Logger::Instance().Warning("{} - JSON Parse Error: {}",
+                                    __func__, glz::format_error(ec, res.value().body));
+         return false;
+      }
+
+      return response.TotalRecordCount > 0;
+   }
+
+   bool EmbyApi::SetWatchedStatus(std::string_view userId, std::string_view itemId)
+   {
+      const auto apiUrl = BuildApiPath(std::format("{}/{}/PlayedItems/{}", API_USERS, userId, itemId));
+      auto res{client_.Post(apiUrl, jsonHeaders_)};
+      return IsHttpSuccess(__func__, res);
    }
 
    bool EmbyApi::GetPlaylistExists(std::string_view name)
@@ -329,8 +360,8 @@ namespace loomis
       }
 
       workingPathMap_.reserve(response.Items.size());
-      std::string localMaxTimestamp;
 
+      std::string localMaxTimestamp;
       for (auto& item : response.Items)
       {
          // Check for empty because a missing field in JSON results in an empty string in the struct

@@ -18,7 +18,7 @@ namespace loomis
       if (embyApi_ && jellystatApi_)
       {
          // Will get users from emby. Do a small pre-check and warn the system.
-         if (embyApi_->GetValid() && !embyApi_->GetUserExists(config_.user_name))
+         if (embyApi_->GetValid() && !embyApi_->GetUser(config_.user_name))
          {
             logger_.LogWarning("{} not found on {}. Is user name correct?",
                                utils::GetTag("user", config_.user_name),
@@ -52,20 +52,30 @@ namespace loomis
 
    void EmbyUser::Update()
    {
-
+      auto user = embyApi_->GetUser(config_.user_name);
+      valid_ = user.has_value();
+      if (valid_) userId_ = user->id;
    }
 
-   bool EmbyUser::SyncWatchedState(const TautulliHistoryItem* item, std::string_view path)
+   bool EmbyUser::SyncWatchedState(const TautulliHistoryItem* item, const std::string& path)
+   {
+      auto id = embyApi_->GetIdFromPathMap(path);
+      if (!id) return false;
+
+      // If this item is already watched just return
+      if (embyApi_->GetWatchedStatus(userId_, *id)) return false;
+
+      embyApi_->SetWatchedStatus(userId_, *id);
+
+      return true;
+   }
+
+   bool EmbyUser::SyncPlayState(const TautulliHistoryItem* item, const std::string& path)
    {
       return false;
    }
 
-   bool EmbyUser::SyncPlayState(const TautulliHistoryItem* item, std::string_view path)
-   {
-      return false;
-   }
-
-   void EmbyUser::SyncStateWithPlex(const TautulliHistoryItem* item, std::string_view path, std::string& target)
+   void EmbyUser::SyncStateWithPlex(const TautulliHistoryItem* item, const std::string& path, std::string& target)
    {
       if (item->watched ? SyncWatchedState(item, path) : SyncPlayState(item, path))
       {
