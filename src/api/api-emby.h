@@ -36,6 +36,9 @@ namespace loomis
       [[nodiscard]] bool GetWatchedStatus(std::string_view userId, std::string_view itemId);
       bool SetWatchedStatus(std::string_view userId, std::string_view itemId);
 
+      [[nodiscard]] std::optional<EmbyPlayState> GetPlayState(std::string_view userId, std::string_view itemId);
+      bool SetPlayState(std::string_view userId, std::string_view itemId, int64_t positionTicks, std::string_view dateTimeStr);
+
       [[nodiscard]] bool GetPlaylistExists(std::string_view name);
       [[nodiscard]] std::optional<EmbyPlaylist> GetPlaylist(std::string_view name);
       void CreatePlaylist(std::string_view name, const std::vector<std::string>& itemIds);

@@ -110,15 +110,27 @@ namespace loomis
       auto consolodatedHistory = GetConsolodatedHistory(*userHistory);
       auto historyWithPaths = GetPlexPathsForHistoryItems(plexUser->GetServer(), consolodatedHistory);
 
-      std::string syncServers;
       for (const auto* history : consolodatedHistory)
       {
          if (auto iter = historyWithPaths.find(history->id); iter != historyWithPaths.end())
          {
+            std::string syncServers;
+
             for (auto& user : plexUsers_)
                if (user->GetValid()) user->SyncStateWithPlex(history, iter->second, syncServers);
             for (auto& user : embyUsers_)
                if (user->GetValid()) user->SyncStateWithPlex(history, iter->second, syncServers);
+
+            if (!syncServers.empty())
+            {
+
+               logger_.LogInfo("{}:{} played {}% of {} sync {} play state",
+                               utils::GetServerName(utils::GetFormattedPlex(), plexUser->GetServer()),
+                               plexUser->GetUser(),
+                               history->playbackPercentage,
+                               history->fullName,
+                               syncServers);
+            }
          }
       }
    }

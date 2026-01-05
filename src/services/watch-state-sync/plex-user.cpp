@@ -60,13 +60,9 @@ namespace loomis
       return config_.server;
    }
 
-   std::optional<std::string_view> PlexUser::GetFriendlyName() const
+   std::string_view PlexUser::GetUser() const
    {
-      if (!userInfo_.friendlyName.empty())
-      {
-         return userInfo_.friendlyName;
-      }
-      return std::nullopt;
+      return userInfo_.friendlyName.empty() ? config_.user_name : userInfo_.friendlyName;
    }
 
    std::optional<TautulliHistoryItems> PlexUser::GetWatchHistory(std::string_view historyDate)

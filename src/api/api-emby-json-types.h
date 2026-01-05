@@ -67,4 +67,25 @@ namespace loomis
    {
       int32_t TotalRecordCount;
    };
+
+   struct JsonEmbyPlaystateUserData
+   {
+      float PlayedPercentage{0.0f};
+      int64_t PlaybackPositionTicks{0};
+      int32_t PlayCount{0};
+      bool Played{false};
+   };
+
+   struct JsonEmbyPlaystate
+   {
+      std::string Name;
+      std::string Type;
+      int64_t RunTimeTicks{0};
+      JsonEmbyPlaystateUserData UserData;
+   };
+
+   struct JsonEmbyPlayStates
+   {
+      std::vector<JsonEmbyPlaystate> Items;
+   };
 }

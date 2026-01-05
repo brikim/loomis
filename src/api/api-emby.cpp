@@ -247,6 +247,47 @@ namespace loomis
       return IsHttpSuccess(__func__, res);
    }
 
+   std::optional<EmbyPlayState> EmbyApi::GetPlayState(std::string_view userId, std::string_view itemId)
+   {
+      const auto apiUrl = BuildApiParamsPath(std::format("{}/{}/Items", API_USERS, userId), {
+         {IDS, itemId},
+         {"Fields", "Path,UserDataLastPlayedDate,UserDataPlayCount"}
+      });
+
+      auto res = client_.Get(apiUrl, emptyHeaders_);
+      if (!IsHttpSuccess(__func__, res)) return std::nullopt;
+
+      JsonEmbyPlayStates response;
+      if (auto ec = glz::read < glz::opts{.error_on_unknown_keys = false} > (response, res.value().body))
+      {
+         Logger::Instance().Warning("{} - JSON Parse Error: {}",
+                                    __func__, glz::format_error(ec, res.value().body));
+         return std::nullopt;
+      }
+
+      if (response.Items.empty()) return std::nullopt;
+
+      const auto& item = response.Items[0];
+
+      if (item.Type != "Movie" && item.Type != "Episode") return std::nullopt;
+
+      return EmbyPlayState{.percentage = item.UserData.PlayedPercentage,
+                           .runTimeTicks = item.RunTimeTicks,
+                           .playbackPositionTicks = item.UserData.PlaybackPositionTicks,
+                           .play_count = item.UserData.PlayCount,
+                           .played = item.UserData.Played};
+   }
+
+   bool EmbyApi::SetPlayState(std::string_view userId, std::string_view itemId, int64_t positionTicks, std::string_view dateTimeStr)
+   {
+      const auto apiUrl = BuildApiParamsPath(std::format("{}/{}/Items/{}/UserData", API_USERS, userId, itemId), {
+         {"PlaybackPositionTicks", std::to_string(positionTicks)},
+         {"LastPlayedDate", dateTimeStr}
+      });
+      auto res{client_.Post(apiUrl, jsonHeaders_)};
+      return IsHttpSuccess(__func__, res);
+   }
+
    bool EmbyApi::GetPlaylistExists(std::string_view name)
    {
       return GetItem(EmbySearchType::name, name, {{"IncludeItemTypes", "Playlist"}}).has_value();

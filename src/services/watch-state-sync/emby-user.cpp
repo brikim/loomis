@@ -54,7 +54,7 @@ namespace loomis
    {
       auto user = embyApi_->GetUser(config_.user_name);
       valid_ = user.has_value();
-      if (valid_) userId_ = user->id;
+      if (valid_) userId_ = std::move(user->id);
    }
 
    bool EmbyUser::SyncWatchedState(const TautulliHistoryItem* item, const std::string& path)
@@ -72,7 +72,18 @@ namespace loomis
 
    bool EmbyUser::SyncPlayState(const TautulliHistoryItem* item, const std::string& path)
    {
-      return false;
+      auto id = embyApi_->GetIdFromPathMap(path);
+      if (!id) return false;
+
+      auto playState = embyApi_->GetPlayState(userId_, *id);
+      if (!playState || item->playbackPercentage == std::lround(playState->percentage)) return false;
+
+      int64_t tickLocation = std::llround(static_cast<double>(playState->runTimeTicks) * (static_cast<double>(item->playbackPercentage) / 100.0));
+
+      auto tp = std::chrono::sys_time<std::chrono::seconds>{std::chrono::seconds{item->timeWatchedEpoch}};
+      auto timeString = std::format("{:%FT%TZ}", tp);
+
+      return embyApi_->SetPlayState(userId_, *id, tickLocation, timeString);
    }
 
    void EmbyUser::SyncStateWithPlex(const TautulliHistoryItem* item, const std::string& path, std::string& target)

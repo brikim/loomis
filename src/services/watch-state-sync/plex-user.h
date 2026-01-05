@@ -24,7 +24,7 @@ namespace loomis
       [[nodiscard]] bool GetValid() const;
       [[nodiscard]] int32_t GetId() const;
       [[nodiscard]] std::string_view GetServer() const;
-      [[nodiscard]] std::optional<std::string_view> GetFriendlyName() const;
+      [[nodiscard]] std::string_view GetUser() const;
       [[nodiscard]] std::optional<TautulliHistoryItems> GetWatchHistory(std::string_view historyDate);
 
       void Update();

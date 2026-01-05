@@ -52,4 +52,13 @@ namespace loomis
       std::string name;
       std::string id;
    };
+
+   struct EmbyPlayState
+   {
+      float percentage{0.0f};
+      int64_t runTimeTicks{0};
+      int64_t playbackPositionTicks{0};
+      int32_t play_count{0};
+      bool played{false};
+   };
 }
