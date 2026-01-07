@@ -116,7 +116,7 @@ namespace loomis::utils
    inline std::string StripAsciiCharacters(const std::string& data)
    {
       // Strip ansii codes from the log msg
-      const std::regex ansii("\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])");
+      const std::regex ansii(R"(\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~]))");
       return std::regex_replace(data, ansii, "");
    }
 }

@@ -32,7 +32,7 @@ file(GLOB_RECURSE LOOMIS_SOURCES
 add_executable(loomis ${LOOMIS_SOURCES})
 
 target_compile_options(loomis PRIVATE
-    $<$<CXX_COMPILER_ID:MSVC>:/utf-8 /wd4129 /MP>
+    $<$<CXX_COMPILER_ID:MSVC>:/utf-8 /MP>
     $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic>
 )
 
