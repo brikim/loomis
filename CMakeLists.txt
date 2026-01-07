@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.25)
+cmake_minimum_required(VERSION 3.25...3.30)
 project(loomis LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
