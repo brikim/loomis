@@ -26,6 +26,7 @@ namespace loomis
       [[nodiscard]] std::string_view GetServer() const;
       [[nodiscard]] std::string_view GetUser() const;
       [[nodiscard]] std::optional<TautulliHistoryItems> GetWatchHistory(std::string_view historyDate);
+      [[nodiscard]] std::string_view GetServerName() const;
 
       void Update();
 
@@ -35,6 +36,7 @@ namespace loomis
       bool valid_{false};
       WatchStateLogger logger_;
       ServerUser config_;
+      std::string serverName_;
 
       PlexApi* api_{nullptr};
       TautulliApi* trackerApi_{nullptr};

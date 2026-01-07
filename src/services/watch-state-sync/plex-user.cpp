@@ -9,6 +9,7 @@ namespace loomis
                       WatchStateLogger logger)
       : logger_(logger)
       , config_(config)
+      , serverName_(utils::GetServerName(utils::GetFormattedPlex(), config_.server))
    {
       // Do some quick checking on the users and make sure the api in the config exists.
       // Don't want to check if the user is valid on the api yet since it might be offline.
@@ -68,6 +69,11 @@ namespace loomis
    std::optional<TautulliHistoryItems> PlexUser::GetWatchHistory(std::string_view historyDate)
    {
       return trackerApi_->GetWatchHistoryForUser(config_.user_name, historyDate);
+   }
+
+   std::string_view PlexUser::GetServerName() const
+   {
+      return serverName_;
    }
 
    void PlexUser::Update()

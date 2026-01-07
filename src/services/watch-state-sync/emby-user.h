@@ -21,19 +21,29 @@ namespace loomis
       virtual ~EmbyUser() = default;
 
       [[nodiscard]] bool GetValid() const;
+      [[nodiscard]] std::string_view GetServerName() const;
+      [[nodiscard]] std::optional<JellystatHistoryItems> GetWatchHistory();
 
       void Update();
 
-      void SyncStateWithPlex(const TautulliHistoryItem* item, const std::string& path, std::string& target);
+      struct PlexSyncState
+      {
+         const std::string& path;
+         bool watched{false};
+         int32_t playbackPercentage{0};
+         int64_t timeWatchedEpoch{0};
+      };
+      void SyncStateWithPlex(const PlexSyncState& syncState, std::string& syncResults);
 
    private:
-      bool SyncWatchedState(const TautulliHistoryItem* item, const std::string& path);
-      bool SyncPlayState(const TautulliHistoryItem* item, const std::string& path);
+      bool SyncWatchedState(const std::string& plexPath);
+      bool SyncPlayState(const PlexSyncState& syncState);
 
       bool valid_{false};
       WatchStateLogger logger_;
       ServerUser config_;
       std::string userId_;
+      std::string serverName_;
 
       EmbyApi* embyApi_{nullptr};
       JellystatApi* jellystatApi_{nullptr};

@@ -4,7 +4,7 @@
 #include "api/api-tautulli-types.h"
 #include "config-reader/config-reader-types.h"
 
-#include <httplib/httplib.h>
+#include <httplib.h>
 
 #include <cstdint>
 #include <list>

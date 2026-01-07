@@ -99,17 +99,17 @@ namespace loomis::utils
          : std::format("{}({})", server, serverInstance);
    }
 
-   inline std::string BuildTargetString(std::string_view currentTarget, std::string_view newTarget, std::string_view targetInstance)
+   inline std::string BuildSyncServerString(std::string_view currentServerList, std::string_view newServer, std::string_view newServerInstance)
    {
-      if (currentTarget.empty())
+      if (currentServerList.empty())
       {
-         return GetServerName(newTarget, targetInstance);
+         return GetServerName(newServer, newServerInstance);
       }
       else
       {
-         return targetInstance.empty()
-            ? std::format("{},{}", currentTarget, newTarget)
-            : std::format("{},{}({})", currentTarget, newTarget, targetInstance);
+         return newServer.empty()
+            ? std::format("{},{}", currentServerList, newServer)
+            : std::format("{},{}({})", currentServerList, newServer, newServerInstance);
       }
    }
 

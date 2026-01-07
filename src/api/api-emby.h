@@ -4,7 +4,7 @@
 #include "api/api-emby-types.h"
 #include "config-reader/config-reader-types.h"
 
-#include <httplib/httplib.h>
+#include <httplib.h>
 
 #include <chrono>
 #include <cstdint>

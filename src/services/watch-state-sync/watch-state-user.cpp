@@ -56,7 +56,7 @@ namespace loomis
       });
    }
 
-   std::vector<const TautulliHistoryItem*> WatchStateUser::GetConsolodatedHistory(const TautulliHistoryItems& historyItems)
+   std::vector<const TautulliHistoryItem*> WatchStateUser::GetConsolidatedHistory(const TautulliHistoryItems& historyItems)
    {
       if (historyItems.items.empty()) return {};
 
@@ -76,6 +76,27 @@ namespace loomis
       consolidated.erase(new_end, consolidated.end());
 
       return consolidated;
+   }
+
+   void WatchStateUser::LogSyncSummary(const LogSyncData& syncSummary)
+   {
+      if (syncSummary.watched)
+      {
+         logger_.LogInfo("{}:{} watched {} sync {} watch state",
+                         syncSummary.server,
+                         syncSummary.user,
+                         syncSummary.name,
+                         syncSummary.syncResults);
+      }
+      else
+      {
+         logger_.LogInfo("{}:{} played {}% of {} sync {} play state",
+                         syncSummary.server,
+                         syncSummary.user,
+                         syncSummary.playbackPercentage,
+                         syncSummary.name,
+                         syncSummary.syncResults);
+      }
    }
 
    std::unordered_map<int32_t, std::string> WatchStateUser::GetPlexPathsForHistoryItems(std::string_view server, const std::vector<const TautulliHistoryItem*> historyItems)
@@ -102,37 +123,50 @@ namespace loomis
 
    }
 
-   void WatchStateUser::SyncPlexState(PlexUser* plexUser, std::string_view historyDate)
+   void WatchStateUser::SyncPlexState(PlexUser& plexUser, std::string_view historyDate)
    {
-      auto userHistory{plexUser->GetWatchHistory(historyDate)};
+      auto userHistory = plexUser.GetWatchHistory(historyDate);
       if (!userHistory || userHistory->items.empty()) return;
 
-      auto consolodatedHistory = GetConsolodatedHistory(*userHistory);
-      auto historyWithPaths = GetPlexPathsForHistoryItems(plexUser->GetServer(), consolodatedHistory);
+      auto consolidatedHistory = GetConsolidatedHistory(*userHistory);
+      auto historyWithPaths = GetPlexPathsForHistoryItems(plexUser.GetServer(), consolidatedHistory);
 
-      for (const auto* history : consolodatedHistory)
+      for (const auto* history : consolidatedHistory)
       {
          if (auto iter = historyWithPaths.find(history->id); iter != historyWithPaths.end())
          {
             std::string syncServers;
 
+            auto plexSyncState = EmbyUser::PlexSyncState{
+               .path = iter->second,
+               .watched = history->watched,
+               .playbackPercentage = history->playbackPercentage,
+               .timeWatchedEpoch = history->timeWatchedEpoch};
+
             for (auto& user : plexUsers_)
                if (user->GetValid()) user->SyncStateWithPlex(history, iter->second, syncServers);
             for (auto& user : embyUsers_)
-               if (user->GetValid()) user->SyncStateWithPlex(history, iter->second, syncServers);
+               if (user->GetValid()) user->SyncStateWithPlex(plexSyncState, syncServers);
 
             if (!syncServers.empty())
             {
-
-               logger_.LogInfo("{}:{} played {}% of {} sync {} play state",
-                               utils::GetServerName(utils::GetFormattedPlex(), plexUser->GetServer()),
-                               plexUser->GetUser(),
-                               history->playbackPercentage,
-                               history->fullName,
-                               syncServers);
+               LogSyncSummary({
+                  .server = plexUser.GetServerName(),
+                  .user = plexUser.GetUser(),
+                  .name = history->fullName,
+                  .watched = history->watched,
+                  .playbackPercentage = history->playbackPercentage,
+                  .syncResults = syncServers
+               });
             }
          }
       }
+   }
+
+   void WatchStateUser::SyncEmbyState(EmbyUser& embyUser)
+   {
+      auto userHistory = embyUser.GetWatchHistory();
+      if (!userHistory || userHistory->items.empty()) return;
    }
 
    void WatchStateUser::Sync()
@@ -142,8 +176,7 @@ namespace loomis
 
       constexpr uint32_t daysOfHistory{1};
       auto plexHistoryTime{GetDatetimeForHistoryPlex(daysOfHistory)};
-      std::ranges::for_each(plexUsers_, [this, &plexHistoryTime](auto& plexUser) {
-         this->SyncPlexState(plexUser.get(), plexHistoryTime);
-      });
+      for (auto& plexUser : plexUsers_) SyncPlexState(*plexUser, plexHistoryTime);
+      for (auto& embyUser : embyUsers_) SyncEmbyState(*embyUser);
    }
 }

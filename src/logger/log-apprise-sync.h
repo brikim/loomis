@@ -3,7 +3,7 @@
 #include "config-reader/config-reader-types.h"
 #include "logger/log-utils.h"
 
-#include <httplib/httplib.h>
+#include <httplib.h>
 #include <spdlog/sinks/base_sink.h>
 
 #include <mutex>

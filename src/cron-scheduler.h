@@ -4,7 +4,7 @@
 
 #include <chrono>
 #include <condition_variable>
-#include <croncpp/croncpp.h>
+#include <croncpp.h>
 #include <functional>
 #include <mutex>
 #include <string>

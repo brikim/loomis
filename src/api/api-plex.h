@@ -4,8 +4,8 @@
 #include "api/api-plex-types.h"
 #include "config-reader/config-reader-types.h"
 
-#include <httplib/httplib.h>
-#include <pugixml/src/pugixml.hpp>
+#include <httplib.h>
+#include <pugixml.hpp>
 
 #include <cstdint>
 #include <list>

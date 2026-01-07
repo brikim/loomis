@@ -6,6 +6,7 @@
 #include "glaze/glaze.hpp"
 
 #include <cstdlib>
+#include <filesystem>
 #include <fstream>
 
 namespace loomis
@@ -26,29 +27,22 @@ namespace loomis
 
    void ConfigReader::ReadConfigFile(const char* path)
    {
-      std::string pathFileName{path};
-      pathFileName.append("/config.conf");
+      std::filesystem::path pathFileName = std::filesystem::path(path) / "config.conf";
+      std::ifstream file(pathFileName, std::ios::in | std::ios::binary);
 
-      std::ifstream f(pathFileName);
-      if (f.is_open() == false)
+      if (!file.is_open())
       {
-         Logger::Instance().Error("Config file {} not found!", pathFileName);
+         Logger::Instance().Error("Config file {} not found!", pathFileName.string());
          return;
       }
 
-      std::ifstream file(pathFileName, std::ios::binary);
-      if (!file)
+      if (auto ec = glz::read_file_json < glz::opts{.error_on_unknown_keys = false} > (
+         configData_,
+         pathFileName.string(),
+         std::string{}))
       {
-         Logger::Instance().Error("Config file {} not found!", pathFileName);
-         return;
-      }
-
-      // Read the entire file content into a string (common approach for small/medium files)
-      std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-      if (auto ec = glz::read < glz::opts{.error_on_unknown_keys = false} > (configData_, content))
-      {
-         Logger::Instance().Warning("{} - JSON Parse Error: {}",
-                                    __func__, glz::format_error(ec, content));
+         Logger::Instance().Warning("{} - Glaze Error: {} (File: {})",
+                                 __func__, static_cast<int>(ec.ec), pathFileName.string());
          return;
       }
 

@@ -4,7 +4,7 @@
 #include "config-reader/config-reader-types.h"
 #include "types.h"
 
-#include <httplib/httplib.h>
+#include <httplib.h>
 
 #include <optional>
 #include <string>

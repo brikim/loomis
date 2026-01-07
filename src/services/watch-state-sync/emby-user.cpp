@@ -9,6 +9,7 @@ namespace loomis
                       WatchStateLogger logger)
       : logger_(logger)
       , config_(config)
+      , serverName_(utils::GetServerName(utils::GetFormattedEmby(), config_.server))
    {
       // Do some quick checking on the users and make sure the api in the config exists.
       // Don't want to check if the user is valid on the api yet since it might be offline.
@@ -50,6 +51,11 @@ namespace loomis
       return valid_;
    }
 
+   std::string_view EmbyUser::GetServerName() const
+   {
+      return serverName_;
+   }
+
    void EmbyUser::Update()
    {
       auto user = embyApi_->GetUser(config_.user_name);
@@ -57,9 +63,14 @@ namespace loomis
       if (valid_) userId_ = std::move(user->id);
    }
 
-   bool EmbyUser::SyncWatchedState(const TautulliHistoryItem* item, const std::string& path)
+   std::optional<JellystatHistoryItems> EmbyUser::GetWatchHistory()
    {
-      auto id = embyApi_->GetIdFromPathMap(path);
+      return jellystatApi_->GetWatchHistoryForUser(userId_);
+   }
+
+   bool EmbyUser::SyncWatchedState(const std::string& plexPath)
+   {
+      auto id = embyApi_->GetIdFromPathMap(plexPath);
       if (!id) return false;
 
       // If this item is already watched just return
@@ -70,27 +81,27 @@ namespace loomis
       return true;
    }
 
-   bool EmbyUser::SyncPlayState(const TautulliHistoryItem* item, const std::string& path)
+   bool EmbyUser::SyncPlayState(const PlexSyncState& syncState)
    {
-      auto id = embyApi_->GetIdFromPathMap(path);
+      auto id = embyApi_->GetIdFromPathMap(syncState.path);
       if (!id) return false;
 
       auto playState = embyApi_->GetPlayState(userId_, *id);
-      if (!playState || item->playbackPercentage == std::lround(playState->percentage)) return false;
+      if (!playState || syncState.playbackPercentage == std::lround(playState->percentage)) return false;
 
-      int64_t tickLocation = std::llround(static_cast<double>(playState->runTimeTicks) * (static_cast<double>(item->playbackPercentage) / 100.0));
+      int64_t tickLocation = std::llround(static_cast<double>(playState->runTimeTicks) * (static_cast<double>(syncState.playbackPercentage) / 100.0));
 
-      auto tp = std::chrono::sys_time<std::chrono::seconds>{std::chrono::seconds{item->timeWatchedEpoch}};
+      auto tp = std::chrono::sys_time<std::chrono::seconds>{std::chrono::seconds{syncState.timeWatchedEpoch}};
       auto timeString = std::format("{:%FT%TZ}", tp);
 
       return embyApi_->SetPlayState(userId_, *id, tickLocation, timeString);
    }
 
-   void EmbyUser::SyncStateWithPlex(const TautulliHistoryItem* item, const std::string& path, std::string& target)
+   void EmbyUser::SyncStateWithPlex(const PlexSyncState& syncState, std::string& syncResults)
    {
-      if (item->watched ? SyncWatchedState(item, path) : SyncPlayState(item, path))
+      if (syncState.watched ? SyncWatchedState(syncState.path) : SyncPlayState(syncState))
       {
-         target = utils::BuildTargetString(target, utils::GetFormattedEmby(), config_.server);
+         syncResults = utils::BuildSyncServerString(syncResults, utils::GetFormattedEmby(), config_.server);
       }
    }
 }
