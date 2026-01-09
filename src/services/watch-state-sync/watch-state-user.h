@@ -1,6 +1,8 @@
 #pragma once
 
+#include "api/api-jellystat-types.h"
 #include "api/api-manager.h"
+#include "api/api-tautulli-types.h"
 #include "config-reader/config-reader-types.h"
 #include "services/watch-state-sync/emby-user.h"
 #include "services/watch-state-sync/plex-user.h"
@@ -18,7 +20,7 @@ namespace loomis
    {
    public:
       WatchStateUser(const UserSyncConfig& config,
-                     ApiManager* apiManager,
+                     std::shared_ptr<ApiManager> apiManager,
                      WatchStateLogger logger);
       virtual ~WatchStateUser() = default;
 
@@ -29,10 +31,7 @@ namespace loomis
    private:
       void UpdateAllUsers();
 
-      void SyncPlexWatchState(const TautulliHistoryItem* item);
-      void SyncPlexPlayState(const TautulliHistoryItem* item);
       void SyncPlexState(PlexUser& plexUser, std::string_view historyDate);
-
       void SyncEmbyState(EmbyUser& embyUser);
 
       struct LogSyncData
@@ -47,12 +46,13 @@ namespace loomis
       void LogSyncSummary(const LogSyncData& syncSummary);
 
       // Returns no duplicates. These will be thrown out and the latest item of the duplicates will be returned
-      std::vector<const TautulliHistoryItem*> GetConsolidatedHistory(const TautulliHistoryItems& historyItems);
+      std::vector<const TautulliHistoryItem*> GetConsolidatedPlexHistory(const TautulliHistoryItems& historyItems);
+      std::vector<const JellystatHistoryItem*> GetConsolidatedEmbyHistory(const JellystatHistoryItems& historyItems);
 
       std::unordered_map<int32_t, std::string> GetPlexPathsForHistoryItems(std::string_view server, const std::vector<const TautulliHistoryItem*> historyItems);
 
       bool valid_{false};
-      ApiManager* apiManager_{nullptr};
+      std::shared_ptr<ApiManager> apiManager_;
       WatchStateLogger logger_;
 
       std::vector<std::unique_ptr<PlexUser>> plexUsers_;

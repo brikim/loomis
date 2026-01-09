@@ -1,6 +1,5 @@
 #include "api-jellystat.h"
 
-#include "api/api-jellystat-json-types.h"
 #include "logger/log-utils.h"
 
 #include <glaze/glaze.hpp>
@@ -32,9 +31,15 @@ namespace loomis
       client_.set_connection_timeout(timeoutSec);
    }
 
-   std::string JellystatApi::BuildApiPath(std::string_view path)
+   std::string_view JellystatApi::GetApiBase() const
    {
-      return std::format("{}{}", API_BASE, path);
+      return API_BASE;
+   }
+
+   std::string_view JellystatApi::GetApiTokenName() const
+   {
+      // Jellystat api key is sent via header
+      return "";
    }
 
    std::string JellystatApi::ParamsToJson(const std::list<std::pair<std::string_view, std::string_view>> params)
@@ -67,7 +72,7 @@ namespace loomis
       auto res = client_.Post(BuildApiPath(API_GET_USER_HISTORY), headers_, payload, APPLICATION_JSON);
       if (!IsHttpSuccess(__func__, res)) return std::nullopt;
 
-      JsonHistoryResults serverResponse;
+      JellystatHistoryItems serverResponse;
       if (auto ec = glz::read < glz::opts{.error_on_unknown_keys = false} > (serverResponse, res.value().body))
       {
          LogWarning("{} - JSON Parse Error: {}",
@@ -75,20 +80,6 @@ namespace loomis
          return std::nullopt;
       }
 
-      JellystatHistoryItems historyItems;
-      historyItems.items.reserve(serverResponse.results.size());
-
-      for (auto& item : serverResponse.results)
-      {
-         historyItems.items.emplace_back(JellystateHistoryItem{
-            .name = std::move(item.NowPlayingItemName),
-            .id = std::move(item.NowPlayingItemId),
-            .user = std::move(item.UserName),
-            .dateWatched = std::move(item.ActivityDateInserted),
-            .seriesName = item.SeriesName.value_or(""),
-            .episodeId = item.EpisodeId.value_or("")
-         });
-      }
-      return historyItems;
+      return serverResponse;
    }
 }

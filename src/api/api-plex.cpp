@@ -13,9 +13,12 @@ namespace loomis
    namespace
    {
       const std::string API_BASE{""};
+      const std::string API_TOKEN_NAME("X-Plex-Token");
+
       const std::string API_SERVERS{"/servers"};
       const std::string API_LIBRARIES{"/library/sections/"};
       const std::string API_LIBRARY_DATA{"/library/metadata/"};
+      const std::string API_SEARCH{"/hubs/search"};
 
       constexpr std::string_view ELEM_MEDIA_CONTAINER{"MediaContainer"};
       constexpr std::string_view ELEM_MEDIA{"Media"};
@@ -27,53 +30,74 @@ namespace loomis
       constexpr std::string_view ATTR_FILE{"file"};
    }
 
-   enum class PlexSearchTypes
-   {
-      movie = 1,
-      show = 2,
-      season = 3,
-      episode = 4,
-      trailer = 5,
-      comic = 6,
-      person = 7,
-      artist = 8,
-      album = 9,
-      track = 10,
-      picture = 11,
-      clip = 12,
-      photo = 13,
-      photoalbum = 14,
-      playlist = 15,
-      playlistFolder = 16,
-      collection = 18,
-      optimizedVersion = 42,
-      userPlaylistItem = 1001,
-   };
-
    PlexApi::PlexApi(const ServerConfig& serverConfig)
       : ApiBase(serverConfig.server_name, serverConfig.url, serverConfig.api_key, "PlexApi", utils::ANSI_CODE_PLEX)
       , client_(GetUrl())
+      , mediaPath_(serverConfig.media_path)
    {
       constexpr time_t timeoutSec{5};
       client_.set_connection_timeout(timeoutSec);
    }
 
-   std::string PlexApi::BuildApiPath(std::string_view path)
+   std::string_view PlexApi::GetApiBase() const
    {
-      // Determine if we should start the query string or append to it
-      char separator = (path.find('?') == std::string_view::npos) ? '?' : '&';
+      return API_BASE;
+   }
 
-      return std::format("{}{}{}X-Plex-Token={}",
-                         API_BASE,
-                         path,
-                         separator,
-                         GetApiKey());
+   std::string_view PlexApi::GetApiTokenName() const
+   {
+      return API_TOKEN_NAME;
    }
 
    bool PlexApi::GetValid()
    {
       auto res = client_.Get(BuildApiPath(API_SERVERS), headers_);
       return res.error() == httplib::Error::Success && res.value().status < VALID_HTTP_RESPONSE_MAX;
+   }
+
+   const std::string& PlexApi::GetMediaPath() const
+   {
+      return mediaPath_;
+   }
+
+   std::optional<PlexSearchResults> PlexApi::SearchItem(std::string_view name)
+   {
+      const auto apiUrl = BuildApiParamsPath(API_SEARCH, {
+         {"query", name}
+      });
+      auto res = client_.Get(apiUrl, headers_);
+
+      if (!IsHttpSuccess(__func__, res)) return std::nullopt;
+
+      pugi::xml_document doc;
+      if (doc.load_buffer(res->body.data(), res->body.size()).status != pugi::status_ok)
+      {
+         LogWarning("{} - Malformed XML reply received", std::string(__func__));
+         return std::nullopt;
+      }
+
+      PlexSearchResults returnResults;
+
+      // Faster XPath by providing the direct path
+      pugi::xpath_node_set videos = doc.select_nodes("/MediaContainer/Hub[@type='episode' or @type='movie']/Video");
+
+      for (pugi::xpath_node node : videos)
+      {
+         pugi::xml_node video = node.node();
+         auto& item = returnResults.items.emplace_back();
+
+         item.libraryName = video.attribute("librarySectionTitle").as_string();
+         item.title = video.attribute("title").as_string();
+         item.ratingKey = video.attribute("ratingKey").as_string();
+         item.durationMs = video.attribute("duration").as_llong();
+
+         if (pugi::xml_node part = video.child("Media").child("Part"))
+         {
+            item.path = part.attribute("file").as_string();
+         }
+      }
+
+      return returnResults;
    }
 
    std::optional<std::string> PlexApi::GetServerReportedName()
@@ -268,5 +292,76 @@ namespace loomis
       }
 
       return collection;
+   }
+
+   bool PlexApi::SetPlayed(std::string_view name, std::string_view path, int32_t percent)
+   {
+      auto results = SearchItem(name);
+      if (!results)
+      {
+         LogError("{} - Search for item {} failed", __func__, name);
+         return false;
+      }
+
+      auto iter = std::ranges::find_if(results->items, [&](const auto& item) {
+         return item.path == path;
+      });
+
+      if (iter == results->items.end())
+      {
+         LogError("{} - Item {} with path {} not found in search results", __func__, name, path);
+         return false;
+      }
+
+      auto newLocationMs = static_cast<int64_t>((iter->durationMs * percent) / 100);
+      const auto apiUrl = BuildApiParamsPath("/:/progress", {
+         {"identifier", "com.plexapp.plugins.library"},
+         {"key", iter->ratingKey},
+         {"time", std::to_string(newLocationMs)},
+         {"state", "stopped"} // 'stopped' commits the time to the database
+      });
+
+      auto res = client_.Get(apiUrl, headers_);
+      if (!IsHttpSuccess(__func__, res))
+      {
+         LogError("{} - Failed to mark {} as played {}%", __func__, name, percent);
+         return false;
+      }
+
+      return true;
+   }
+
+   bool PlexApi::SetWatched(std::string_view name, std::string_view path)
+   {
+      auto results = SearchItem(name);
+      if (!results)
+      {
+         LogError("{} - Search for item {} failed", __func__, name);
+         return false;
+      }
+
+      auto iter = std::ranges::find_if(results->items, [&](const auto& item) {
+         return item.path == path;
+      });
+
+      if (iter == results->items.end())
+      {
+         LogError("{} - Item {} with path {} not found in search results", __func__, name, path);
+         return false;
+      }
+
+      const auto apiUrl = BuildApiParamsPath("/:/scrobble", {
+         {"identifier", "com.plexapp.plugins.library"},
+         {"key", iter->ratingKey}
+      });
+
+      auto res = client_.Get(apiUrl, headers_);
+      if (!IsHttpSuccess(__func__, res)) return false;
+      {
+         LogError("{} - Failed to mark {} as watched", __func__, name);
+         return false;
+      }
+
+      return true;
    }
 }

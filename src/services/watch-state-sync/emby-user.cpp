@@ -1,15 +1,17 @@
 ﻿#include "emby-user.h"
 
 #include "logger/log-utils.h"
+#include "services/service-utils.h"
 
 namespace loomis
 {
    EmbyUser::EmbyUser(const ServerUser& config,
-                      ApiManager* apiManager,
+                      const std::shared_ptr<ApiManager>& apiManager,
                       WatchStateLogger logger)
       : logger_(logger)
       , config_(config)
-      , serverName_(utils::GetServerName(utils::GetFormattedEmby(), config_.server))
+      , serverName_(config_.server)
+      , prettyServerName_(utils::GetServerName(utils::GetFormattedEmby(), config_.server))
    {
       // Do some quick checking on the users and make sure the api in the config exists.
       // Don't want to check if the user is valid on the api yet since it might be offline.
@@ -56,6 +58,21 @@ namespace loomis
       return serverName_;
    }
 
+   std::string_view EmbyUser::GetPrettyServerName() const
+   {
+      return prettyServerName_;
+   }
+
+   const std::string& EmbyUser::GetMediaPath() const
+   {
+      return embyApi_->GetMediaPath();
+   }
+
+   std::optional<EmbyPlayState> EmbyUser::GetPlayState(std::string_view id)
+   {
+      return embyApi_->GetPlayState(userId_, id);
+   }
+
    void EmbyUser::Update()
    {
       auto user = embyApi_->GetUser(config_.user_name);
@@ -68,7 +85,7 @@ namespace loomis
       return jellystatApi_->GetWatchHistoryForUser(userId_);
    }
 
-   bool EmbyUser::SyncWatchedState(const std::string& plexPath)
+   bool EmbyUser::SyncPlexWatchedState(const std::string& plexPath)
    {
       auto id = embyApi_->GetIdFromPathMap(plexPath);
       if (!id) return false;
@@ -81,7 +98,7 @@ namespace loomis
       return true;
    }
 
-   bool EmbyUser::SyncPlayState(const PlexSyncState& syncState)
+   bool EmbyUser::SyncPlexPlayState(const PlexSyncState& syncState)
    {
       auto id = embyApi_->GetIdFromPathMap(syncState.path);
       if (!id) return false;
@@ -91,15 +108,39 @@ namespace loomis
 
       int64_t tickLocation = std::llround(static_cast<double>(playState->runTimeTicks) * (static_cast<double>(syncState.playbackPercentage) / 100.0));
 
-      auto tp = std::chrono::sys_time<std::chrono::seconds>{std::chrono::seconds{syncState.timeWatchedEpoch}};
-      auto timeString = std::format("{:%FT%TZ}", tp);
-
+      auto timeString = GetIsoTimeStr(std::chrono::sys_time<std::chrono::seconds>{std::chrono::seconds{syncState.timeWatchedEpoch}});
       return embyApi_->SetPlayState(userId_, *id, tickLocation, timeString);
    }
 
    void EmbyUser::SyncStateWithPlex(const PlexSyncState& syncState, std::string& syncResults)
    {
-      if (syncState.watched ? SyncWatchedState(syncState.path) : SyncPlayState(syncState))
+      if (syncState.watched ? SyncPlexWatchedState(syncState.path) : SyncPlexPlayState(syncState))
+      {
+         syncResults = utils::BuildSyncServerString(syncResults, utils::GetFormattedEmby(), config_.server);
+      }
+   }
+
+   bool EmbyUser::SyncEmbyWatchedState(std::string_view id)
+   {
+      if (embyApi_->GetWatchedStatus(userId_, id)) return false;
+      return embyApi_->SetWatchedStatus(userId_, id);
+   }
+
+   bool EmbyUser::SyncEmbyPlayState(const EmbySyncState& syncState, std::string_view id)
+   {
+      auto playState = embyApi_->GetPlayState(userId_, id);
+      if (!playState || syncState.playbackPercentage == std::lround(playState->percentage)) return false;
+
+      int64_t tickLocation = std::llround(static_cast<double>(playState->runTimeTicks) * (static_cast<double>(syncState.playbackPercentage) / 100.0));
+      return embyApi_->SetPlayState(userId_, id, tickLocation, syncState.timeWatched);
+   }
+
+   void EmbyUser::SyncStateWithEmby(const EmbySyncState& syncState, std::string& syncResults)
+   {
+      auto id = embyApi_->GetIdFromPathMap(ReplaceMediaPath(syncState.path, syncState.mediaPath, GetMediaPath()));
+      if (!id) return;
+
+      if (syncState.watched ? SyncEmbyWatchedState(*id) : SyncEmbyPlayState(syncState, *id))
       {
          syncResults = utils::BuildSyncServerString(syncResults, utils::GetFormattedEmby(), config_.server);
       }

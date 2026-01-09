@@ -9,14 +9,14 @@
 namespace loomis
 {
    WatchStateUser::WatchStateUser(const UserSyncConfig& config,
-                                  ApiManager* apiManager,
+                                  std::shared_ptr<ApiManager> apiManager,
                                   WatchStateLogger logger)
-      : apiManager_(apiManager)
+      : apiManager_(std::move(apiManager))
       , logger_(logger)
    {
-      std::ranges::for_each(config.plex, [this, &apiManager](const auto& configPlexUser) {
+      std::ranges::for_each(config.plex, [this](const auto& configPlexUser) {
          auto plexUser{std::make_unique<PlexUser>(configPlexUser,
-                                                  apiManager,
+                                                  apiManager_,
                                                   logger_)};
          if (plexUser->GetValid())
          {
@@ -24,9 +24,9 @@ namespace loomis
          }
       });
 
-      std::ranges::for_each(config.emby, [this, &apiManager](const auto& configEmbyUser) {
+      std::ranges::for_each(config.emby, [this](const auto& configEmbyUser) {
          auto embyUser{std::make_unique<EmbyUser>(configEmbyUser,
-                                                  apiManager,
+                                                  apiManager_,
                                                   logger_)};
          if (embyUser->GetValid())
          {
@@ -56,26 +56,36 @@ namespace loomis
       });
    }
 
-   std::vector<const TautulliHistoryItem*> WatchStateUser::GetConsolidatedHistory(const TautulliHistoryItems& historyItems)
+   template <typename T, typename TimeFieldProj>
+   std::vector<const T*> ConsolidateHistory(const std::vector<T>& items, TimeFieldProj timeProj)
    {
-      if (historyItems.items.empty()) return {};
+      if (items.empty()) return {};
 
-      std::vector<const TautulliHistoryItem*> consolidated;
-      consolidated.reserve(historyItems.items.size());
-      for (const auto& item : historyItems.items) consolidated.push_back(&item);
+      std::vector<const T*> consolidated;
+      consolidated.reserve(items.size());
+      for (const auto& item : items) consolidated.push_back(&item);
 
-      // Sort using ranges and projections
-      // 1st: sort by id, 2nd: sort by timeWatchedEpoch (descending)
-      std::ranges::sort(consolidated, [](const auto& a, const auto& b) {
+      // Sort by ID, then by Time (descending)
+      std::ranges::sort(consolidated, [&](const auto* a, const auto* b) {
          if (a->id != b->id) return a->id < b->id;
-         return a->timeWatchedEpoch > b->timeWatchedEpoch;
+         return timeProj(a) > timeProj(b); // Use the projection here
       });
 
-      // Unique using ranges and projections
-      auto [new_end, _] = std::ranges::unique(consolidated, std::ranges::equal_to{}, &TautulliHistoryItem::id);
+      // Unique based on ID
+      auto [new_end, _] = std::ranges::unique(consolidated, std::ranges::equal_to{}, &T::id);
       consolidated.erase(new_end, consolidated.end());
 
       return consolidated;
+   }
+
+   std::vector<const TautulliHistoryItem*> WatchStateUser::GetConsolidatedPlexHistory(const TautulliHistoryItems& historyItems)
+   {
+      return ConsolidateHistory(historyItems.items, [](const auto* i) { return i->timeWatchedEpoch; });
+   }
+
+   std::vector<const JellystatHistoryItem*> WatchStateUser::GetConsolidatedEmbyHistory(const JellystatHistoryItems& historyItems)
+   {
+      return ConsolidateHistory(historyItems.items, [](const auto* i) { return i->watchTime; });
    }
 
    void WatchStateUser::LogSyncSummary(const LogSyncData& syncSummary)
@@ -113,22 +123,12 @@ namespace loomis
       return plexApi->GetItemsPaths(ids);
    }
 
-   void WatchStateUser::SyncPlexWatchState(const TautulliHistoryItem* item)
-   {
-
-   }
-
-   void WatchStateUser::SyncPlexPlayState(const TautulliHistoryItem* item)
-   {
-
-   }
-
    void WatchStateUser::SyncPlexState(PlexUser& plexUser, std::string_view historyDate)
    {
       auto userHistory = plexUser.GetWatchHistory(historyDate);
       if (!userHistory || userHistory->items.empty()) return;
 
-      auto consolidatedHistory = GetConsolidatedHistory(*userHistory);
+      auto consolidatedHistory = GetConsolidatedPlexHistory(*userHistory);
       auto historyWithPaths = GetPlexPathsForHistoryItems(plexUser.GetServer(), consolidatedHistory);
 
       for (const auto* history : consolidatedHistory)
@@ -144,7 +144,7 @@ namespace loomis
                .timeWatchedEpoch = history->timeWatchedEpoch};
 
             for (auto& user : plexUsers_)
-               if (user->GetValid()) user->SyncStateWithPlex(history, iter->second, syncServers);
+               if (user->GetValid()) user->SyncStateWithPlex();
             for (auto& user : embyUsers_)
                if (user->GetValid()) user->SyncStateWithPlex(plexSyncState, syncServers);
 
@@ -167,6 +167,44 @@ namespace loomis
    {
       auto userHistory = embyUser.GetWatchHistory();
       if (!userHistory || userHistory->items.empty()) return;
+
+      const auto cutoff = GetIsoTimeStr(std::chrono::system_clock::now() - std::chrono::days(1));
+
+      // Remove all items older than 24 hours
+      std::erase_if(userHistory->items, [&cutoff](const auto& item) {
+         return item.watchTime < cutoff;
+      });
+
+      auto consolidatedHistory = GetConsolidatedEmbyHistory(*userHistory);
+      for (auto& item : consolidatedHistory)
+      {
+         std::string syncServers;
+         auto playState = embyUser.GetPlayState(item->episodeId.has_value() ? *item->episodeId : item->id);
+
+         if (!playState) continue;
+
+         auto plexSyncState = PlexUser::EmbySyncState{
+            .name = item->name,
+            .mediaPath = embyUser.GetMediaPath(),
+            .path = playState->path,
+            .watched = playState->played,
+            .playbackPercentage = std::lround(playState->percentage),
+            .timeWatched = item->watchTime
+         };
+
+         auto embySyncState = EmbyUser::EmbySyncState{
+            .mediaPath = embyUser.GetMediaPath(),
+            .path = playState->path,
+            .watched = playState->played,
+            .playbackPercentage = std::lround(playState->percentage),
+            .timeWatched = item->watchTime
+         };
+
+         for (auto& user : plexUsers_)
+            if (user->GetValid()) user->SyncStateWithEmby(plexSyncState, syncServers);
+         for (auto& user : embyUsers_)
+            if (user->GetServerName() != embyUser.GetServerName() && user->GetValid()) user->SyncStateWithEmby(embySyncState, syncServers);
+      }
    }
 
    void WatchStateUser::Sync()

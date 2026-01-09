@@ -30,10 +30,13 @@ namespace loomis
       [[nodiscard]] std::optional<TautulliHistoryItems> GetWatchHistoryForUser(std::string_view user, std::string_view dateForHistory);
 
    private:
-      std::string BuildApiPath(std::string_view cmd);
+      std::string_view GetApiBase() const override;
+      std::string_view GetApiTokenName() const override;
+
+      [[nodiscard]] std::pair<std::string_view, std::string_view> GetCmdParam(std::string_view cmd) const;
 
       // Server should be responding before making this call
-      uint32_t GetWatchedPercent();
+      int32_t GetWatchedPercent();
 
       bool ReadMonitoringData();
       void RunSettingsUpdate();
@@ -41,6 +44,6 @@ namespace loomis
       httplib::Client client_;
       httplib::Headers headers_;
 
-      std::optional<uint32_t> watchedPercent_;
+      std::optional<int32_t> watchedPercent_;
    };
 }

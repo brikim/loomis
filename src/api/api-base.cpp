@@ -39,17 +39,51 @@ namespace loomis
       return apiKey_;
    }
 
-   void ApiBase::AddApiParam(std::string& url, const std::list<std::pair<std::string_view, std::string_view>>& params) const
+   void ApiBase::AddApiParam(std::string& url, const ApiParams& params) const
    {
       if (params.empty()) return;
 
+      bool hasQuery = (url.find('?') != std::string::npos);
+      bool lastIsSeparator = !url.empty() && (url.back() == '?' || url.back() == '&');
       for (const auto& [key, value] : params)
       {
-         char separator = (url.find('?') == std::string::npos) ? '?' : '&';
+         if (!lastIsSeparator)
+         {
+            url += hasQuery ? '&' : '?';
+         }
+         url += key;
+         url += '=';
+         url += GetPercentEncoded(value);
 
-         // Use the encoding utility on the 'value'
-         url.append(std::format("{}{}={}", separator, key, GetPercentEncoded(value)));
+         hasQuery = true;
+         lastIsSeparator = false;
       }
+   }
+
+   std::string ApiBase::BuildApiPath(std::string_view path) const
+   {
+      auto apiTokenName = GetApiTokenName();
+      char separator = (path.find('?') == std::string_view::npos) ? '?' : '&';
+      if (apiTokenName.empty())
+      {
+         return std::format("{}{}", GetApiBase(), path);
+      }
+      else
+      {
+         return std::format("{}{}{}{}={}",
+                            GetApiBase(),
+                            path,
+                            separator,
+                            apiTokenName,
+                            GetPercentEncoded(GetApiKey()));
+      }
+   }
+
+   std::string ApiBase::BuildApiParamsPath(std::string_view path, const ApiParams& params) const
+   {
+      auto apiPath = BuildApiPath(path);
+      AddApiParam(apiPath, params);
+      return apiPath;
    }
 
    std::string ApiBase::GetPercentEncoded(std::string_view src) const
@@ -103,7 +137,7 @@ namespace loomis
       {
          error = httplib::to_string(result.error());
       }
-      else if (result->status >= 400) // Using 400 is more standard than a custom MAX
+      else if (result->status >= VALID_HTTP_RESPONSE_MAX)
       {
          error = std::format("Status {}: {} - {}", result->status, result->reason, result->body);
       }

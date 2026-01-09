@@ -36,7 +36,7 @@ namespace loomis
       }
 
       template<typename... Args>
-      void LogError(std::string_view fmt, Args &&...args)
+      void LogError(spdlog::format_string_t<Args...> fmt, Args &&...args)
       {
          Logger::Instance().ErrorWithHeader(header_, fmt, std::forward<Args>(args)...);
       }

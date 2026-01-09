@@ -23,6 +23,7 @@ namespace loomis
 
       // Returns true if the server is reachable and the API key is valid
       [[nodiscard]] bool GetValid() override;
+      [[nodiscard]] const std::string& GetMediaPath() const;
       [[nodiscard]] std::optional<std::string> GetServerReportedName() override;
       [[nodiscard]] std::optional<std::string> GetLibraryId(std::string_view libraryName);
       [[nodiscard]] std::optional<std::string> GetItemPath(int32_t id);
@@ -37,12 +38,21 @@ namespace loomis
       // Tell Plex to scan the passed in library
       void SetLibraryScan(std::string_view libraryId);
 
+      bool SetPlayed(std::string_view name, std::string_view path, int32_t percent);
+      bool SetWatched(std::string_view name, std::string_view path);
+
    private:
-      std::string BuildApiPath(std::string_view path);
+      std::string_view GetApiBase() const override;
+      std::string_view GetApiTokenName() const override;
+
       pugi::xml_node GetCollectionNode(std::string_view library, std::string_view collection);
+
+      std::optional<PlexSearchResults> SearchItem(std::string_view name);
 
       httplib::Client client_;
       httplib::Headers headers_;
+
+      std::string mediaPath_;
 
       pugi::xml_document collectionDoc_;
    };

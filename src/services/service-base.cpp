@@ -27,8 +27,8 @@ namespace loomis
       return task_;
    }
 
-   ApiManager* ServiceBase::GetApiManager() const
+   const std::shared_ptr<ApiManager> ServiceBase::GetApiManager() const
    {
-      return apiManager_.get();
+      return apiManager_;
    }
 }

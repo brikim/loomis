@@ -25,7 +25,9 @@ namespace loomis
       [[nodiscard]] std::optional<JellystatHistoryItems> GetWatchHistoryForUser(std::string_view userId);
 
    private:
-      std::string BuildApiPath(std::string_view path);
+      std::string_view GetApiBase() const override;
+      std::string_view GetApiTokenName() const override;
+
       std::string ParamsToJson(const std::list<std::pair<std::string_view, std::string_view>> params);
 
       httplib::Client client_;

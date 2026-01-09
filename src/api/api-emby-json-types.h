@@ -80,6 +80,7 @@ namespace loomis
    {
       std::string Name;
       std::string Type;
+      std::string Path;
       int64_t RunTimeTicks{0};
       JsonEmbyPlaystateUserData UserData;
    };

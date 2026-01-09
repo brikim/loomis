@@ -26,10 +26,11 @@ namespace loomis
 
       // Returns true if the server is reachable and the API key is valid
       [[nodiscard]] bool GetValid() override;
+      [[nodiscard]] const std::string& GetMediaPath() const;
       [[nodiscard]] std::optional<std::string> GetServerReportedName() override;
       [[nodiscard]] std::optional<std::string> GetLibraryId(std::string_view libraryName);
 
-      std::optional<EmbyItem> GetItem(EmbySearchType type, std::string_view name, std::list<std::pair<std::string_view, std::string_view>> extraSearchArgs = {});
+      std::optional<EmbyItem> GetItem(EmbySearchType type, std::string_view name, const ApiParams& extraSearchArgs = {});
 
       [[nodiscard]] std::optional<EmbyUserData> GetUser(std::string_view name);
 
@@ -53,19 +54,22 @@ namespace loomis
       [[nodiscard]] std::optional<std::string> GetIdFromPathMap(const std::string& path);
 
    private:
+      std::string_view GetApiBase() const override;
+      std::string_view GetApiTokenName() const override;
+
       void BuildPathMap();
       void RunPathMapQuickCheck();
       void RunPathMapFullUpdate();
 
       bool HasLibraryChanged();
-      std::string BuildApiPath(std::string_view path) const;
-      std::string BuildApiParamsPath(std::string_view path, const std::list<std::pair<std::string_view, std::string_view>>& params) const;
 
       std::string_view GetSearchTypeStr(EmbySearchType type);
 
       httplib::Client client_;
       httplib::Headers emptyHeaders_;
       httplib::Headers jsonHeaders_{{{"accept", "application/json"}}};
+
+      std::string mediaPath_;
 
       std::string lastSyncTimestamp_;
       EmbyPathMap pathMap_;

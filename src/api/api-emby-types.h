@@ -55,6 +55,7 @@ namespace loomis
 
    struct EmbyPlayState
    {
+      std::string path;
       float percentage{0.0f};
       int64_t runTimeTicks{0};
       int64_t playbackPositionTicks{0};

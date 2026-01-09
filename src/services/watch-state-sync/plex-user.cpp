@@ -1,11 +1,12 @@
 ﻿#include "plex-user.h"
 
 #include "logger/log-utils.h"
+#include "services/service-utils.h"
 
 namespace loomis
 {
    PlexUser::PlexUser(const ServerUser& config,
-                      ApiManager* apiManager,
+                      const std::shared_ptr<ApiManager>& apiManager,
                       WatchStateLogger logger)
       : logger_(logger)
       , config_(config)
@@ -83,8 +84,29 @@ namespace loomis
       if (valid_) userInfo_ = *userInfo;
    }
 
-   void PlexUser::SyncStateWithPlex(const TautulliHistoryItem* item, std::string_view path, std::string& target)
+   void PlexUser::SyncStateWithPlex()
    {
       // Currently not supported. Future Growth?
+   }
+
+   bool PlexUser::SyncEmbyWatchedState(const EmbySyncState& syncState)
+   {
+      return api_->SetWatched(syncState.name, ReplaceMediaPath(syncState.path, syncState.mediaPath, api_->GetMediaPath()));
+   }
+
+   bool PlexUser::SyncEmbyPlayState(const EmbySyncState& syncState)
+   {
+      return api_->SetPlayed(syncState.name, ReplaceMediaPath(syncState.path, syncState.mediaPath, api_->GetMediaPath()), syncState.playbackPercentage);
+   }
+
+   void PlexUser::SyncStateWithEmby(const EmbySyncState& syncState, std::string& syncResults)
+   {
+      if (!config_.can_sync) return;
+
+      if (syncState.watched ? SyncEmbyWatchedState(syncState) : SyncEmbyPlayState(syncState))
+      {
+         syncResults = utils::BuildSyncServerString(syncResults, utils::GetFormattedEmby(), config_.server);
+      }
+
    }
 }

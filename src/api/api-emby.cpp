@@ -17,6 +17,8 @@ namespace loomis
    namespace
    {
       const std::string API_BASE{"/emby"};
+      const std::string API_TOKEN_NAME{"api_key"};
+
       const std::string API_SYSTEM_INFO{"/System/Info"};
       const std::string API_MEDIA_FOLDERS{"/Library/SelectableMediaFolders"};
       const std::string API_ITEMS{"/Items"};
@@ -35,6 +37,7 @@ namespace loomis
    EmbyApi::EmbyApi(const ServerConfig& serverConfig)
       : ApiBase(serverConfig.server_name, serverConfig.url, serverConfig.api_key, "EmbyApi", utils::ANSI_CODE_EMBY)
       , client_(GetUrl())
+      , mediaPath_(serverConfig.media_path)
    {
       constexpr time_t timeoutSec{5};
       client_.set_connection_timeout(timeoutSec);
@@ -60,22 +63,25 @@ namespace loomis
       return tasks;
    }
 
-   std::string EmbyApi::BuildApiPath(std::string_view path) const
+   std::string_view EmbyApi::GetApiBase() const
    {
-      return std::format("{}{}?api_key={}", API_BASE, path, GetApiKey());
+      return API_BASE;
    }
 
-   std::string EmbyApi::BuildApiParamsPath(std::string_view path, const std::list<std::pair<std::string_view, std::string_view>>& params) const
+   std::string_view EmbyApi::GetApiTokenName() const
    {
-      std::string apiPath = BuildApiPath(path);
-      AddApiParam(apiPath, params);
-      return apiPath;
+      return API_TOKEN_NAME;
    }
 
    bool EmbyApi::GetValid()
    {
       auto res = client_.Get(BuildApiPath(API_SYSTEM_INFO), emptyHeaders_);
       return res.error() == httplib::Error::Success && res.value().status < VALID_HTTP_RESPONSE_MAX;
+   }
+
+   const std::string& EmbyApi::GetMediaPath() const
+   {
+      return mediaPath_;
    }
 
    std::optional<std::string> EmbyApi::GetServerReportedName()
@@ -90,8 +96,8 @@ namespace loomis
       JsonServerResponse serverResponse;
       if (auto ec = glz::read < glz::opts{.error_on_unknown_keys = false} > (serverResponse, res.value().body))
       {
-         Logger::Instance().Warning("{} - JSON Parse Error: {}",
-                                    __func__, glz::format_error(ec, res.value().body));
+         LogWarning("{} - JSON Parse Error: {}",
+                    __func__, glz::format_error(ec, res.value().body));
          return std::nullopt;
       }
 
@@ -111,8 +117,8 @@ namespace loomis
       std::vector<JsonEmbyLibrary> jsonLibraries;
       if (auto ec = glz::read < glz::opts{.error_on_unknown_keys = false} > (jsonLibraries, res.value().body))
       {
-         Logger::Instance().Warning("{} - JSON Parse Error: {}",
-                                    __func__, glz::format_error(ec, res.value().body));
+         LogWarning("{} - JSON Parse Error: {}",
+                    __func__, glz::format_error(ec, res.value().body));
          return std::nullopt;
       }
 
@@ -141,14 +147,15 @@ namespace loomis
       }
    }
 
-   std::optional<EmbyItem> EmbyApi::GetItem(EmbySearchType type, std::string_view name, std::list<std::pair<std::string_view, std::string_view>> extraSearchArgs)
+   std::optional<EmbyItem> EmbyApi::GetItem(EmbySearchType type, std::string_view name, const ApiParams& extraSearchArgs)
    {
-      std::list<std::pair<std::string_view, std::string_view>> params = {
+      ApiParams params = {
          {"Recursive", "true"},
          {GetSearchTypeStr(type), name},
-         {"Fields", "Path,SeriesName,RunTimeTicks"} // Ensure we ask for what we need
+         {"Fields", "Path,SeriesName,RunTimeTicks"}
       };
-      params.splice(params.end(), extraSearchArgs);
+      params.reserve(params.size() + extraSearchArgs.size());
+      params.insert(params.end(), extraSearchArgs.begin(), extraSearchArgs.end());
 
       auto res{client_.Get(BuildApiParamsPath(API_ITEMS, params), emptyHeaders_)};
       if (!IsHttpSuccess(__func__, res)) return std::nullopt;
@@ -156,7 +163,7 @@ namespace loomis
       JsonEmbyItemsResponse response;
       if (auto ec = glz::read < glz::opts{.error_on_unknown_keys = false} > (response, res.value().body))
       {
-         Logger::Instance().Warning("{} - JSON Parse Error: {}", __func__, glz::format_error(ec, res.value().body));
+         LogWarning("{} - JSON Parse Error: {}", __func__, glz::format_error(ec, res.value().body));
          return std::nullopt;
       }
 
@@ -205,8 +212,8 @@ namespace loomis
       std::vector<JsonEmbyUser> users;
       if (auto ec = glz::read < glz::opts{.error_on_unknown_keys = false} > (users, res.value().body))
       {
-         Logger::Instance().Warning("{} - JSON Parse Error: {}",
-                                    __func__, glz::format_error(ec, res.value().body));
+         LogWarning("{} - JSON Parse Error: {}",
+                    __func__, glz::format_error(ec, res.value().body));
          return std::nullopt;
       }
 
@@ -232,8 +239,8 @@ namespace loomis
       JsonTotalRecordCount response;
       if (auto ec = glz::read < glz::opts{.error_on_unknown_keys = false} > (response, res.value().body))
       {
-         Logger::Instance().Warning("{} - JSON Parse Error: {}",
-                                    __func__, glz::format_error(ec, res.value().body));
+         LogWarning("{} - JSON Parse Error: {}",
+                    __func__, glz::format_error(ec, res.value().body));
          return false;
       }
 
@@ -260,8 +267,8 @@ namespace loomis
       JsonEmbyPlayStates response;
       if (auto ec = glz::read < glz::opts{.error_on_unknown_keys = false} > (response, res.value().body))
       {
-         Logger::Instance().Warning("{} - JSON Parse Error: {}",
-                                    __func__, glz::format_error(ec, res.value().body));
+         LogWarning("{} - JSON Parse Error: {}",
+                    __func__, glz::format_error(ec, res.value().body));
          return std::nullopt;
       }
 
@@ -271,7 +278,8 @@ namespace loomis
 
       if (item.Type != "Movie" && item.Type != "Episode") return std::nullopt;
 
-      return EmbyPlayState{.percentage = item.UserData.PlayedPercentage,
+      return EmbyPlayState{.path = std::move(item.Path),
+                           .percentage = item.UserData.PlayedPercentage,
                            .runTimeTicks = item.RunTimeTicks,
                            .playbackPositionTicks = item.UserData.PlaybackPositionTicks,
                            .play_count = item.UserData.PlayCount,
@@ -305,8 +313,8 @@ namespace loomis
       JsonEmbyPlaylistItemsResponse response;
       if (auto ec = glz::read < glz::opts{.error_on_unknown_keys = false} > (response, res.value().body))
       {
-         Logger::Instance().Warning("{} - JSON Parse Error: {}",
-                                    __func__, glz::format_error(ec, res.value().body));
+         LogWarning("{} - JSON Parse Error: {}",
+                    __func__, glz::format_error(ec, res.value().body));
          return std::nullopt;
       }
 
@@ -395,7 +403,7 @@ namespace loomis
       PathRebuildItems response;
       if (auto ec = glz::read < glz::opts{.error_on_unknown_keys = false} > (response, res.value().body))
       {
-         Logger::Instance().Warning("{} - JSON Parse Error: {}",
+         LogWarning("{} - JSON Parse Error: {}",
              __func__, glz::format_error(ec, res.value().body)); // Log the start of the string for context
          return;
       }
@@ -446,7 +454,7 @@ namespace loomis
       PathRebuildItems response;
       if (auto ec = glz::read < glz::opts{.error_on_unknown_keys = false} > (response, res.value().body))
       {
-         Logger::Instance().Warning("{} - JSON Parse Error: {}",
+         LogWarning("{} - JSON Parse Error: {}",
              __func__, glz::format_error(ec, res.value().body)); // Log the start of the string for context
          return false;
       }

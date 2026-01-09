@@ -17,7 +17,7 @@ namespace loomis
    {
    public:
       PlexUser(const ServerUser& config,
-               ApiManager* apiManager,
+               const std::shared_ptr<ApiManager>& apiManager,
                WatchStateLogger logger);
       virtual ~PlexUser() = default;
 
@@ -30,9 +30,23 @@ namespace loomis
 
       void Update();
 
-      void SyncStateWithPlex(const TautulliHistoryItem* item, std::string_view path, std::string& target);
+      void SyncStateWithPlex();
+
+      struct EmbySyncState
+      {
+         const std::string& name;
+         const std::string& mediaPath;
+         const std::string& path;
+         bool watched{false};
+         int32_t playbackPercentage{0};
+         const std::string& timeWatched;
+      };
+      void SyncStateWithEmby(const EmbySyncState& syncState, std::string& syncResults);
 
    private:
+      bool SyncEmbyWatchedState(const EmbySyncState& syncState);
+      bool SyncEmbyPlayState(const EmbySyncState& syncState);
+
       bool valid_{false};
       WatchStateLogger logger_;
       ServerUser config_;

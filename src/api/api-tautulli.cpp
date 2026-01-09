@@ -14,6 +14,8 @@ namespace loomis
    namespace
    {
       const std::string API_BASE{"/api/v2"};
+      const std::string API_TOKEN_NAME{"apikey"};
+      const std::string API_COMMAND{"cmd"};
 
       const std::string CMD_GET_SERVER_FRIENDLY_NAME("get_server_friendly_name");
       const std::string CMD_GET_SETTINGS{"get_settings"};
@@ -52,21 +54,31 @@ namespace loomis
       return tasks;
    }
 
-   std::string TautulliApi::BuildApiPath(std::string_view cmd)
+   std::string_view TautulliApi::GetApiBase() const
    {
-      return std::format("{}?apikey={}&cmd={}", API_BASE, GetApiKey(), cmd);
+      return API_BASE;
+   }
+
+   std::string_view TautulliApi::GetApiTokenName() const
+   {
+      return API_TOKEN_NAME;
+   }
+
+   std::pair<std::string_view, std::string_view> TautulliApi::GetCmdParam(std::string_view cmd) const
+   {
+      return {API_COMMAND, cmd};
    }
 
    bool TautulliApi::GetValid()
    {
-      auto apiPath = BuildApiPath(CMD_GET_SERVER_FRIENDLY_NAME);
+      auto apiPath = BuildApiParamsPath("", {GetCmdParam(CMD_GET_SERVER_FRIENDLY_NAME)});
       auto res = client_.Get(apiPath, headers_);
       return res.error() == httplib::Error::Success && res.value().status < VALID_HTTP_RESPONSE_MAX;
    }
 
    std::optional<std::string> TautulliApi::GetServerReportedName()
    {
-      auto res = client_.Get(BuildApiPath(CMD_SERVER_INFO), headers_);
+      auto res = client_.Get(BuildApiParamsPath("", {GetCmdParam(CMD_SERVER_INFO)}), headers_);
 
       if (!IsHttpSuccess(__func__, res))
       {
@@ -90,7 +102,7 @@ namespace loomis
 
    std::optional<TautulliUserInfo> TautulliApi::GetUserInfo(std::string_view name)
    {
-      auto res = client_.Get(BuildApiPath(CMD_GET_USERS), headers_);
+      auto res = client_.Get(BuildApiParamsPath("", {GetCmdParam(CMD_GET_USERS)}), headers_);
       if (!IsHttpSuccess(__func__, res)) return std::nullopt;
 
       JsonTautulliResponse<std::vector<JsonUserInfo>> serverResponse;
@@ -115,8 +127,8 @@ namespace loomis
 
    bool TautulliApi::ReadMonitoringData()
    {
-      auto apiPath = BuildApiPath(CMD_GET_SETTINGS);
-      AddApiParam(apiPath, {
+      auto apiPath = BuildApiParamsPath("", {
+         GetCmdParam(CMD_GET_SETTINGS),
           {"key", "Monitoring"},
       });
 
@@ -135,18 +147,18 @@ namespace loomis
       return true;
    }
 
-   uint32_t TautulliApi::GetWatchedPercent()
+   int32_t TautulliApi::GetWatchedPercent()
    {
       if (watchedPercent_) return *watchedPercent_;
 
-      constexpr uint32_t defaultWatchedPercent = 85;
+      constexpr int32_t defaultWatchedPercent = 85;
       return ReadMonitoringData() ? *watchedPercent_ : defaultWatchedPercent;
    }
 
    std::optional<TautulliHistoryItems> TautulliApi::GetWatchHistoryForUser(std::string_view user, std::string_view dateForHistory)
    {
-      auto apiPath = BuildApiPath(CMD_GET_HISTORY);
-      AddApiParam(apiPath, {
+      auto apiPath = BuildApiParamsPath("", {
+         GetCmdParam(CMD_GET_HISTORY),
           {INCLUDE_ACTIVITY, "0"},
           {USER, user},
           {AFTER, dateForHistory}

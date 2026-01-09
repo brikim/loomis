@@ -23,7 +23,7 @@ namespace loomis
       [[nodiscard]] const Task& GetTask() const;
 
    protected:
-      [[nodiscard]] ApiManager* GetApiManager() const;
+      [[nodiscard]] const std::shared_ptr<ApiManager> GetApiManager() const;
 
       // Function will be called at the returned cron schedule
       virtual void Run() = 0;

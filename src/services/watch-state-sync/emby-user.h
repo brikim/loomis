@@ -8,6 +8,7 @@
 #include "services/watch-state-sync/watch-state-logger.h"
 #include "types.h"
 
+#include <chrono>
 #include <functional>
 
 namespace loomis
@@ -16,13 +17,16 @@ namespace loomis
    {
    public:
       EmbyUser(const ServerUser& config,
-               ApiManager* apiManager,
+               const std::shared_ptr<ApiManager>& apiManager,
                WatchStateLogger logger);
       virtual ~EmbyUser() = default;
 
       [[nodiscard]] bool GetValid() const;
       [[nodiscard]] std::string_view GetServerName() const;
+      [[nodiscard]] std::string_view GetPrettyServerName() const;
+      [[nodiscard]] const std::string& GetMediaPath() const;
       [[nodiscard]] std::optional<JellystatHistoryItems> GetWatchHistory();
+      [[nodiscard]] std::optional<EmbyPlayState> GetPlayState(std::string_view id);
 
       void Update();
 
@@ -35,15 +39,29 @@ namespace loomis
       };
       void SyncStateWithPlex(const PlexSyncState& syncState, std::string& syncResults);
 
+      struct EmbySyncState
+      {
+         const std::string& mediaPath;
+         const std::string& path;
+         bool watched{false};
+         int32_t playbackPercentage{0};
+         const std::string& timeWatched;
+      };
+      void SyncStateWithEmby(const EmbySyncState& syncState, std::string& syncResults);
+
    private:
-      bool SyncWatchedState(const std::string& plexPath);
-      bool SyncPlayState(const PlexSyncState& syncState);
+      bool SyncPlexWatchedState(const std::string& plexPath);
+      bool SyncPlexPlayState(const PlexSyncState& syncState);
+
+      bool SyncEmbyWatchedState(std::string_view id);
+      bool SyncEmbyPlayState(const EmbySyncState& syncState, std::string_view id);
 
       bool valid_{false};
       WatchStateLogger logger_;
       ServerUser config_;
       std::string userId_;
       std::string serverName_;
+      std::string prettyServerName_;
 
       EmbyApi* embyApi_{nullptr};
       JellystatApi* jellystatApi_{nullptr};

@@ -1,23 +1,49 @@
 #pragma once
 
+#include <glaze/glaze.hpp>
+
+#include <chrono>
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <vector>
 
 namespace loomis
 {
-   struct JellystateHistoryItem
+   struct JellystatHistoryItem
    {
       std::string name;
+      std::string fullName;
       std::string id;
       std::string user;
-      std::string dateWatched;
-      std::string seriesName;
-      std::string episodeId;
+      std::string watchTime;
+      std::optional<std::string> seriesName;
+      std::optional<std::string> episodeId;
+
+      struct glaze
+      {
+         // Glaze knows how to handle chrono types automatically
+         static constexpr auto value = glz::object(
+            "NowPlayingItemName", &JellystatHistoryItem::name,
+            "NowPlayingItemId", &JellystatHistoryItem::id,
+            "UserName", &JellystatHistoryItem::user,
+            "ActivityDateInserted", &JellystatHistoryItem::watchTime,
+            "SeriesName", &JellystatHistoryItem::seriesName,
+            "EpisodeId", &JellystatHistoryItem::episodeId
+         );
+      };
    };
 
    struct JellystatHistoryItems
    {
-      std::vector<JellystateHistoryItem> items;
+      std::vector<JellystatHistoryItem> items;
+
+      struct glaze
+      {
+         // Glaze knows how to handle chrono types automatically
+         static constexpr auto value = glz::object(
+            "results", &JellystatHistoryItems::items
+         );
+      };
    };
 }
