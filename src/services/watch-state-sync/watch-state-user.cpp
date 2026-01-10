@@ -45,6 +45,22 @@ namespace loomis
       return valid_;
    }
 
+   std::string WatchStateUser::GetServerAndUserName() const
+   {
+      std::string names;
+      for (const auto& plexUser : plexUsers_)
+      {
+         if (!names.empty()) names += ", ";
+         names += plexUser->GetServerAndUserName();
+      }
+      for (const auto& embyUser : embyUsers_)
+      {
+         if (!names.empty()) names += ", ";
+         names += embyUser->GetServerAndUserName();
+      }
+      return names;
+   }
+
    void WatchStateUser::UpdateAllUsers()
    {
       std::ranges::for_each(plexUsers_, [this](auto& plexUser) {
@@ -95,7 +111,7 @@ namespace loomis
          logger_.LogInfo("{}:{} watched {} sync {} watch state",
                          syncSummary.server,
                          syncSummary.user,
-                         syncSummary.name,
+                         utils::GetStandoutText(syncSummary.name),
                          syncSummary.syncResults);
       }
       else
@@ -104,7 +120,7 @@ namespace loomis
                          syncSummary.server,
                          syncSummary.user,
                          syncSummary.playbackPercentage,
-                         syncSummary.name,
+                         utils::GetStandoutText(syncSummary.name),
                          syncSummary.syncResults);
       }
    }
@@ -129,7 +145,7 @@ namespace loomis
       if (!userHistory || userHistory->items.empty()) return;
 
       auto consolidatedHistory = GetConsolidatedPlexHistory(*userHistory);
-      auto historyWithPaths = GetPlexPathsForHistoryItems(plexUser.GetServer(), consolidatedHistory);
+      auto historyWithPaths = GetPlexPathsForHistoryItems(plexUser.GetServerName(), consolidatedHistory);
 
       for (const auto* history : consolidatedHistory)
       {
@@ -151,7 +167,7 @@ namespace loomis
             if (!syncServers.empty())
             {
                LogSyncSummary({
-                  .server = plexUser.GetServerName(),
+                  .server = plexUser.GetTypeAndServerName(),
                   .user = plexUser.GetUser(),
                   .name = history->fullName,
                   .watched = history->watched,
@@ -204,6 +220,19 @@ namespace loomis
             if (user->GetValid()) user->SyncStateWithEmby(plexSyncState, syncServers);
          for (auto& user : embyUsers_)
             if (user->GetServerName() != embyUser.GetServerName() && user->GetValid()) user->SyncStateWithEmby(embySyncState, syncServers);
+
+         if (!syncServers.empty())
+         {
+            auto itemFullName = item->GetFullName();
+            LogSyncSummary({
+               .server = embyUser.GetTypeAndServerName(),
+               .user = embyUser.GetUser(),
+               .name = itemFullName,
+               .watched = playState->played,
+               .playbackPercentage = std::lround(playState->percentage),
+               .syncResults = syncServers
+            });
+         }
       }
    }
 

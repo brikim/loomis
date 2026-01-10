@@ -22,11 +22,12 @@ namespace loomis
       virtual ~PlexUser() = default;
 
       [[nodiscard]] bool GetValid() const;
+      [[nodiscard]] std::string GetServerAndUserName() const;
       [[nodiscard]] int32_t GetId() const;
-      [[nodiscard]] std::string_view GetServer() const;
+      [[nodiscard]] std::string_view GetServerName() const;
+      [[nodiscard]] std::string_view GetTypeAndServerName() const;
       [[nodiscard]] std::string_view GetUser() const;
       [[nodiscard]] std::optional<TautulliHistoryItems> GetWatchHistory(std::string_view historyDate);
-      [[nodiscard]] std::string_view GetServerName() const;
 
       void Update();
 
@@ -50,7 +51,7 @@ namespace loomis
       bool valid_{false};
       WatchStateLogger logger_;
       ServerUser config_;
-      std::string serverName_;
+      std::string typeServerName_;
 
       PlexApi* api_{nullptr};
       TautulliApi* trackerApi_{nullptr};

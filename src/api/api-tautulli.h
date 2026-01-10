@@ -34,6 +34,7 @@ namespace loomis
       std::string_view GetApiTokenName() const override;
 
       [[nodiscard]] std::pair<std::string_view, std::string_view> GetCmdParam(std::string_view cmd) const;
+      [[nodiscard]] std::optional<TautulliHistoryItems> GetWatchHistory(std::string_view user, const ApiParams& extraParams);
 
       // Server should be responding before making this call
       int32_t GetWatchedPercent();

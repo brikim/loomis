@@ -25,6 +25,7 @@ namespace loomis
       virtual ~WatchStateUser() = default;
 
       [[nodiscard]] bool GetValid() const;
+      [[nodiscard]] std::string GetServerAndUserName() const;
 
       void Sync();
 

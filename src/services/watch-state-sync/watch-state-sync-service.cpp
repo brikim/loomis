@@ -29,8 +29,17 @@ namespace loomis
 
    void WatchStateSyncService::Run()
    {
-      std::ranges::for_each(users_, [](auto& user) {
-         user->Sync();
+      std::ranges::for_each(users_, [&](auto& user) {
+         try
+         {
+            user->Sync();
+         }
+         catch (const std::exception& e)
+         {
+            LogWarning("Encountered a error for {} during sync: {}",
+                       user->GetServerAndUserName(),
+                       e.what());
+         }
       });
    }
 }

@@ -22,8 +22,10 @@ namespace loomis
       virtual ~EmbyUser() = default;
 
       [[nodiscard]] bool GetValid() const;
+      [[nodiscard]] std::string GetServerAndUserName() const;
       [[nodiscard]] std::string_view GetServerName() const;
-      [[nodiscard]] std::string_view GetPrettyServerName() const;
+      [[nodiscard]] std::string_view GetTypeAndServerName() const;
+      [[nodiscard]] std::string_view GetUser() const;
       [[nodiscard]] const std::string& GetMediaPath() const;
       [[nodiscard]] std::optional<JellystatHistoryItems> GetWatchHistory();
       [[nodiscard]] std::optional<EmbyPlayState> GetPlayState(std::string_view id);
@@ -60,8 +62,7 @@ namespace loomis
       WatchStateLogger logger_;
       ServerUser config_;
       std::string userId_;
-      std::string serverName_;
-      std::string prettyServerName_;
+      std::string typeServerName_;
 
       EmbyApi* embyApi_{nullptr};
       JellystatApi* jellystatApi_{nullptr};

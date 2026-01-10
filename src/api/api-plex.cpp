@@ -5,6 +5,7 @@
 #include "logger/log-utils.h"
 #include "types.h"
 
+#include <cmath>
 #include <format>
 #include <ranges>
 
@@ -87,9 +88,37 @@ namespace loomis
          auto& item = returnResults.items.emplace_back();
 
          item.libraryName = video.attribute("librarySectionTitle").as_string();
-         item.title = video.attribute("title").as_string();
+
+         // Get the correct title for both Movies and Episodes
+         if (video.attribute("grandparentTitle").empty())
+         {
+            item.title = video.attribute("title").as_string();
+         }
+         else
+         {
+            item.title = video.attribute("grandparentTitle").as_string();
+            item.title += " - ";
+            item.title += video.attribute("title").as_string();
+         }
+
          item.ratingKey = video.attribute("ratingKey").as_string();
          item.durationMs = video.attribute("duration").as_llong();
+         item.watched = !video.attribute("viewCount").empty() && video.attribute("viewOffset").empty();
+
+         if (item.watched)
+         {
+            item.playbackPercentage = 100;
+         }
+         else if (item.durationMs > 0)
+         {
+            auto offset = static_cast<double>(video.attribute("viewOffset").as_llong(0));
+            auto duration = static_cast<double>(item.durationMs);
+            item.playbackPercentage = std::lround((offset / duration) * 100.0);
+         }
+         else
+         {
+            item.playbackPercentage = 0;
+         }
 
          if (pugi::xml_node part = video.child("Media").child("Part"))
          {
@@ -149,39 +178,9 @@ namespace loomis
       return key.empty() ? std::nullopt : std::make_optional(key);
    }
 
-   std::optional<std::string> PlexApi::GetItemPath(int32_t id)
+   std::optional<PlexSearchResults> PlexApi::GetItemInfo(std::string_view name)
    {
-      auto pathName = API_LIBRARY_DATA + std::to_string(id);
-      auto res = client_.Get(BuildApiPath(pathName), headers_);
-
-      if (!IsHttpSuccess(__func__, res))
-      {
-         return std::nullopt;
-      }
-
-      pugi::xml_document doc;
-      auto parse_result = doc.load_buffer(res->body.data(), res->body.size());
-
-      if (parse_result.status != pugi::status_ok)
-      {
-         return std::nullopt;
-      }
-
-      auto container = doc.child(ELEM_MEDIA_CONTAINER);
-      if (!container) return std::nullopt;
-
-      auto videoNode = container.child(ELEM_VIDEO);
-      if (!videoNode) return std::nullopt;
-
-      auto partNode = videoNode.child("Media").child("Part");
-
-      std::string filePath = partNode.attribute("file").as_string();
-      if (filePath.empty())
-      {
-         return std::nullopt;
-      }
-
-      return filePath;
+      return SearchItem(name);
    }
 
    std::unordered_map<int32_t, std::string> PlexApi::GetItemsPaths(const std::vector<int32_t>& ids)
@@ -294,71 +293,43 @@ namespace loomis
       return collection;
    }
 
-   bool PlexApi::SetPlayed(std::string_view name, std::string_view path, int32_t percent)
+   bool PlexApi::SetPlayed(std::string_view ratingKey, int64_t locationMs)
    {
-      auto results = SearchItem(name);
-      if (!results)
-      {
-         LogError("{} - Search for item {} failed", __func__, name);
-         return false;
-      }
-
-      auto iter = std::ranges::find_if(results->items, [&](const auto& item) {
-         return item.path == path;
-      });
-
-      if (iter == results->items.end())
-      {
-         LogError("{} - Item {} with path {} not found in search results", __func__, name, path);
-         return false;
-      }
-
-      auto newLocationMs = static_cast<int64_t>((iter->durationMs * percent) / 100);
       const auto apiUrl = BuildApiParamsPath("/:/progress", {
          {"identifier", "com.plexapp.plugins.library"},
-         {"key", iter->ratingKey},
-         {"time", std::to_string(newLocationMs)},
+         {"key", ratingKey},
+         {"time", std::to_string(locationMs)},
          {"state", "stopped"} // 'stopped' commits the time to the database
       });
 
       auto res = client_.Get(apiUrl, headers_);
       if (!IsHttpSuccess(__func__, res))
       {
-         LogError("{} - Failed to mark {} as played {}%", __func__, name, percent);
+         auto d = std::chrono::milliseconds(locationMs);
+         std::chrono::hh_mm_ss timeSplit{std::chrono::duration_cast<std::chrono::seconds>(d)};
+         LogError("{} - Failed to mark {} to play location {}:{}:{}",
+                  __func__,
+                  utils::GetTag("ratingKey", ratingKey),
+                  timeSplit.hours().count(),
+                  timeSplit.minutes().count(),
+                  timeSplit.seconds().count());
          return false;
       }
 
       return true;
    }
 
-   bool PlexApi::SetWatched(std::string_view name, std::string_view path)
+   bool PlexApi::SetWatched(std::string_view ratingKey)
    {
-      auto results = SearchItem(name);
-      if (!results)
-      {
-         LogError("{} - Search for item {} failed", __func__, name);
-         return false;
-      }
-
-      auto iter = std::ranges::find_if(results->items, [&](const auto& item) {
-         return item.path == path;
-      });
-
-      if (iter == results->items.end())
-      {
-         LogError("{} - Item {} with path {} not found in search results", __func__, name, path);
-         return false;
-      }
-
       const auto apiUrl = BuildApiParamsPath("/:/scrobble", {
          {"identifier", "com.plexapp.plugins.library"},
-         {"key", iter->ratingKey}
+         {"key", ratingKey}
       });
 
       auto res = client_.Get(apiUrl, headers_);
-      if (!IsHttpSuccess(__func__, res)) return false;
+      if (!IsHttpSuccess(__func__, res))
       {
-         LogError("{} - Failed to mark {} as watched", __func__, name);
+         LogError("{} - Failed to mark {} as watched", __func__, utils::GetTag("ratingKey", ratingKey));
          return false;
       }
 

@@ -47,6 +47,8 @@ namespace loomis
       std::string title;
       std::string libraryName;
       int64_t durationMs{0};
+      int32_t playbackPercentage{0};
+      bool watched{false};
    };
 
    struct PlexSearchResults

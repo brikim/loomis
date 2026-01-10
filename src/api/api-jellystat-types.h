@@ -13,12 +13,16 @@ namespace loomis
    struct JellystatHistoryItem
    {
       std::string name;
-      std::string fullName;
       std::string id;
       std::string user;
       std::string watchTime;
       std::optional<std::string> seriesName;
       std::optional<std::string> episodeId;
+
+      std::string GetFullName() const
+      {
+         return seriesName ? (*seriesName + " - " + name) : name;
+      }
 
       struct glaze
       {

@@ -26,6 +26,7 @@ namespace loomis
       constexpr std::string_view USER("user");
       constexpr std::string_view INCLUDE_ACTIVITY("include_activity");
       constexpr std::string_view AFTER("after");
+      constexpr std::string_view SEARCH("search");
 
       const std::string USER_AGENT{std::format("Loomis/{}", LOOMIS_VERSION)};
    }
@@ -155,16 +156,17 @@ namespace loomis
       return ReadMonitoringData() ? *watchedPercent_ : defaultWatchedPercent;
    }
 
-   std::optional<TautulliHistoryItems> TautulliApi::GetWatchHistoryForUser(std::string_view user, std::string_view dateForHistory)
+   std::optional<TautulliHistoryItems> TautulliApi::GetWatchHistory(std::string_view user, const ApiParams& extraParams)
    {
-      auto apiPath = BuildApiParamsPath("", {
+      ApiParams params = {
          GetCmdParam(CMD_GET_HISTORY),
-          {INCLUDE_ACTIVITY, "0"},
-          {USER, user},
-          {AFTER, dateForHistory}
-      });
+         {INCLUDE_ACTIVITY, "0"},
+         {USER, user}
+      };
+      params.reserve(params.size() + extraParams.size());
+      params.insert(params.end(), extraParams.begin(), extraParams.end());
 
-      auto res = client_.Get(apiPath, headers_);
+      auto res = client_.Get(BuildApiParamsPath("", params), headers_);
       if (!IsHttpSuccess(__func__, res)) return std::nullopt;
 
       JsonTautulliResponse<JsonTautulliHistoryData> serverResponse;
@@ -175,14 +177,13 @@ namespace loomis
          return std::nullopt;
       }
 
-      TautulliHistoryItems returnHistory;
-      returnHistory.items.reserve(serverResponse.response.data.data.size());
+      TautulliHistoryItems history;
+      history.items.reserve(serverResponse.response.data.data.size());
 
-      // Get the watched percent outside of the loop. Could potentially make a network call.
       auto watchedPercent = GetWatchedPercent();
       for (auto& item : serverResponse.response.data.data)
       {
-         returnHistory.items.emplace_back(TautulliHistoryItem{
+         history.items.emplace_back(TautulliHistoryItem{
              .name = std::move(item.title),
              .fullName = std::move(item.full_title),
              .id = item.rating_key,
@@ -192,7 +193,14 @@ namespace loomis
          });
       }
 
-      return returnHistory;
+      return history;
+   }
+
+   std::optional<TautulliHistoryItems> TautulliApi::GetWatchHistoryForUser(std::string_view user, std::string_view dateForHistory)
+   {
+      return GetWatchHistory(user, {
+         {AFTER, dateForHistory}
+      });
    }
 
    void TautulliApi::RunSettingsUpdate()

@@ -5,13 +5,17 @@
 
 namespace loomis
 {
+   namespace
+   {
+      constexpr int32_t playbackPercentageThreshold{99};
+   }
+
    EmbyUser::EmbyUser(const ServerUser& config,
                       const std::shared_ptr<ApiManager>& apiManager,
                       WatchStateLogger logger)
       : logger_(logger)
       , config_(config)
-      , serverName_(config_.server)
-      , prettyServerName_(utils::GetServerName(utils::GetFormattedEmby(), config_.server))
+      , typeServerName_(utils::GetServerName(utils::GetFormattedEmby(), config_.server))
    {
       // Do some quick checking on the users and make sure the api in the config exists.
       // Don't want to check if the user is valid on the api yet since it might be offline.
@@ -25,7 +29,7 @@ namespace loomis
          {
             logger_.LogWarning("{} not found on {}. Is user name correct?",
                                utils::GetTag("user", config_.user_name),
-                               utils::GetServerName(utils::GetFormattedEmby(), config_.server));
+                               typeServerName_);
          }
 
          valid_ = true;
@@ -35,7 +39,7 @@ namespace loomis
          if (!embyApi_)
          {
             logger_.LogWarning("{} api not found for {}",
-                               utils::GetServerName(utils::GetFormattedEmby(), config_.server),
+                               typeServerName_,
                                utils::GetTag("user", config_.user_name));
          }
 
@@ -53,14 +57,24 @@ namespace loomis
       return valid_;
    }
 
-   std::string_view EmbyUser::GetServerName() const
+   std::string EmbyUser::GetServerAndUserName() const
    {
-      return serverName_;
+      return typeServerName_ + ":" + config_.user_name;
    }
 
-   std::string_view EmbyUser::GetPrettyServerName() const
+   std::string_view EmbyUser::GetServerName() const
    {
-      return prettyServerName_;
+      return config_.server;
+   }
+
+   std::string_view EmbyUser::GetTypeAndServerName() const
+   {
+      return typeServerName_;
+   }
+
+   std::string_view EmbyUser::GetUser() const
+   {
+      return config_.user_name;
    }
 
    const std::string& EmbyUser::GetMediaPath() const
@@ -107,6 +121,10 @@ namespace loomis
       if (!playState || syncState.playbackPercentage == std::lround(playState->percentage)) return false;
 
       int64_t tickLocation = std::llround(static_cast<double>(playState->runTimeTicks) * (static_cast<double>(syncState.playbackPercentage) / 100.0));
+      if (tickLocation == playState->runTimeTicks)
+      {
+         return SyncPlexWatchedState(syncState.path);
+      }
 
       auto timeString = GetIsoTimeStr(std::chrono::sys_time<std::chrono::seconds>{std::chrono::seconds{syncState.timeWatchedEpoch}});
       return embyApi_->SetPlayState(userId_, *id, tickLocation, timeString);
@@ -114,7 +132,9 @@ namespace loomis
 
    void EmbyUser::SyncStateWithPlex(const PlexSyncState& syncState, std::string& syncResults)
    {
-      if (syncState.watched ? SyncPlexWatchedState(syncState.path) : SyncPlexPlayState(syncState))
+      bool forceWatched = syncState.watched || syncState.playbackPercentage >= playbackPercentageThreshold;
+      bool success = forceWatched ? SyncPlexWatchedState(syncState.path) : SyncPlexPlayState(syncState);
+      if (success)
       {
          syncResults = utils::BuildSyncServerString(syncResults, utils::GetFormattedEmby(), config_.server);
       }
@@ -140,7 +160,9 @@ namespace loomis
       auto id = embyApi_->GetIdFromPathMap(ReplaceMediaPath(syncState.path, syncState.mediaPath, GetMediaPath()));
       if (!id) return;
 
-      if (syncState.watched ? SyncEmbyWatchedState(*id) : SyncEmbyPlayState(syncState, *id))
+      bool forceWatched = syncState.watched || syncState.playbackPercentage >= playbackPercentageThreshold;
+      bool success = forceWatched ? SyncEmbyWatchedState(*id) : SyncEmbyPlayState(syncState, *id);
+      if (success)
       {
          syncResults = utils::BuildSyncServerString(syncResults, utils::GetFormattedEmby(), config_.server);
       }

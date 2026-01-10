@@ -19,6 +19,7 @@ namespace loomis::utils
    inline const std::string ANSI_CODE_LOG_DEFAULT{std::format("{}8{}", ANSI_CODE_START, ANSI_CODE_END)};
    inline const std::string ANSI_CODE_LOG{std::format("{}15{}", ANSI_CODE_START, ANSI_CODE_END)};
    inline const std::string ANSI_CODE_TAG{std::format("{}37{}", ANSI_CODE_START, ANSI_CODE_END)};
+   inline const std::string ANSI_CODE_STANDOUT{std::format("{}158{}", ANSI_CODE_START, ANSI_CODE_END)};
 
    inline const std::string ANSI_CODE_PLEX{std::format("{}220{}", ANSI_CODE_START, ANSI_CODE_END)};
    inline const std::string ANSI_CODE_EMBY{std::format("{}77{}", ANSI_CODE_START, ANSI_CODE_END)};
@@ -48,6 +49,11 @@ namespace loomis::utils
    inline std::string GetAnsiText(std::string_view text, std::string_view ansiCode)
    {
       return std::format("{}{}{}", ansiCode, text, ANSI_CODE_LOG);
+   }
+
+   inline std::string GetStandoutText(std::string_view text)
+   {
+      return std::format("{}{}{}", ANSI_CODE_STANDOUT, text, ANSI_CODE_LOG);
    }
 
    inline std::string_view GetFormattedPlex()

@@ -10,7 +10,7 @@ namespace loomis
                       WatchStateLogger logger)
       : logger_(logger)
       , config_(config)
-      , serverName_(utils::GetServerName(utils::GetFormattedPlex(), config_.server))
+      , typeServerName_(utils::GetServerName(utils::GetFormattedPlex(), config_.server))
    {
       // Do some quick checking on the users and make sure the api in the config exists.
       // Don't want to check if the user is valid on the api yet since it might be offline.
@@ -34,7 +34,7 @@ namespace loomis
          if (!api_)
          {
             logger_.LogWarning("{} api not found for {}",
-                               utils::GetServerName(utils::GetFormattedPlex(), config_.server),
+                               typeServerName_,
                                utils::GetTag("user", config_.user_name));
          }
 
@@ -52,14 +52,24 @@ namespace loomis
       return valid_;
    }
 
+   std::string PlexUser::GetServerAndUserName() const
+   {
+      return typeServerName_ + ":" + config_.user_name;
+   }
+
    int32_t PlexUser::GetId() const
    {
       return userInfo_.id;
    }
 
-   std::string_view PlexUser::GetServer() const
+   std::string_view PlexUser::GetServerName() const
    {
       return config_.server;
+   }
+
+   std::string_view PlexUser::GetTypeAndServerName() const
+   {
+      return typeServerName_;
    }
 
    std::string_view PlexUser::GetUser() const
@@ -70,11 +80,6 @@ namespace loomis
    std::optional<TautulliHistoryItems> PlexUser::GetWatchHistory(std::string_view historyDate)
    {
       return trackerApi_->GetWatchHistoryForUser(config_.user_name, historyDate);
-   }
-
-   std::string_view PlexUser::GetServerName() const
-   {
-      return serverName_;
    }
 
    void PlexUser::Update()
@@ -91,12 +96,34 @@ namespace loomis
 
    bool PlexUser::SyncEmbyWatchedState(const EmbySyncState& syncState)
    {
-      return api_->SetWatched(syncState.name, ReplaceMediaPath(syncState.path, syncState.mediaPath, api_->GetMediaPath()));
+      auto info = api_->GetItemInfo(syncState.name);
+      if (!info) return false;
+
+      auto iter = std::ranges::find_if(info->items, [&](const auto& item) {
+         return item.path == ReplaceMediaPath(syncState.path, syncState.mediaPath, api_->GetMediaPath());
+      });
+
+      // If the item was not found or is already watched just return
+      if (iter == info->items.end() || iter->watched) return false;
+
+      return api_->SetWatched(iter->ratingKey);
    }
 
    bool PlexUser::SyncEmbyPlayState(const EmbySyncState& syncState)
    {
-      return api_->SetPlayed(syncState.name, ReplaceMediaPath(syncState.path, syncState.mediaPath, api_->GetMediaPath()), syncState.playbackPercentage);
+      auto info = api_->GetItemInfo(syncState.name);
+      if (!info) return false;
+
+      // Find the correct item based on the path
+      auto iter = std::ranges::find_if(info->items, [&](const auto& item) {
+         return item.path == ReplaceMediaPath(syncState.path, syncState.mediaPath, api_->GetMediaPath());
+      });
+
+      // If the item was not found or is already watched just return
+      if (iter == info->items.end() || iter->playbackPercentage == syncState.playbackPercentage) return false;
+
+      auto msLocation = iter->durationMs * static_cast<int64_t>(syncState.playbackPercentage) / 100;
+      return api_->SetPlayed(iter->ratingKey, msLocation);
    }
 
    void PlexUser::SyncStateWithEmby(const EmbySyncState& syncState, std::string& syncResults)
@@ -105,8 +132,7 @@ namespace loomis
 
       if (syncState.watched ? SyncEmbyWatchedState(syncState) : SyncEmbyPlayState(syncState))
       {
-         syncResults = utils::BuildSyncServerString(syncResults, utils::GetFormattedEmby(), config_.server);
+         syncResults = utils::BuildSyncServerString(syncResults, utils::GetFormattedPlex(), config_.server);
       }
-
    }
 }

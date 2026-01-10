@@ -26,7 +26,7 @@ namespace loomis
       [[nodiscard]] const std::string& GetMediaPath() const;
       [[nodiscard]] std::optional<std::string> GetServerReportedName() override;
       [[nodiscard]] std::optional<std::string> GetLibraryId(std::string_view libraryName);
-      [[nodiscard]] std::optional<std::string> GetItemPath(int32_t id);
+      [[nodiscard]] std::optional<PlexSearchResults> GetItemInfo(std::string_view name);
       [[nodiscard]] std::unordered_map<int32_t, std::string> GetItemsPaths(const std::vector<int32_t>& ids);
 
       // Returns if the collection in the library is valid on this server
@@ -38,8 +38,8 @@ namespace loomis
       // Tell Plex to scan the passed in library
       void SetLibraryScan(std::string_view libraryId);
 
-      bool SetPlayed(std::string_view name, std::string_view path, int32_t percent);
-      bool SetWatched(std::string_view name, std::string_view path);
+      bool SetPlayed(std::string_view ratingKey, int64_t locationMs);
+      bool SetWatched(std::string_view ratingKey);
 
    private:
       std::string_view GetApiBase() const override;
