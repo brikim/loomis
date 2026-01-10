@@ -19,8 +19,10 @@ WORKDIR /app
 
 COPY . .
 
-RUN cmake -G Ninja -B build -S . -DCMAKE_BUILD_TYPE=Release && \
-    cmake --build build
+RUN cmake -G Ninja -B build -S . \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON && \
+    cmake --build build --config Release --parallel 4
 
 # --- Stage 2: Runtime Environment ---
 FROM debian:trixie-slim AS runtime
