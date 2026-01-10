@@ -66,6 +66,70 @@ namespace loomis
       std::vector<UserSyncConfig> users;
    };
 
+   struct FolderCleanupServerConfig
+   {
+      std::string server;
+      std::string libraryName;
+
+      struct glaze
+      {
+         static constexpr auto value = glz::object(
+            "server", &FolderCleanupServerConfig::server,
+            "library_name", &FolderCleanupServerConfig::libraryName
+         );
+      };
+   };
+
+   struct FolderCleanupIgnoreItem
+   {
+      std::string item;
+
+      struct glaze
+      {
+         static constexpr auto value = glz::object(
+            "ignore", &FolderCleanupIgnoreItem::item
+         );
+      };
+   };
+
+   struct FolderCleanupPathToCheck
+   {
+      std::string path;
+      std::vector <FolderCleanupServerConfig> plex;
+      std::vector <FolderCleanupServerConfig> emby;
+
+      struct glaze
+      {
+         static constexpr auto value = glz::object(
+            "path", &FolderCleanupPathToCheck::path,
+            "plex", &FolderCleanupPathToCheck::plex,
+            "emby", &FolderCleanupPathToCheck::emby
+         );
+      };
+   };
+
+   struct FolderCleanupConfig
+   {
+      bool enabled{false};
+      bool dryRun{false};
+      std::string cron;
+      std::vector<FolderCleanupPathToCheck> pathsToCheck;
+      std::vector<FolderCleanupIgnoreItem> ignoreFolders;
+      std::vector<FolderCleanupIgnoreItem> ignoreFileEmptyCheck;
+
+      struct glaze
+      {
+         static constexpr auto value = glz::object(
+            "enabled", &FolderCleanupConfig::enabled,
+            "dry_run", &FolderCleanupConfig::dryRun,
+            "cron", &FolderCleanupConfig::cron,
+            "paths_to_check", &FolderCleanupConfig::pathsToCheck,
+            "ignore_folder_in_empty_check", &FolderCleanupConfig::ignoreFolders,
+            "ignore_file_in_empty_check", &FolderCleanupConfig::ignoreFileEmptyCheck
+         );
+      };
+   };
+
    struct ConfigServers
    {
       std::vector<ServerConfig> servers;
@@ -78,5 +142,6 @@ namespace loomis
       AppriseLoggingConfig apprise_logging;
       PlaylistSyncConfig playlist_sync;
       WatchStateSyncConfig watch_state_sync;
+      FolderCleanupConfig folder_cleanup;
    };
 }

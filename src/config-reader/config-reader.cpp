@@ -42,7 +42,7 @@ namespace loomis
          std::string{}))
       {
          Logger::Instance().Warning("{} - Glaze Error: {} (File: {})",
-                                 __func__, static_cast<int>(ec.ec), pathFileName.string());
+                                    __func__, static_cast<int>(ec.ec), pathFileName.string());
          return;
       }
 
@@ -77,5 +77,10 @@ namespace loomis
    const WatchStateSyncConfig& ConfigReader::GetWatchStateSyncConfig() const
    {
       return configData_.watch_state_sync;
+   }
+
+   const FolderCleanupConfig& ConfigReader::GetFolderCleanupConfig() const
+   {
+      return configData_.folder_cleanup;
    }
 }

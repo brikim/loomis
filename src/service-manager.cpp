@@ -2,6 +2,7 @@
 
 #include "logger/logger.h"
 #include "logger/log-utils.h"
+#include "services/folder-cleanup/folder-cleanup-service.h"
 #include "services/playlist-sync/playlist-sync-service.h"
 #include "services/watch-state-sync/watch-state-sync-service.h"
 
@@ -26,6 +27,11 @@ namespace loomis
       if (configReader_->GetWatchStateSyncConfig().enabled)
       {
          services_.emplace_back(std::make_unique<WatchStateSyncService>(configReader_->GetWatchStateSyncConfig(), apiManager_));
+      }
+
+      if (configReader_->GetFolderCleanupConfig().enabled)
+      {
+         services_.emplace_back(std::make_unique<FolderCleanupService>(configReader_->GetFolderCleanupConfig(), apiManager_));
       }
    }
 

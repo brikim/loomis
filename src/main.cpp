@@ -19,10 +19,10 @@ void signal_handler(int signal_num)
 
 int main()
 {
-   auto configReader{std::make_shared<loomis::ConfigReader>()};
-
    // Initialize the logger
    loomis::Logger::Instance();
+
+   auto configReader{std::make_shared<loomis::ConfigReader>()};
    loomis::Logger::Instance().InitApprise(configReader->GetAppriseLogging());
 
    // Check for config file validity. If not valid exit logging the error.

@@ -28,6 +28,7 @@ namespace loomis::utils
 
    inline const std::string ANSI_CODE_SERVICE_PLAYLIST_SYNC{std::format("{}171{}", ANSI_CODE_START, ANSI_CODE_END)};
    inline const std::string ANSI_CODE_SERVICE_WATCH_STATE_SYNC{std::format("{}45{}", ANSI_CODE_START, ANSI_CODE_END)};
+   inline const std::string ANSI_CODE_SERVICE_FOLDER_CLEANUP{std::format("{}70{}", ANSI_CODE_START, ANSI_CODE_END)};
 
    inline const std::string ANSI_MONITOR_ADDED{std::format("{}33{}", ANSI_CODE_START, ANSI_CODE_END)};
    inline const std::string ANSI_MONITOR_PROCESSED{std::format("{}34{}", ANSI_CODE_START, ANSI_CODE_END)};
@@ -124,5 +125,12 @@ namespace loomis::utils
       // Strip ansii codes from the log msg
       const std::regex ansii(R"(\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~]))");
       return std::regex_replace(data, ansii, "");
+   }
+
+   inline std::string ToLower(std::string data)
+   {
+      std::transform(data.begin(), data.end(), data.begin(),
+         [](unsigned char c) { return std::tolower(c); });
+      return data;
    }
 }

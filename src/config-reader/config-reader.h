@@ -21,6 +21,7 @@ namespace loomis
       [[nodiscard]] const AppriseLoggingConfig& GetAppriseLogging() const;
       [[nodiscard]] const PlaylistSyncConfig& GetPlaylistSyncConfig() const;
       [[nodiscard]] const WatchStateSyncConfig& GetWatchStateSyncConfig() const;
+      [[nodiscard]] const FolderCleanupConfig& GetFolderCleanupConfig() const;
 
    private:
       void ReadConfigFile(const char* path);
