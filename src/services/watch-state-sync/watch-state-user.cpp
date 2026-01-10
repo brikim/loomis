@@ -204,7 +204,7 @@ namespace loomis
             .mediaPath = embyUser.GetMediaPath(),
             .path = playState->path,
             .watched = playState->played,
-            .playbackPercentage = std::lround(playState->percentage),
+            .playbackPercentage = static_cast<int32_t>(std::lround(playState->percentage)),
             .timeWatched = item->watchTime
          };
 
@@ -212,7 +212,7 @@ namespace loomis
             .mediaPath = embyUser.GetMediaPath(),
             .path = playState->path,
             .watched = playState->played,
-            .playbackPercentage = std::lround(playState->percentage),
+            .playbackPercentage = static_cast<int32_t>(std::lround(playState->percentage)),
             .timeWatched = item->watchTime
          };
 
@@ -229,7 +229,7 @@ namespace loomis
                .user = embyUser.GetUser(),
                .name = itemFullName,
                .watched = playState->played,
-               .playbackPercentage = std::lround(playState->percentage),
+               .playbackPercentage = static_cast<int32_t>(std::lround(playState->percentage)),
                .syncResults = syncServers
             });
          }
