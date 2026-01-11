@@ -7,14 +7,14 @@ namespace loomis
 {
    AnsiiRemoveFormatter::AnsiiRemoveFormatter()
    {
-      patternFormatter_.set_pattern(LOG_PATTERN);
+      patternFormatter_.set_pattern(log::DEFAULT_PATTERN);
    }
 
    void AnsiiRemoveFormatter::format(const spdlog::details::log_msg& msg, spdlog::memory_buf_t& dest)
    {
       // Create a new log message with the new string
       // Data is not initialized memory so need to create a new string using the size of the payload
-      auto formattedMsg = utils::StripAsciiCharacters(std::string(msg.payload.data(), msg.payload.size()));
+      auto formattedMsg = log::StripAsciiCharacters(std::string(msg.payload.data(), msg.payload.size()));
       spdlog::details::log_msg newMsg(msg.time, msg.source, msg.logger_name, msg.level, formattedMsg);
 
       // Use the normal pattern formatter to create the log message with no ansii codes

@@ -6,11 +6,11 @@ namespace loomis
 {
    AnsiiFormatter::AnsiiFormatter()
    {
-      infoFormatter_.set_pattern(LOG_PATTERN_ANSII_INFO);
-      warningFormatter_.set_pattern(LOG_PATTERN_ANSII_WARNING);
-      errorFormatter_.set_pattern(LOG_PATTERN_ANSII_ERROR);
-      criticalFormatter_.set_pattern(LOG_PATTERN_ANSII_CRITICAL);
-      defaultFormatter_.set_pattern(LOG_PATTERN_ANSII_DEFAULT);
+      infoFormatter_.set_pattern(log::DEFAULT_PATTERN_ANSII_INFO);
+      warningFormatter_.set_pattern(log::DEFAULT_PATTERN_ANSII_WARNING);
+      errorFormatter_.set_pattern(log::DEFAULT_PATTERN_ANSII_ERROR);
+      criticalFormatter_.set_pattern(log::DEFAULT_PATTERN_ANSII_CRITICAL);
+      defaultFormatter_.set_pattern(log::DEFAULT_PATTERN_ANSII_DEFAULT);
    }
 
    void AnsiiFormatter::format(const spdlog::details::log_msg& msg, spdlog::memory_buf_t& dest)

@@ -32,7 +32,7 @@ namespace loomis
    }
 
    TautulliApi::TautulliApi(const ServerConfig& serverConfig)
-      : ApiBase(serverConfig.server_name, serverConfig.tracker_url, serverConfig.tracker_api_key, "TautulliApi", utils::ANSI_CODE_TAUTULLI)
+      : ApiBase(serverConfig.server_name, serverConfig.tracker_url, serverConfig.tracker_api_key, "TautulliApi", log::ANSI_CODE_TAUTULLI)
       , client_(GetUrl())
    {
       constexpr time_t timeoutSec{5};

@@ -41,7 +41,7 @@ namespace loomis
 
       if (services_.empty())
       {
-         Logger::Instance().Warning("No services are enabled in the configuration.");
+         Logger::Instance().Critical("No services are enabled in the configuration.");
          return;
       }
 
@@ -63,7 +63,7 @@ namespace loomis
       }
       else
       {
-         Logger::Instance().Warning("No enabled services");
+         Logger::Instance().Critical("No enabled services");
       }
 
       Logger::Instance().Info("Run has completed");

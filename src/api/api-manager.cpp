@@ -17,11 +17,11 @@ namespace loomis
    {
       for (const auto& server : serverConfigs)
       {
-         InitializeApi<PlexApi>(plexApis_, server, utils::GetFormattedPlex());
+         InitializeApi<PlexApi>(plexApis_, server, log::GetFormattedPlex());
 
          if (!server.tracker_url.empty())
          {
-            InitializeApi<TautulliApi>(tautulliApis_, server, utils::GetFormattedTautulli());
+            InitializeApi<TautulliApi>(tautulliApis_, server, log::GetFormattedTautulli());
          }
       }
    }
@@ -30,11 +30,11 @@ namespace loomis
    {
       for (const auto& server : serverConfigs)
       {
-         InitializeApi<EmbyApi>(embyApis_, server, utils::GetFormattedEmby());
+         InitializeApi<EmbyApi>(embyApis_, server, log::GetFormattedEmby());
 
          if (!server.tracker_url.empty())
          {
-            InitializeApi<JellystatApi>(jellystatApis_, server, utils::GetFormattedJellystat());
+            InitializeApi<JellystatApi>(jellystatApis_, server, log::GetFormattedJellystat());
          }
       }
    }
@@ -52,15 +52,15 @@ namespace loomis
       auto reported = api->GetServerReportedName();
       Logger::Instance().Info("Connected to {}({}) successfully.{}",
                               serverName, api->GetName(),
-                              reported ? std::format(" Server reported {}", utils::GetTag("name", *reported)) : "");
+                              reported ? std::format(" Server reported {}", log::GetTag("name", *reported)) : "");
    }
 
    void ApiManager::LogServerConnectionError(std::string_view serverName, ApiBase* api)
    {
       Logger::Instance().Warning("{}({}) server not available. Is this correct? {} {}",
                                  serverName, api->GetName(),
-                                 utils::GetTag("url", api->GetUrl()),
-                                 utils::GetTag("api_key", api->GetApiKey()));
+                                 log::GetTag("url", api->GetUrl()),
+                                 log::GetTag("api_key", api->GetApiKey()));
    }
 
    PlexApi* ApiManager::GetPlexApi(std::string_view name) const

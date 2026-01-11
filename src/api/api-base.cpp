@@ -147,7 +147,7 @@ namespace loomis
          return true;
       }
 
-      if (log) LogWarning("{} - HTTP error {}", name, utils::GetTag("error", error));
+      if (log) LogWarning("{} - HTTP error {}", name, log::GetTag("error", error));
       return false;
    }
 }

@@ -10,7 +10,7 @@ namespace loomis
 {
    WatchStateSyncService::WatchStateSyncService(const WatchStateSyncConfig& config,
                                             std::shared_ptr<ApiManager> apiManager)
-      : ServiceBase("Watch State Sync", utils::ANSI_CODE_SERVICE_WATCH_STATE_SYNC, apiManager, config.cron)
+      : ServiceBase("Watch State Sync", log::ANSI_CODE_SERVICE_WATCH_STATE_SYNC, apiManager, config.cron)
    {
       Init(config);
    }

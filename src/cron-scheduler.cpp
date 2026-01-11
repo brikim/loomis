@@ -22,8 +22,8 @@ namespace loomis
          cronTask.nextRun = cron::cron_next(cronTask.cron, std::chrono::system_clock::now());
 
          Logger::Instance().Trace("Cron Scheduler: Added task {} with {}",
-                                  utils::GetTag("name", cronTask.task.name),
-                                  utils::GetTag("cron", cronTask.task.cronExpression));
+                                  log::GetTag("name", cronTask.task.name),
+                                  log::GetTag("cron", cronTask.task.cronExpression));
       }
       catch (const cron::bad_cronexpr& ex)
       {
@@ -59,8 +59,8 @@ namespace loomis
             if (cronTask.nextRun <= currentTime)
             {
                Logger::Instance().Trace("Cron Scheduler: Running task {} with {}",
-                                        utils::GetTag("name", cronTask.task.name),
-                                        utils::GetTag("cron", cronTask.task.cronExpression));
+                                        log::GetTag("name", cronTask.task.name),
+                                        log::GetTag("cron", cronTask.task.cronExpression));
                try
                {
                   cronTask.task.func();
@@ -97,17 +97,12 @@ namespace loomis
 
    void CronScheduler::Shutdown()
    {
-      if (runThread_)
-      {
-         runThread_->request_stop();
+      if (!runThread_) return;
 
-         cv_.notify_all();
+      runThread_->request_stop();
+      cv_.notify_all();
 
-         if (runThread_->joinable())
-         {
-            runThread_->join();
-         }
-         runThread_.reset();
-      }
+      if (runThread_->joinable()) runThread_->join();
+      runThread_.reset();
    }
 }

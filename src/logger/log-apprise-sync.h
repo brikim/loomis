@@ -30,7 +30,7 @@ namespace loomis
          spdlog::memory_buf_t formatted;
          spdlog::sinks::base_sink<Mutex>::formatter_->format(msg, formatted);
 
-         std::string message = utils::StripAsciiCharacters(fmt::to_string(formatted));
+         std::string message = log::StripAsciiCharacters(fmt::to_string(formatted));
 
          size_t pos = 0;
          while ((pos = message.find('"', pos)) != std::string::npos)

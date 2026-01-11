@@ -111,7 +111,7 @@ namespace loomis
          logger_.LogInfo("{}:{} watched {} sync {} watch state",
                          syncSummary.server,
                          syncSummary.user,
-                         utils::GetStandoutText(syncSummary.name),
+                         log::GetStandoutText(syncSummary.name),
                          syncSummary.syncResults);
       }
       else
@@ -120,7 +120,7 @@ namespace loomis
                          syncSummary.server,
                          syncSummary.user,
                          syncSummary.playbackPercentage,
-                         utils::GetStandoutText(syncSummary.name),
+                         log::GetStandoutText(syncSummary.name),
                          syncSummary.syncResults);
       }
    }

@@ -32,7 +32,7 @@ namespace loomis
    }
 
    PlexApi::PlexApi(const ServerConfig& serverConfig)
-      : ApiBase(serverConfig.server_name, serverConfig.url, serverConfig.api_key, "PlexApi", utils::ANSI_CODE_PLEX)
+      : ApiBase(serverConfig.server_name, serverConfig.url, serverConfig.api_key, "PlexApi", log::ANSI_CODE_PLEX)
       , client_(GetUrl())
       , mediaPath_(serverConfig.media_path)
    {
@@ -309,7 +309,7 @@ namespace loomis
          std::chrono::hh_mm_ss timeSplit{std::chrono::duration_cast<std::chrono::seconds>(d)};
          LogError("{} - Failed to mark {} to play location {}:{}:{}",
                   __func__,
-                  utils::GetTag("ratingKey", ratingKey),
+                  log::GetTag("ratingKey", ratingKey),
                   timeSplit.hours().count(),
                   timeSplit.minutes().count(),
                   timeSplit.seconds().count());
@@ -329,7 +329,7 @@ namespace loomis
       auto res = client_.Get(apiUrl, headers_);
       if (!IsHttpSuccess(__func__, res))
       {
-         LogError("{} - Failed to mark {} as watched", __func__, utils::GetTag("ratingKey", ratingKey));
+         LogError("{} - Failed to mark {} as watched", __func__, log::GetTag("ratingKey", ratingKey));
          return false;
       }
 

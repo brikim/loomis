@@ -6,7 +6,7 @@ namespace loomis
 {
    FolderCleanupService::FolderCleanupService(const FolderCleanupConfig& config,
                                             std::shared_ptr<ApiManager> apiManager)
-      : ServiceBase("Folder Cleanup", utils::ANSI_CODE_SERVICE_FOLDER_CLEANUP, apiManager, config.cron)
+      : ServiceBase("Folder Cleanup", log::ANSI_CODE_SERVICE_FOLDER_CLEANUP, apiManager, config.cron)
       , config_(config)
    {
       Init(config);
@@ -23,7 +23,7 @@ namespace loomis
       {
          if (!fs::exists(pathEntry.path))
          {
-            LogWarning("Cleanup path does not exist: {}", utils::GetTag("path", pathEntry.path));
+            LogWarning("Cleanup path does not exist: {}", log::GetTag("path", pathEntry.path));
          }
 
          for (const auto& plex : pathEntry.plex)
@@ -32,14 +32,14 @@ namespace loomis
             if (!api)
             {
                LogWarning("{} api not found for {}",
-                          utils::GetFormattedPlex(),
-                          utils::GetTag("server", plex.server));
+                          log::GetFormattedPlex(),
+                          log::GetTag("server", plex.server));
             }
             else if (api->GetValid() && !api->GetLibraryId(plex.libraryName))
             {
                LogWarning("{} library {} not found",
-                          utils::GetServerName(utils::GetFormattedPlex(), plex.server),
-                          utils::GetTag("library", plex.libraryName));
+                          log::GetServerName(log::GetFormattedPlex(), plex.server),
+                          log::GetTag("library", plex.libraryName));
             }
          }
 
@@ -49,14 +49,14 @@ namespace loomis
             if (!api)
             {
                LogWarning("{} api not found for {}",
-                          utils::GetFormattedEmby(),
-                          utils::GetTag("server", emby.server));
+                          log::GetFormattedEmby(),
+                          log::GetTag("server", emby.server));
             }
             else if (api->GetValid() && !api->GetLibraryId(emby.libraryName))
             {
                LogWarning("{} library {} not found",
-                          utils::GetServerName(utils::GetFormattedEmby(), emby.server),
-                          utils::GetTag("library", emby.libraryName));
+                          log::GetServerName(log::GetFormattedEmby(), emby.server),
+                          log::GetTag("library", emby.libraryName));
             }
          }
       }
@@ -64,11 +64,11 @@ namespace loomis
       // Pre-lowercase the ignore lists for faster comparison in IsFolderEmpty
       for (auto& item : config_.ignoreFileEmptyCheck)
       {
-         item.item = utils::ToLower(item.item);
+         item.item = log::ToLower(item.item);
       }
       for (auto& item : config_.ignoreFolders)
       {
-         item.item = utils::ToLower(item.item);
+         item.item = log::ToLower(item.item);
       }
    }
 
@@ -79,7 +79,7 @@ namespace loomis
          for (const auto& entry : fs::directory_iterator(p))
          {
             std::string name = entry.path().filename().string();
-            std::string lowerName = utils::ToLower(name);
+            std::string lowerName = log::ToLower(name);
 
             // Skip hidden files/folders (starting with '.')
             if (!lowerName.empty() && lowerName[0] == '.') continue;
@@ -123,7 +123,7 @@ namespace loomis
             // Assuming Library Refresh is the intended notification
             plexApi->SetLibraryScan(*libraryId);
 
-            syncServerNames = utils::BuildSyncServerString(syncServerNames, utils::GetFormattedPlex(), plexConfig.server) + ":" + plexConfig.libraryName;
+            syncServerNames = log::BuildSyncServerString(syncServerNames, log::GetFormattedPlex(), plexConfig.server) + ":" + plexConfig.libraryName;
          }
       }
 
@@ -138,7 +138,7 @@ namespace loomis
 
             embyApi->SetLibraryScan(*libraryId);
 
-            syncServerNames = utils::BuildSyncServerString(syncServerNames, utils::GetFormattedEmby(), embyConfig.server) + ":" + embyConfig.libraryName;
+            syncServerNames = log::BuildSyncServerString(syncServerNames, log::GetFormattedEmby(), embyConfig.server) + ":" + embyConfig.libraryName;
          }
       }
 
@@ -168,7 +168,7 @@ namespace loomis
    {
       if (!CheckMediaConnectionsValid(pathConfig.plex, pathConfig.emby))
       {
-         LogWarning("Skipping cleanup for {} - one or more servers are offline", utils::GetTag("path", pathConfig.path));
+         LogWarning("Skipping cleanup for {} - one or more servers are offline", log::GetTag("path", pathConfig.path));
          return;
       }
 
@@ -191,7 +191,7 @@ namespace loomis
       }
       catch (const std::exception& e)
       {
-         LogWarning("Failed to iterate {}: {}", utils::GetTag("path", rootPath.string()), e.what());
+         LogWarning("Failed to iterate {}: {}", log::GetTag("path", rootPath.string()), e.what());
          return;
       }
 
@@ -215,7 +215,7 @@ namespace loomis
             {
                // We log what WE WOULD HAVE done
                LogInfo("[Dry Run] Would remove empty folder: {}",
-                       utils::GetTag("path", utils::GetStandoutText(dir.string())));
+                       log::GetTag("path", log::GetStandoutText(dir.string())));
 
                directoryDeleted = false;
             }
@@ -224,12 +224,12 @@ namespace loomis
                std::error_code ec;
                if (fs::remove(dir, ec))
                {
-                  LogInfo("Removed empty folder: {}", utils::GetTag("path", utils::GetStandoutText(dir.string())));
+                  LogInfo("Removed empty folder: {}", log::GetTag("path", log::GetStandoutText(dir.string())));
                   directoryDeleted = true;
                }
                else if (ec)
                {
-                  LogWarning("Failed to remove {}: {}", utils::GetTag("path", dir.string()), ec.message());
+                  LogWarning("Failed to remove {}: {}", log::GetTag("path", dir.string()), ec.message());
                }
             }
          }

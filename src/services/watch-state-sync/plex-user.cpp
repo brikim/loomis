@@ -10,7 +10,7 @@ namespace loomis
                       WatchStateLogger logger)
       : logger_(logger)
       , config_(config)
-      , typeServerName_(utils::GetServerName(utils::GetFormattedPlex(), config_.server))
+      , typeServerName_(log::GetServerName(log::GetFormattedPlex(), config_.server))
    {
       // Do some quick checking on the users and make sure the api in the config exists.
       // Don't want to check if the user is valid on the api yet since it might be offline.
@@ -23,8 +23,8 @@ namespace loomis
          if (trackerApi_->GetValid() && !trackerApi_->GetUserInfo(config_.user_name))
          {
             logger_.LogWarning("{} not found on {}. Is user name correct?",
-                               utils::GetTag("user", config_.user_name),
-                               utils::GetServerName(utils::GetFormattedTautulli(), config_.server));
+                               log::GetTag("user", config_.user_name),
+                               log::GetServerName(log::GetFormattedTautulli(), config_.server));
          }
 
          valid_ = true;
@@ -35,14 +35,14 @@ namespace loomis
          {
             logger_.LogWarning("{} api not found for {}",
                                typeServerName_,
-                               utils::GetTag("user", config_.user_name));
+                               log::GetTag("user", config_.user_name));
          }
 
          if (!trackerApi_)
          {
             logger_.LogWarning("{} tracker api not found for {}. Required for this service.",
-                               utils::GetServerName(utils::GetFormattedTautulli(), config_.server),
-                               utils::GetTag("user", config_.user_name));
+                               log::GetServerName(log::GetFormattedTautulli(), config_.server),
+                               log::GetTag("user", config_.user_name));
          }
       }
    }
@@ -132,7 +132,7 @@ namespace loomis
 
       if (syncState.watched ? SyncEmbyWatchedState(syncState) : SyncEmbyPlayState(syncState))
       {
-         syncResults = utils::BuildSyncServerString(syncResults, utils::GetFormattedPlex(), config_.server);
+         syncResults = log::BuildSyncServerString(syncResults, log::GetFormattedPlex(), config_.server);
       }
    }
 }

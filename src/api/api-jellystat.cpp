@@ -19,7 +19,7 @@ namespace loomis
    }
 
    JellystatApi::JellystatApi(const ServerConfig& serverConfig)
-      : ApiBase(serverConfig.server_name, serverConfig.tracker_url, serverConfig.tracker_api_key, "JellystatApi", utils::ANSI_CODE_JELLYSTAT)
+      : ApiBase(serverConfig.server_name, serverConfig.tracker_url, serverConfig.tracker_api_key, "JellystatApi", log::ANSI_CODE_JELLYSTAT)
       , client_(GetUrl())
    {
       headers_ = {

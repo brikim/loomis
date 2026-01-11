@@ -22,6 +22,7 @@ int main()
    // Initialize the logger
    loomis::Logger::Instance();
 
+   // Initialize the config reader. This class will use the logger so initialize it after.
    auto configReader{std::make_shared<loomis::ConfigReader>()};
    loomis::Logger::Instance().InitApprise(configReader->GetAppriseLogging());
 
