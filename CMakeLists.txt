@@ -70,6 +70,16 @@ endif()
 
 # 9. PRECOMPILED HEADERS
 target_precompile_headers(loomis PRIVATE
+    <format>
+    <string>
+    <vector>
+    <memory>
+    <regex>
+    <chrono>
+    <iostream>
+    <string_view>
+
+    # Third-Party
     <httplib.h>
     <croncpp.h>
     <spdlog/spdlog.h>
