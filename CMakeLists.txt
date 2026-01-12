@@ -19,17 +19,17 @@ check_ipo_supported(RESULT ipo_supported OUTPUT ipo_error)
 include(FetchContent)
 include(Dependencies.cmake)
 
-FetchContent_Declare(glaze   GIT_REPOSITORY ${GLAZE_REPO}   GIT_TAG ${GLAZE_VERSION})
-FetchContent_Declare(spdlog  GIT_REPOSITORY ${SPDLOG_REPO}  GIT_TAG ${SPDLOG_VERSION})
-FetchContent_Declare(httplib GIT_REPOSITORY ${HTTPLIB_REPO} GIT_TAG ${HTTPLIB_VERSION})
-FetchContent_Declare(pugixml GIT_REPOSITORY ${PUGIXML_REPO} GIT_TAG ${PUGIXML_VERSION})
-FetchContent_Declare(croncpp GIT_REPOSITORY ${CRONCPP_REPO} GIT_TAG ${CRONCPP_VERSION})
+FetchContent_Declare(warp     GIT_REPOSITORY ${WARP_REPO}    GIT_TAG ${WARP_VERSION})
+FetchContent_Declare(glaze    GIT_REPOSITORY ${GLAZE_REPO}   GIT_TAG ${GLAZE_VERSION})
+FetchContent_Declare(httplib  GIT_REPOSITORY ${HTTPLIB_REPO} GIT_TAG ${HTTPLIB_VERSION})
+FetchContent_Declare(pugixml  GIT_REPOSITORY ${PUGIXML_REPO} GIT_TAG ${PUGIXML_VERSION})
+FetchContent_Declare(croncpp  GIT_REPOSITORY ${CRONCPP_REPO} GIT_TAG ${CRONCPP_VERSION})
 
 set(HTTPLIB_COMPILE OFF CACHE BOOL "" FORCE)
 set(PUGIXML_BUILD_SHARED OFF CACHE BOOL "" FORCE)
 set(SPDLOG_MSVC_RUNTIME_LIBRARY "${CMAKE_MSVC_RUNTIME_LIBRARY}" CACHE STRING "" FORCE)
 
-FetchContent_MakeAvailable(glaze spdlog httplib pugixml croncpp)
+FetchContent_MakeAvailable(warp glaze httplib pugixml croncpp)
 
 # 5. SOURCE DISCOVERY
 file(GLOB_RECURSE LOOMIS_SOURCES 
@@ -82,7 +82,6 @@ target_precompile_headers(loomis PRIVATE
     # Third-Party
     <httplib.h>
     <croncpp.h>
-    <spdlog/spdlog.h>
     <glaze/glaze.hpp>
     <pugixml.hpp>
 )
@@ -91,8 +90,8 @@ target_precompile_headers(loomis PRIVATE
 target_include_directories(loomis PRIVATE include src)
 
 target_link_libraries(loomis PRIVATE
+    warp::warp
     pugixml::pugixml
-    spdlog::spdlog
     glaze::glaze
     httplib::httplib
     croncpp::croncpp

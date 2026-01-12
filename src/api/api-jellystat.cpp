@@ -1,8 +1,7 @@
 #include "api-jellystat.h"
 
-#include "logger/log-utils.h"
-
 #include <glaze/glaze.hpp>
+#include <warp/log-utils.h>
 
 #include <format>
 #include <ranges>
@@ -19,7 +18,7 @@ namespace loomis
    }
 
    JellystatApi::JellystatApi(const ServerConfig& serverConfig)
-      : ApiBase(serverConfig.server_name, serverConfig.tracker_url, serverConfig.tracker_api_key, "JellystatApi", log::ANSI_CODE_JELLYSTAT)
+      : ApiBase(serverConfig.server_name, serverConfig.tracker_url, serverConfig.tracker_api_key, "JellystatApi", warp::ANSI_CODE_JELLYSTAT)
       , client_(GetUrl())
    {
       headers_ = {

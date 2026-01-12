@@ -1,7 +1,8 @@
 #include "config-reader/config-reader.h"
-#include "logger/logger.h"
 #include "service-manager.h"
 #include "version.h"
+
+#include <warp/log.h>
 
 #include <csignal>
 #include <memory>
@@ -17,24 +18,41 @@ void signal_handler(int signal_num)
    }
 }
 
+void init_logging(const std::shared_ptr<loomis::ConfigReader>& configReader)
+{
+   if (const auto* logPath = std::getenv("LOG_PATH");
+       logPath)
+   {
+      warp::log::InitFileLogging(logPath, "loomis.log");
+   }
+
+   // Initialize Apprise logging if configured
+   const auto& appriseConfig = configReader->GetAppriseLogging();
+   warp::AppriseLoggingConfig loomlogAppriseConfig;
+   loomlogAppriseConfig.enabled = appriseConfig.enabled;
+   loomlogAppriseConfig.url = appriseConfig.url;
+   loomlogAppriseConfig.key = appriseConfig.key;
+   loomlogAppriseConfig.message_title = appriseConfig.message_title;
+   warp::log::InitApprise(loomlogAppriseConfig);
+}
+
 int main()
 {
-   // Initialize the logger
-   loomis::Logger::Instance();
-
    // Initialize the config reader. This class will use the logger so initialize it after.
    auto configReader{std::make_shared<loomis::ConfigReader>()};
-   loomis::Logger::Instance().InitApprise(configReader->GetAppriseLogging());
+
+   // Initialize the logging system
+   init_logging(configReader);
 
    // Check for config file validity. If not valid exit logging the error.
    // This file is required for this application to run
    if (configReader->IsConfigValid() == false)
    {
-      loomis::Logger::Instance().Critical("Config file not valid shutting down");
+      warp::log::Critical("Config file not valid shutting down");
       return 1;
    }
 
-   loomis::Logger::Instance().Info("Loomis {} Starting", loomis::LOOMIS_VERSION);
+   warp::log::Info("Loomis {} Starting", loomis::LOOMIS_VERSION);
 
    SERVICE_MANAGER = std::make_unique<loomis::ServiceManager>(configReader);
 

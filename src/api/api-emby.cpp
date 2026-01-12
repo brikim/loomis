@@ -2,10 +2,10 @@
 
 #include "api/api-emby-json-types.h"
 #include "api/api-utils.h"
-#include "logger/log-utils.h"
 #include "types.h"
 
 #include <glaze/glaze.hpp>
+#include <warp/log-utils.h>
 
 #include <format>
 #include <mutex>
@@ -35,7 +35,7 @@ namespace loomis
    }
 
    EmbyApi::EmbyApi(const ServerConfig& serverConfig)
-      : ApiBase(serverConfig.server_name, serverConfig.url, serverConfig.api_key, "EmbyApi", log::ANSI_CODE_EMBY)
+      : ApiBase(serverConfig.server_name, serverConfig.url, serverConfig.api_key, "EmbyApi", warp::ANSI_CODE_EMBY)
       , client_(GetUrl())
       , mediaPath_(serverConfig.media_path)
    {
@@ -198,7 +198,7 @@ namespace loomis
          return returnItem;
       }
 
-      LogWarning("{} returned no valid results {}", __func__, log::GetTag("search", name));
+      LogWarning("{} returned no valid results {}", __func__, warp::GetTag("search", name));
       return std::nullopt;
    }
 

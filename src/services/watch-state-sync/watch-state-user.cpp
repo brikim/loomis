@@ -1,7 +1,8 @@
 ﻿#include "watch-state-user.h"
 
-#include "logger/log-utils.h"
 #include "services/service-utils.h"
+
+#include <warp/log-utils.h>
 
 #include <algorithm>
 #include <ranges>
@@ -111,7 +112,7 @@ namespace loomis
          logger_.LogInfo("{}:{} watched {} sync {} watch state",
                          syncSummary.server,
                          syncSummary.user,
-                         log::GetStandoutText(syncSummary.name),
+                         warp::GetStandoutText(syncSummary.name),
                          syncSummary.syncResults);
       }
       else
@@ -120,7 +121,7 @@ namespace loomis
                          syncSummary.server,
                          syncSummary.user,
                          syncSummary.playbackPercentage,
-                         log::GetStandoutText(syncSummary.name),
+                         warp::GetStandoutText(syncSummary.name),
                          syncSummary.syncResults);
       }
    }

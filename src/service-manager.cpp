@@ -1,10 +1,11 @@
 ﻿#include "service-manager.h"
 
-#include "logger/logger.h"
-#include "logger/log-utils.h"
 #include "services/folder-cleanup/folder-cleanup-service.h"
 #include "services/playlist-sync/playlist-sync-service.h"
 #include "services/watch-state-sync/watch-state-sync-service.h"
+
+#include <warp/log.h>
+#include <warp/log-utils.h>
 
 #include <algorithm>
 #include <format>
@@ -41,7 +42,7 @@ namespace loomis
 
       if (services_.empty())
       {
-         Logger::Instance().Critical("No services are enabled in the configuration.");
+         warp::log::Critical("No services are enabled in the configuration.");
          return;
       }
 
@@ -63,15 +64,15 @@ namespace loomis
       }
       else
       {
-         Logger::Instance().Critical("No enabled services");
+         warp::log::Critical("No enabled services");
       }
 
-      Logger::Instance().Info("Run has completed");
+      warp::log::Info("Run has completed");
    }
 
    void ServiceManager::ProcessShutdown()
    {
-      Logger::Instance().Info("Shutdown request received");
+      warp::log::Info("Shutdown request received");
 
       cronScheduler_.Shutdown();
 

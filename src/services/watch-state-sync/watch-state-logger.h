@@ -2,7 +2,7 @@
 
 #include "base.h"
 
-#include <spdlog/spdlog.h>
+#include <format>
 
 namespace loomis
 {
@@ -14,25 +14,25 @@ namespace loomis
       }
 
       template<typename... Args>
-      void LogTrace(spdlog::format_string_t<Args...> fmt, Args &&...args)
+      void LogTrace(std::format_string<Args...> fmt, Args &&...args)
       {
          parent_.LogTrace(fmt, std::forward<Args>(args)...);
       }
 
       template<typename... Args>
-      void LogInfo(spdlog::format_string_t<Args...> fmt, Args &&...args)
+      void LogInfo(std::format_string<Args...> fmt, Args &&...args)
       {
          parent_.LogInfo(fmt, std::forward<Args>(args)...);
       }
 
       template<typename... Args>
-      void LogWarning(spdlog::format_string_t<Args...> fmt, Args &&...args)
+      void LogWarning(std::format_string<Args...> fmt, Args &&...args)
       {
          parent_.LogWarning(fmt, std::forward<Args>(args)...);
       }
 
       template<typename... Args>
-      void LogError(spdlog::format_string_t<Args...> fmt, Args &&...args)
+      void LogError(std::format_string<Args...> fmt, Args &&...args)
       {
          parent_.LogError(fmt, std::forward<Args>(args)...);
       }

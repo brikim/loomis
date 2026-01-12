@@ -1,7 +1,8 @@
 #include "api-base.h"
 
-#include "logger/log-utils.h"
 #include "types.h"
+
+#include <warp/log-utils.h>
 
 #include <format>
 
@@ -147,7 +148,7 @@ namespace loomis
          return true;
       }
 
-      if (log) LogWarning("{} - HTTP error {}", name, log::GetTag("error", error));
+      if (log) LogWarning("{} - HTTP error {}", name, warp::GetTag("error", error));
       return false;
    }
 }

@@ -1,11 +1,10 @@
 #pragma once
 
-#include "logger/logger.h"
 #include "types.h"
 
-#include <spdlog/fmt/fmt.h>
-#include <spdlog/spdlog.h>
+#include <warp/log.h>
 
+#include <format>
 #include <optional>
 #include <string>
 
@@ -18,27 +17,27 @@ namespace loomis
       virtual ~Base() = default;
 
       template<typename... Args>
-      void LogTrace(spdlog::format_string_t<Args...> fmt, Args &&...args)
+      void LogTrace(std::format_string<Args...> fmt, Args &&...args)
       {
-         Logger::Instance().TraceWithHeader(header_, fmt, std::forward<Args>(args)...);
+         warp::log::TraceWithHeader(header_, fmt, std::forward<Args>(args)...);
       }
 
       template<typename... Args>
-      void LogInfo(spdlog::format_string_t<Args...> fmt, Args &&...args)
+      void LogInfo(std::format_string<Args...> fmt, Args &&...args)
       {
-         Logger::Instance().InfoWithHeader(header_, fmt, std::forward<Args>(args)...);
+         warp::log::InfoWithHeader(header_, fmt, std::forward<Args>(args)...);
       }
 
       template<typename... Args>
-      void LogWarning(spdlog::format_string_t<Args...> fmt, Args&&... args)
+      void LogWarning(std::format_string<Args...> fmt, Args&&... args)
       {
-         Logger::Instance().WarningWithHeader(header_, fmt, std::forward<Args>(args)...);
+         warp::log::WarningWithHeader(header_, fmt, std::forward<Args>(args)...);
       }
 
       template<typename... Args>
-      void LogError(spdlog::format_string_t<Args...> fmt, Args &&...args)
+      void LogError(std::format_string<Args...> fmt, Args &&...args)
       {
-         Logger::Instance().ErrorWithHeader(header_, fmt, std::forward<Args>(args)...);
+         warp::log::ErrorWithHeader(header_, fmt, std::forward<Args>(args)...);
       }
 
       template<typename... Args>

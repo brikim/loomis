@@ -1,12 +1,15 @@
 ﻿#include "folder-cleanup-service.h"
 
-#include "logger/log-utils.h"
+#include "services/service-types.h"
+
+#include <warp/log-utils.h>
+#include <warp/utils.h>
 
 namespace loomis
 {
    FolderCleanupService::FolderCleanupService(const FolderCleanupConfig& config,
                                             std::shared_ptr<ApiManager> apiManager)
-      : ServiceBase("Folder Cleanup", log::ANSI_CODE_SERVICE_FOLDER_CLEANUP, apiManager, config.cron)
+      : ServiceBase("Folder Cleanup", ANSI_CODE_SERVICE_FOLDER_CLEANUP, apiManager, config.cron)
       , config_(config)
    {
       Init(config);
@@ -23,7 +26,7 @@ namespace loomis
       {
          if (!fs::exists(pathEntry.path))
          {
-            LogWarning("Cleanup path does not exist: {}", log::GetTag("path", pathEntry.path));
+            LogWarning("Cleanup path does not exist: {}", warp::GetTag("path", pathEntry.path));
          }
 
          for (const auto& plex : pathEntry.plex)
@@ -32,14 +35,14 @@ namespace loomis
             if (!api)
             {
                LogWarning("{} api not found for {}",
-                          log::GetFormattedPlex(),
-                          log::GetTag("server", plex.server));
+                          warp::GetFormattedPlex(),
+                          warp::GetTag("server", plex.server));
             }
             else if (api->GetValid() && !api->GetLibraryId(plex.libraryName))
             {
                LogWarning("{} library {} not found",
-                          log::GetServerName(log::GetFormattedPlex(), plex.server),
-                          log::GetTag("library", plex.libraryName));
+                          warp::GetServerName(warp::GetFormattedPlex(), plex.server),
+                          warp::GetTag("library", plex.libraryName));
             }
          }
 
@@ -49,14 +52,14 @@ namespace loomis
             if (!api)
             {
                LogWarning("{} api not found for {}",
-                          log::GetFormattedEmby(),
-                          log::GetTag("server", emby.server));
+                          warp::GetFormattedEmby(),
+                          warp::GetTag("server", emby.server));
             }
             else if (api->GetValid() && !api->GetLibraryId(emby.libraryName))
             {
                LogWarning("{} library {} not found",
-                          log::GetServerName(log::GetFormattedEmby(), emby.server),
-                          log::GetTag("library", emby.libraryName));
+                          warp::GetServerName(warp::GetFormattedEmby(), emby.server),
+                          warp::GetTag("library", emby.libraryName));
             }
          }
       }
@@ -64,11 +67,11 @@ namespace loomis
       // Pre-lowercase the ignore lists for faster comparison in IsFolderEmpty
       for (auto& item : config_.ignoreFileEmptyCheck)
       {
-         item.item = log::ToLower(item.item);
+         item.item = warp::ToLower(item.item);
       }
       for (auto& item : config_.ignoreFolders)
       {
-         item.item = log::ToLower(item.item);
+         item.item = warp::ToLower(item.item);
       }
    }
 
@@ -79,7 +82,7 @@ namespace loomis
          for (const auto& entry : fs::directory_iterator(p))
          {
             std::string name = entry.path().filename().string();
-            std::string lowerName = log::ToLower(name);
+            std::string lowerName = warp::ToLower(name);
 
             // Skip hidden files/folders (starting with '.')
             if (!lowerName.empty() && lowerName[0] == '.') continue;
@@ -123,7 +126,7 @@ namespace loomis
             // Assuming Library Refresh is the intended notification
             plexApi->SetLibraryScan(*libraryId);
 
-            syncServerNames = log::BuildSyncServerString(syncServerNames, log::GetFormattedPlex(), plexConfig.server) + ":" + plexConfig.libraryName;
+            syncServerNames = warp::BuildSyncServerString(syncServerNames, warp::GetFormattedPlex(), plexConfig.server) + ":" + plexConfig.libraryName;
          }
       }
 
@@ -138,7 +141,7 @@ namespace loomis
 
             embyApi->SetLibraryScan(*libraryId);
 
-            syncServerNames = log::BuildSyncServerString(syncServerNames, log::GetFormattedEmby(), embyConfig.server) + ":" + embyConfig.libraryName;
+            syncServerNames = warp::BuildSyncServerString(syncServerNames, warp::GetFormattedEmby(), embyConfig.server) + ":" + embyConfig.libraryName;
          }
       }
 
@@ -168,7 +171,7 @@ namespace loomis
    {
       if (!CheckMediaConnectionsValid(pathConfig.plex, pathConfig.emby))
       {
-         LogWarning("Skipping cleanup for {} - one or more servers are offline", log::GetTag("path", pathConfig.path));
+         LogWarning("Skipping cleanup for {} - one or more servers are offline", warp::GetTag("path", pathConfig.path));
          return;
       }
 
@@ -191,7 +194,7 @@ namespace loomis
       }
       catch (const std::exception& e)
       {
-         LogWarning("Failed to iterate {}: {}", log::GetTag("path", rootPath.string()), e.what());
+         LogWarning("Failed to iterate {}: {}", warp::GetTag("path", rootPath.string()), e.what());
          return;
       }
 
@@ -215,7 +218,7 @@ namespace loomis
             {
                // We log what WE WOULD HAVE done
                LogInfo("[Dry Run] Would remove empty folder: {}",
-                       log::GetTag("path", log::GetStandoutText(dir.string())));
+                       warp::GetTag("path", warp::GetStandoutText(dir.string())));
 
                directoryDeleted = false;
             }
@@ -224,12 +227,12 @@ namespace loomis
                std::error_code ec;
                if (fs::remove(dir, ec))
                {
-                  LogInfo("Removed empty folder: {}", log::GetTag("path", log::GetStandoutText(dir.string())));
+                  LogInfo("Removed empty folder: {}", warp::GetTag("path", warp::GetStandoutText(dir.string())));
                   directoryDeleted = true;
                }
                else if (ec)
                {
-                  LogWarning("Failed to remove {}: {}", log::GetTag("path", dir.string()), ec.message());
+                  LogWarning("Failed to remove {}: {}", warp::GetTag("path", dir.string()), ec.message());
                }
             }
          }

@@ -1,7 +1,7 @@
 ﻿#include "cron-scheduler.h"
 
-#include "logger/logger.h"
-#include "logger/log-utils.h"
+#include <warp/log.h>
+#include <warp/log-utils.h>
 
 #include <algorithm>
 #include <ranges>
@@ -17,7 +17,7 @@ namespace loomis
    {
       if (runThread_)
       {
-         Logger::Instance().Error("Cron Scheduler: Attempted to add task {} after start", task.name);
+         warp::log::Error("Cron Scheduler: Attempted to add task {} after start", task.name);
          return;
       }
 
@@ -28,13 +28,13 @@ namespace loomis
          cronTask.cron = cron::make_cron(task.cronExpression);
          cronTask.nextRun = cron::cron_next(cronTask.cron, sys_clk::now());
 
-         Logger::Instance().Trace("Cron Scheduler: Added task {} with {}",
-                                  log::GetTag("name", cronTask.task.name),
-                                  log::GetTag("cron", cronTask.task.cronExpression));
+         warp::log::Trace("Cron Scheduler: Added task {} with {}",
+                                  warp::GetTag("name", cronTask.task.name),
+                                  warp::GetTag("cron", cronTask.task.cronExpression));
       }
       catch (const cron::bad_cronexpr& ex)
       {
-         Logger::Instance().Error("Cron Scheduler: {} bad CRON {} - {}",
+         warp::log::Error("Cron Scheduler: {} bad CRON {} - {}",
                                   task.name, task.cronExpression, ex.what());
       }
    }
@@ -58,16 +58,16 @@ namespace loomis
          // Should this task be run
          if (cronTask.nextRun <= currentTime)
          {
-            Logger::Instance().Trace("Cron Scheduler: Running task {} with {}",
-                                     log::GetTag("name", cronTask.task.name),
-                                     log::GetTag("cron", cronTask.task.cronExpression));
+            warp::log::Trace("Cron Scheduler: Running task {} with {}",
+                                     warp::GetTag("name", cronTask.task.name),
+                                     warp::GetTag("cron", cronTask.task.cronExpression));
             try
             {
                cronTask.task.func();
             }
             catch (const std::exception& e)
             {
-               Logger::Instance().Error("Task {} failed: {}", cronTask.task.name, e.what());
+               warp::log::Error("Task {} failed: {}", cronTask.task.name, e.what());
             }
 
             // Update nextRun for next time
@@ -93,7 +93,7 @@ namespace loomis
          RunTasks();
       }
 
-      Logger::Instance().Info("Cron Scheduler: Work thread shutting down");
+      warp::log::Info("Cron Scheduler: Work thread shutting down");
    }
 
    bool CronScheduler::Start()
@@ -107,7 +107,7 @@ namespace loomis
       {
          if (cronTask.task.service)
          {
-            Logger::Instance().Info("{}: Enabled - Schedule: {}",
+            warp::log::Info("{}: Enabled - Schedule: {}",
                                     cronTask.task.name, cronTask.task.cronExpression);
          }
       }

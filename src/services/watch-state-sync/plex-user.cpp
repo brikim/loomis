@@ -1,7 +1,9 @@
 ﻿#include "plex-user.h"
 
-#include "logger/log-utils.h"
 #include "services/service-utils.h"
+
+#include <warp/log-utils.h>
+#include <warp/utils.h>
 
 namespace loomis
 {
@@ -10,7 +12,7 @@ namespace loomis
                       WatchStateLogger logger)
       : logger_(logger)
       , config_(config)
-      , typeServerName_(log::GetServerName(log::GetFormattedPlex(), config_.server))
+      , typeServerName_(warp::GetServerName(warp::GetFormattedPlex(), config_.server))
    {
       // Do some quick checking on the users and make sure the api in the config exists.
       // Don't want to check if the user is valid on the api yet since it might be offline.
@@ -23,8 +25,8 @@ namespace loomis
          if (trackerApi_->GetValid() && !trackerApi_->GetUserInfo(config_.user_name))
          {
             logger_.LogWarning("{} not found on {}. Is user name correct?",
-                               log::GetTag("user", config_.user_name),
-                               log::GetServerName(log::GetFormattedTautulli(), config_.server));
+                               warp::GetTag("user", config_.user_name),
+                               warp::GetServerName(warp::GetFormattedTautulli(), config_.server));
          }
 
          valid_ = true;
@@ -35,14 +37,14 @@ namespace loomis
          {
             logger_.LogWarning("{} api not found for {}",
                                typeServerName_,
-                               log::GetTag("user", config_.user_name));
+                               warp::GetTag("user", config_.user_name));
          }
 
          if (!trackerApi_)
          {
             logger_.LogWarning("{} tracker api not found for {}. Required for this service.",
-                               log::GetServerName(log::GetFormattedTautulli(), config_.server),
-                               log::GetTag("user", config_.user_name));
+                               warp::GetServerName(warp::GetFormattedTautulli(), config_.server),
+                               warp::GetTag("user", config_.user_name));
          }
       }
    }
@@ -132,7 +134,7 @@ namespace loomis
 
       if (syncState.watched ? SyncEmbyWatchedState(syncState) : SyncEmbyPlayState(syncState))
       {
-         syncResults = log::BuildSyncServerString(syncResults, log::GetFormattedPlex(), config_.server);
+         syncResults = warp::BuildSyncServerString(syncResults, warp::GetFormattedPlex(), config_.server);
       }
    }
 }

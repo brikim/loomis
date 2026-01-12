@@ -1,7 +1,7 @@
 #include "api-manager.h"
 
-#include "logger/logger.h"
-#include "logger/log-utils.h"
+#include <warp/log.h>
+#include <warp/log-utils.h>
 
 #include <format>
 
@@ -17,11 +17,11 @@ namespace loomis
    {
       for (const auto& server : serverConfigs)
       {
-         InitializeApi<PlexApi>(plexApis_, server, log::GetFormattedPlex());
+         InitializeApi<PlexApi>(plexApis_, server, warp::GetFormattedPlex());
 
          if (!server.tracker_url.empty())
          {
-            InitializeApi<TautulliApi>(tautulliApis_, server, log::GetFormattedTautulli());
+            InitializeApi<TautulliApi>(tautulliApis_, server, warp::GetFormattedTautulli());
          }
       }
    }
@@ -30,11 +30,11 @@ namespace loomis
    {
       for (const auto& server : serverConfigs)
       {
-         InitializeApi<EmbyApi>(embyApis_, server, log::GetFormattedEmby());
+         InitializeApi<EmbyApi>(embyApis_, server, warp::GetFormattedEmby());
 
          if (!server.tracker_url.empty())
          {
-            InitializeApi<JellystatApi>(jellystatApis_, server, log::GetFormattedJellystat());
+            InitializeApi<JellystatApi>(jellystatApis_, server, warp::GetFormattedJellystat());
          }
       }
    }
@@ -50,17 +50,17 @@ namespace loomis
    void ApiManager::LogServerConnectionSuccess(std::string_view serverName, ApiBase* api)
    {
       auto reported = api->GetServerReportedName();
-      Logger::Instance().Info("Connected to {}({}) successfully.{}",
+      warp::log::Info("Connected to {}({}) successfully.{}",
                               serverName, api->GetName(),
-                              reported ? std::format(" Server reported {}", log::GetTag("name", *reported)) : "");
+                              reported ? std::format(" Server reported {}", warp::GetTag("name", *reported)) : "");
    }
 
    void ApiManager::LogServerConnectionError(std::string_view serverName, ApiBase* api)
    {
-      Logger::Instance().Warning("{}({}) server not available. Is this correct? {} {}",
+      warp::log::Warning("{}({}) server not available. Is this correct? {} {}",
                                  serverName, api->GetName(),
-                                 log::GetTag("url", api->GetUrl()),
-                                 log::GetTag("api_key", api->GetApiKey()));
+                                 warp::GetTag("url", api->GetUrl()),
+                                 warp::GetTag("api_key", api->GetApiKey()));
    }
 
    PlexApi* ApiManager::GetPlexApi(std::string_view name) const

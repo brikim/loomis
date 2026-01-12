@@ -1,7 +1,9 @@
 ﻿#include "watch-state-sync-service.h"
 
-#include "logger/log-utils.h"
+#include "services/service-types.h"
 #include "services/watch-state-sync/watch-state-logger.h"
+
+#include <warp/log-utils.h>
 
 #include <algorithm>
 #include <ranges>
@@ -9,8 +11,8 @@
 namespace loomis
 {
    WatchStateSyncService::WatchStateSyncService(const WatchStateSyncConfig& config,
-                                            std::shared_ptr<ApiManager> apiManager)
-      : ServiceBase("Watch State Sync", log::ANSI_CODE_SERVICE_WATCH_STATE_SYNC, apiManager, config.cron)
+                                                std::shared_ptr<ApiManager> apiManager)
+      : ServiceBase("Watch State Sync", ANSI_CODE_SERVICE_WATCH_STATE_SYNC, apiManager, config.cron)
    {
       Init(config);
    }

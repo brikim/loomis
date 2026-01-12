@@ -1,7 +1,9 @@
 ﻿#include "emby-user.h"
 
-#include "logger/log-utils.h"
 #include "services/service-utils.h"
+
+#include <warp/log-utils.h>
+#include <warp/utils.h>
 
 namespace loomis
 {
@@ -15,7 +17,7 @@ namespace loomis
                       WatchStateLogger logger)
       : logger_(logger)
       , config_(config)
-      , typeServerName_(log::GetServerName(log::GetFormattedEmby(), config_.server))
+      , typeServerName_(warp::GetServerName(warp::GetFormattedEmby(), config_.server))
    {
       // Do some quick checking on the users and make sure the api in the config exists.
       // Don't want to check if the user is valid on the api yet since it might be offline.
@@ -28,7 +30,7 @@ namespace loomis
          if (embyApi_->GetValid() && !embyApi_->GetUser(config_.user_name))
          {
             logger_.LogWarning("{} not found on {}. Is user name correct?",
-                               log::GetTag("user", config_.user_name),
+                               warp::GetTag("user", config_.user_name),
                                typeServerName_);
          }
 
@@ -40,14 +42,14 @@ namespace loomis
          {
             logger_.LogWarning("{} api not found for {}",
                                typeServerName_,
-                               log::GetTag("user", config_.user_name));
+                               warp::GetTag("user", config_.user_name));
          }
 
          if (!jellystatApi_)
          {
             logger_.LogWarning("{} tracker api not found for {}. Required for this service.",
-                               log::GetServerName(log::GetFormattedJellystat(), config_.server),
-                               log::GetTag("user", config_.user_name));
+                               warp::GetServerName(warp::GetFormattedJellystat(), config_.server),
+                               warp::GetTag("user", config_.user_name));
          }
       }
    }
@@ -136,7 +138,7 @@ namespace loomis
       bool success = forceWatched ? SyncPlexWatchedState(syncState.path) : SyncPlexPlayState(syncState);
       if (success)
       {
-         syncResults = log::BuildSyncServerString(syncResults, log::GetFormattedEmby(), config_.server);
+         syncResults = warp::BuildSyncServerString(syncResults, warp::GetFormattedEmby(), config_.server);
       }
    }
 
@@ -164,7 +166,7 @@ namespace loomis
       bool success = forceWatched ? SyncEmbyWatchedState(*id) : SyncEmbyPlayState(syncState, *id);
       if (success)
       {
-         syncResults = log::BuildSyncServerString(syncResults, log::GetFormattedEmby(), config_.server);
+         syncResults = warp::BuildSyncServerString(syncResults, warp::GetFormattedEmby(), config_.server);
       }
    }
 }

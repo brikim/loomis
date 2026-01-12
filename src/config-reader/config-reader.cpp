@@ -1,9 +1,8 @@
 #include "config-reader.h"
 
-#include "logger/logger.h"
-#include "logger/log-utils.h"
-
-#include "glaze/glaze.hpp"
+#include <glaze/glaze.hpp>
+#include <warp/log.h>
+#include <warp/log-utils.h>
 
 #include <cstdlib>
 #include <filesystem>
@@ -21,7 +20,7 @@ namespace loomis
       }
       else
       {
-         Logger::Instance().Error("CONFIG_PATH environment variable not found!");
+         warp::log::Error("CONFIG_PATH environment variable not found!");
       }
    }
 
@@ -32,7 +31,7 @@ namespace loomis
 
       if (!file.is_open())
       {
-         Logger::Instance().Error("Config file {} not found!", pathFileName.string());
+         warp::log::Error("Config file {} not found!", pathFileName.string());
          return;
       }
 
@@ -41,7 +40,7 @@ namespace loomis
          pathFileName.string(),
          std::string{}))
       {
-         Logger::Instance().Warning("{} - Glaze Error: {} (File: {})",
+         warp::log::Warning("{} - Glaze Error: {} (File: {})",
                                     __func__, static_cast<int>(ec.ec), pathFileName.string());
          return;
       }

@@ -1,10 +1,10 @@
 #include "api-tautulli.h"
 
 #include "api/api-tautulli-json-types.h"
-#include "logger/log-utils.h"
 #include "version.h"
 
 #include <glaze/glaze.hpp>
+#include <warp/log-utils.h>
 
 #include <format>
 #include <ranges>
@@ -32,7 +32,7 @@ namespace loomis
    }
 
    TautulliApi::TautulliApi(const ServerConfig& serverConfig)
-      : ApiBase(serverConfig.server_name, serverConfig.tracker_url, serverConfig.tracker_api_key, "TautulliApi", log::ANSI_CODE_TAUTULLI)
+      : ApiBase(serverConfig.server_name, serverConfig.tracker_url, serverConfig.tracker_api_key, "TautulliApi", warp::ANSI_CODE_TAUTULLI)
       , client_(GetUrl())
    {
       constexpr time_t timeoutSec{5};

@@ -1,10 +1,9 @@
 ﻿#include "service-base.h"
 
-#include "logger/logger.h"
-#include "logger/log-utils.h"
+#include <warp/log.h>
+#include <warp/log-utils.h>
 
 #include <chrono>
-#include <format>
 #include <ranges>
 
 namespace loomis
@@ -17,7 +16,7 @@ namespace loomis
       , apiManager_(apiManager)
    {
       task_.service = true;
-      task_.name = log::GetAnsiText(name, ansiiColor);
+      task_.name = warp::GetAnsiText(name, ansiiColor);
       task_.cronExpression = cronSchedule;
       task_.func = [this]() { this->Run(); };
    }
