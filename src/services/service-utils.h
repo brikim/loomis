@@ -1,5 +1,7 @@
 #pragma once
 
+#include "types.h"
+
 #include <chrono>
 #include <format>
 #include <string>
@@ -8,7 +10,7 @@ namespace loomis
 {
    inline auto GetTimePointForHistory(uint32_t minusDays)
    {
-      return std::chrono::zoned_time{std::chrono::current_zone(), std::chrono::system_clock::now() - std::chrono::days(minusDays)};
+      return std::chrono::zoned_time{std::chrono::current_zone(), sys_clk::now() - std::chrono::days(minusDays)};
    }
 
    inline std::string GetDatetimeForHistoryPlex(uint32_t minusDays)
@@ -16,7 +18,7 @@ namespace loomis
       return std::format("{:%Y-%m-%d}", GetTimePointForHistory(minusDays));
    }
 
-   inline std::string GetIsoTimeStr(std::chrono::system_clock::time_point tp)
+   inline std::string GetIsoTimeStr(sys_clk::time_point tp)
    {
       return std::format("{:%FT%TZ}", tp);
    }

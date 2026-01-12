@@ -184,7 +184,7 @@ namespace loomis
       auto userHistory = embyUser.GetWatchHistory();
       if (!userHistory || userHistory->items.empty()) return;
 
-      const auto cutoff = GetIsoTimeStr(std::chrono::system_clock::now() - std::chrono::days(1));
+      const auto cutoff = GetIsoTimeStr(sys_clk::now() - std::chrono::days(1));
 
       // Remove all items older than 24 hours
       std::erase_if(userHistory->items, [&cutoff](const auto& item) {

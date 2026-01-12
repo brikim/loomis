@@ -3,8 +3,16 @@
 #include "logger/logger.h"
 #include "logger/log-utils.h"
 
+#include <algorithm>
+#include <ranges>
+
 namespace loomis
 {
+   CronScheduler::~CronScheduler()
+   {
+      Shutdown();
+   }
+
    void CronScheduler::Add(const Task& task)
    {
       if (runThread_)
@@ -18,8 +26,7 @@ namespace loomis
          auto& cronTask = cronTasks_.emplace_back();
          cronTask.task = task;
          cronTask.cron = cron::make_cron(task.cronExpression);
-         // Initialize the first run time immediately
-         cronTask.nextRun = cron::cron_next(cronTask.cron, std::chrono::system_clock::now());
+         cronTask.nextRun = cron::cron_next(cronTask.cron, sys_clk::now());
 
          Logger::Instance().Trace("Cron Scheduler: Added task {} with {}",
                                   log::GetTag("name", cronTask.task.name),
@@ -32,48 +39,60 @@ namespace loomis
       }
    }
 
+   sys_clk::time_point CronScheduler::GetNextRunTime() const
+   {
+      if (cronTasks_.empty()) return sys_clk::time_point::max();
+
+      // Use std::min_element to find the earliest task in one line
+      auto it = std::ranges::min_element(cronTasks_,
+          [](const auto& a, const auto& b) { return a.nextRun < b.nextRun; });
+
+      return it->nextRun;
+   }
+
+   void CronScheduler::RunTasks()
+   {
+      auto currentTime = sys_clk::now();
+      for (auto& cronTask : cronTasks_)
+      {
+         // Should this task be run
+         if (cronTask.nextRun <= currentTime)
+         {
+            Logger::Instance().Trace("Cron Scheduler: Running task {} with {}",
+                                     log::GetTag("name", cronTask.task.name),
+                                     log::GetTag("cron", cronTask.task.cronExpression));
+            try
+            {
+               cronTask.task.func();
+            }
+            catch (const std::exception& e)
+            {
+               Logger::Instance().Error("Task {} failed: {}", cronTask.task.name, e.what());
+            }
+
+            // Update nextRun for next time
+            cronTask.nextRun = cron::cron_next(cronTask.cron, currentTime);
+         }
+      }
+   }
+
    void CronScheduler::Work(std::stop_token stopToken)
    {
       while (!stopToken.stop_requested())
       {
-         auto currentTime = std::chrono::system_clock::now();
-         auto nextWaitPoint = currentTime + std::chrono::years(1);
+         // Get the next time we need to wake up
+         auto nextWaitPoint = GetNextRunTime();
 
-         // 1. Find the earliest nextRun
-         for (const auto& task : cronTasks_)
-         {
-            if (task.nextRun < nextWaitPoint) nextWaitPoint = task.nextRun;
-         }
-
+         // Wait until the next scheduled task or a stop is requested
          std::unique_lock<std::mutex> lock(cvLock_);
+         cv_.wait_until(lock, stopToken, nextWaitPoint, [&] { return false; });
 
-         cv_.wait_until(lock, stopToken, nextWaitPoint, [&] {
-            return stopToken.stop_requested();
-         });
-
+         // If a stop is requested break out of the loop
          if (stopToken.stop_requested()) break;
 
-         currentTime = std::chrono::system_clock::now();
-         for (auto& cronTask : cronTasks_)
-         {
-            if (cronTask.nextRun <= currentTime)
-            {
-               Logger::Instance().Trace("Cron Scheduler: Running task {} with {}",
-                                        log::GetTag("name", cronTask.task.name),
-                                        log::GetTag("cron", cronTask.task.cronExpression));
-               try
-               {
-                  cronTask.task.func();
-               }
-               catch (const std::exception& e)
-               {
-                  Logger::Instance().Error("Task {} failed: {}", cronTask.task.name, e.what());
-               }
-               // Update nextRun for next time
-               cronTask.nextRun = cron::cron_next(cronTask.cron, std::chrono::system_clock::now());
-            }
-         }
+         RunTasks();
       }
+
       Logger::Instance().Info("Cron Scheduler: Work thread shutting down");
    }
 

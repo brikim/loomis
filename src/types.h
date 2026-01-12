@@ -5,6 +5,8 @@
 
 namespace loomis
 {
+   using sys_clk = std::chrono::system_clock;
+
    static constexpr int VALID_HTTP_RESPONSE_MAX{300};
 
    enum class LogType
