@@ -27,21 +27,23 @@ namespace loomis
    void ConfigReader::ReadConfigFile(const char* path)
    {
       std::filesystem::path pathFileName = std::filesystem::path(path) / "config.conf";
-      std::ifstream file(pathFileName, std::ios::in | std::ios::binary);
-
-      if (!file.is_open())
+      if (!std::filesystem::exists(pathFileName))
       {
          warp::log::Error("Config file {} not found!", pathFileName.string());
          return;
       }
 
-      if (auto ec = glz::read_file_json < glz::opts{.error_on_unknown_keys = false} > (
-         configData_,
-         pathFileName.string(),
-         std::string{}))
+      auto ec = glz::read_file_json < glz::opts{.error_on_unknown_keys = false} > (
+          configData_,
+          pathFileName.string(),
+          std::string{}
+      );
+
+      if (ec)
       {
+         std::string pretty_error = glz::format_error(ec, "");
          warp::log::Warning("{} - Glaze Error: {} (File: {})",
-                                    __func__, static_cast<int>(ec.ec), pathFileName.string());
+                            __func__, pretty_error, pathFileName.string());
          return;
       }
 
@@ -66,6 +68,11 @@ namespace loomis
    const AppriseLoggingConfig& ConfigReader::GetAppriseLogging() const
    {
       return configData_.apprise_logging;
+   }
+
+   const GotifyLoggingConfig& ConfigReader::GetGotifyLogging() const
+   {
+      return configData_.gotify_logging;
    }
 
    const PlaylistSyncConfig& ConfigReader::GetPlaylistSyncConfig() const

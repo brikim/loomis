@@ -19,6 +19,7 @@ namespace loomis
       [[nodiscard]] const std::vector<ServerConfig>& GetPlexServers() const;
       [[nodiscard]] const std::vector<ServerConfig>& GetEmbyServers() const;
       [[nodiscard]] const AppriseLoggingConfig& GetAppriseLogging() const;
+      [[nodiscard]] const GotifyLoggingConfig& GetGotifyLogging() const;
       [[nodiscard]] const PlaylistSyncConfig& GetPlaylistSyncConfig() const;
       [[nodiscard]] const WatchStateSyncConfig& GetWatchStateSyncConfig() const;
       [[nodiscard]] const FolderCleanupConfig& GetFolderCleanupConfig() const;

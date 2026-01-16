@@ -24,6 +24,15 @@ namespace loomis
       std::string message_title;
    };
 
+   struct GotifyLoggingConfig
+   {
+      bool enabled{false};
+      std::string url;
+      std::string key;
+      std::string message_title;
+      int32_t priority{5};
+   };
+
    struct PlaylistEmbyServers
    {
       std::string server;
@@ -140,6 +149,7 @@ namespace loomis
       ConfigServers plex;
       ConfigServers emby;
       AppriseLoggingConfig apprise_logging;
+      GotifyLoggingConfig gotify_logging;
       PlaylistSyncConfig playlist_sync;
       WatchStateSyncConfig watch_state_sync;
       FolderCleanupConfig folder_cleanup;
