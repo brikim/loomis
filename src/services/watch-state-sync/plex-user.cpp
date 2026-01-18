@@ -86,7 +86,7 @@ namespace loomis
 
    void PlexUser::Update()
    {
-      auto userInfo{trackerApi_->GetUserInfo(config_.user_name)};
+      auto userInfo = trackerApi_->GetUserInfo(config_.user_name);
       valid_ = userInfo.has_value();
       if (valid_) userInfo_ = *userInfo;
    }

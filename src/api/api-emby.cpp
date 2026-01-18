@@ -39,9 +39,12 @@ namespace loomis
       : ApiBase(serverConfig.server_name, serverConfig.url, serverConfig.api_key, "EmbyApi", warp::ANSI_CODE_EMBY)
       , mediaPath_(serverConfig.media_path)
    {
-      std::string auth = std::format("MediaBrowser Client=\"Loomis\", Device=\"PC\", DeviceId=\"6e7417e2-8d76-4b1f-9c23-018274959a37\", Version=\"{}\", Token=\"{}\"", LOOMIS_VERSION, serverConfig.api_key);
+      std::string auth = std::format("MediaBrowser Client=\"Loomis\", Device=\"PC\", DeviceId=\"{}\", Version=\"{}\", Token=\"{}\"",
+                                     "6e7417e2-8d76-4b1f-9c23-018274959a37",
+                                     LOOMIS_VERSION,
+                                     serverConfig.api_key);
       headers_ = {
-        {"Authorization", auth},
+        {"X-Emby-Authorization", auth},
         {"Accept", "application/json"},
         {"User-Agent", std::format("Loomis/{}", LOOMIS_VERSION)}
       };
@@ -278,8 +281,7 @@ namespace loomis
 
       if (response.Items.empty()) return std::nullopt;
 
-      const auto& item = response.Items[0];
-
+      auto& item = response.Items[0];
       if (item.Type != "Movie" && item.Type != "Episode") return std::nullopt;
 
       return EmbyPlayState{.path = std::move(item.Path),
