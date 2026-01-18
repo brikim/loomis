@@ -377,10 +377,6 @@ namespace loomis
 
    void EmbyApi::SetLibraryScan(std::string_view libraryId)
    {
-      httplib::Headers headers = {
-         {"accept", "*/*"}
-      };
-
       const auto apiUrl = BuildApiParamsPath(std::format("/Items/{}/Refresh", libraryId), {
          {"Recursive", "true"},
          {"ImageRefreshMode", "Default"},
@@ -388,7 +384,7 @@ namespace loomis
          {"ReplaceAllMetadata", "false"}
       });
 
-      auto res = GetClient().Post(apiUrl, headers);
+      auto res = GetClient().Post(apiUrl, headers_);
       IsHttpSuccess(__func__, res);
    }
 
