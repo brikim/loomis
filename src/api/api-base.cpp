@@ -1,5 +1,6 @@
 #include "api-base.h"
 
+#include "api-utils.h"
 #include "types.h"
 
 #include <warp/log-utils.h>
@@ -17,12 +18,24 @@ namespace loomis
       , name_(name)
       , url_(url)
       , apiKey_(apiKey)
+      , client_(url_)
    {
+      constexpr time_t timeoutSec{5};
+      client_.set_connection_timeout(timeoutSec);
+
+      constexpr time_t readWritetimeoutSec{10};
+      client_.set_read_timeout(readWritetimeoutSec);
+      client_.set_write_timeout(readWritetimeoutSec);
    }
 
    std::optional<std::vector<Task>> ApiBase::GetTaskList()
    {
       return std::nullopt;
+   }
+
+   httplib::Client& ApiBase::GetClient()
+   {
+      return client_;
    }
 
    const std::string& ApiBase::GetName() const
@@ -85,49 +98,6 @@ namespace loomis
       auto apiPath = BuildApiPath(path);
       AddApiParam(apiPath, params);
       return apiPath;
-   }
-
-   std::string ApiBase::GetPercentEncoded(std::string_view src) const
-   {
-      // 1. Lookup table for "unreserved" characters (RFC 3986)
-      // 0 = needs encoding, 1 = safe
-      static const bool SAFE[256] = {
-          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, // 0-31
-          0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0, // 32-63 (Keep . -)
-          0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1, // 64-95 (Keep _)
-          0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,1,0, // 96-127 (Keep ~)
-          // ... all others (128-255) are 0
-      };
-
-      static const char hex_chars[] = "0123456789ABCDEF";
-
-      // 2. Pre-calculate exact size to avoid reallocations
-      size_t new_size{0};
-      for (unsigned char c : src)
-      {
-         new_size += SAFE[c] ? 1 : 3;
-      }
-
-      // 3. One single allocation
-      std::string result;
-      result.reserve(new_size);
-
-      // 4. Direct pointer-style insertion
-      for (unsigned char c : src)
-      {
-         if (SAFE[c])
-         {
-            result.push_back(c);
-         }
-         else
-         {
-            result.push_back('%');
-            result.push_back(hex_chars[c >> 4]);   // High nibble
-            result.push_back(hex_chars[c & 0x0F]); // Low nibble
-         }
-      }
-
-      return result;
    }
 
    bool ApiBase::IsHttpSuccess(std::string_view name, const httplib::Result& result, bool log)

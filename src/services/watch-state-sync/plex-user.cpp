@@ -79,9 +79,9 @@ namespace loomis
       return userInfo_.friendlyName.empty() ? config_.user_name : userInfo_.friendlyName;
    }
 
-   std::optional<TautulliHistoryItems> PlexUser::GetWatchHistory(std::string_view historyDate)
+   std::optional<TautulliHistoryItems> PlexUser::GetWatchHistory(std::string_view historyDate, int64_t epochHistoryTime)
    {
-      return trackerApi_->GetWatchHistoryForUser(config_.user_name, historyDate);
+      return trackerApi_->GetWatchHistoryForUser(config_.user_name, historyDate, epochHistoryTime);
    }
 
    void PlexUser::Update()
@@ -96,36 +96,44 @@ namespace loomis
       // Currently not supported. Future Growth?
    }
 
-   bool PlexUser::SyncEmbyWatchedState(const EmbySyncState& syncState)
+   std::optional<PlexSearchResult> PlexUser::GetSyncStateItem(const EmbySyncState& syncState) const
    {
       auto info = api_->GetItemInfo(syncState.name);
-      if (!info) return false;
+      if (!info) return std::nullopt;
 
-      auto iter = std::ranges::find_if(info->items, [&](const auto& item) {
-         return item.path == ReplaceMediaPath(syncState.path, syncState.mediaPath, api_->GetMediaPath());
+      const auto targetPath = ReplaceMediaPath(
+          syncState.path,
+          syncState.mediaPath,
+          api_->GetMediaPath()
+      );
+
+      auto it = std::ranges::find_if(info->items, [&](const auto& item) {
+         return std::ranges::any_of(item.paths, [&](const auto& path) {
+            return path == targetPath;
+         });
       });
 
-      // If the item was not found or is already watched just return
-      if (iter == info->items.end() || iter->watched) return false;
+      // If no matching item is found, we are done.
+      if (it == info->items.end()) return std::nullopt;
 
-      return api_->SetWatched(iter->ratingKey);
+      return *it;
+   }
+
+   bool PlexUser::SyncEmbyWatchedState(const EmbySyncState& syncState)
+   {
+      auto item = GetSyncStateItem(syncState);
+      if (!item || item->watched) return false;
+
+      return api_->SetWatched(item->ratingKey);
    }
 
    bool PlexUser::SyncEmbyPlayState(const EmbySyncState& syncState)
    {
-      auto info = api_->GetItemInfo(syncState.name);
-      if (!info) return false;
+      auto item = GetSyncStateItem(syncState);
+      if (!item || item->playbackPercentage == syncState.playbackPercentage) return false;
 
-      // Find the correct item based on the path
-      auto iter = std::ranges::find_if(info->items, [&](const auto& item) {
-         return item.path == ReplaceMediaPath(syncState.path, syncState.mediaPath, api_->GetMediaPath());
-      });
-
-      // If the item was not found or is already watched just return
-      if (iter == info->items.end() || iter->playbackPercentage == syncState.playbackPercentage) return false;
-
-      auto msLocation = iter->durationMs * static_cast<int64_t>(syncState.playbackPercentage) / 100;
-      return api_->SetPlayed(iter->ratingKey, msLocation);
+      auto msLocation = (item->durationMs * static_cast<int64_t>(syncState.playbackPercentage)) / 100;
+      return api_->SetPlayed(item->ratingKey, msLocation);
    }
 
    void PlexUser::SyncStateWithEmby(const EmbySyncState& syncState, std::string& syncResults)

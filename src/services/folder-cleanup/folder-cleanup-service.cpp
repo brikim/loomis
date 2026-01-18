@@ -81,18 +81,16 @@ namespace loomis
       {
          for (const auto& entry : fs::directory_iterator(p))
          {
-            std::string name = entry.path().filename().string();
-            std::string lowerName = warp::ToLower(name);
+            auto name = entry.path().filename().string();
+            auto lowerName = warp::ToLower(name);
 
             // Skip hidden files/folders (starting with '.')
             if (!lowerName.empty() && lowerName[0] == '.') continue;
 
-            // Is it a file we should ignore?
             bool isIgnored = std::any_of(config_.ignoreFileEmptyCheck.begin(), config_.ignoreFileEmptyCheck.end(),
                [&lowerName](const auto& item) { return lowerName == item.item; });
             if (isIgnored) continue;
 
-            // Is it a folder we should ignore?
             bool isIgnoredDir = std::any_of(config_.ignoreFolders.begin(),
                                             config_.ignoreFolders.end(),
                                             [&lowerName](const auto& item) {return lowerName == item.item; });
@@ -225,7 +223,7 @@ namespace loomis
             else
             {
                std::error_code ec;
-               if (fs::remove(dir, ec))
+               if (fs::remove_all(dir, ec))
                {
                   LogInfo("Removed empty folder: {}", warp::GetTag("path", warp::GetStandoutText(dir.string())));
                   directoryDeleted = true;

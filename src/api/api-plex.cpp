@@ -1,11 +1,15 @@
 #include "api-plex.h"
 
+#include "api/api-plex-json-types.h"
 #include "api/api-utils.h"
 #include "types.h"
+#include "version.h"
 
+#include <glaze/glaze.hpp>
 #include <warp/log.h>
 #include <warp/log-utils.h>
 
+#include <charconv>
 #include <cmath>
 #include <format>
 #include <ranges>
@@ -14,13 +18,13 @@ namespace loomis
 {
    namespace
    {
-      const std::string API_BASE{""};
-      const std::string API_TOKEN_NAME("X-Plex-Token");
+      constexpr std::string_view API_BASE{""};
+      constexpr std::string_view API_TOKEN_NAME("X-Plex-Token");
 
-      const std::string API_SERVERS{"/servers"};
-      const std::string API_LIBRARIES{"/library/sections/"};
-      const std::string API_LIBRARY_DATA{"/library/metadata/"};
-      const std::string API_SEARCH{"/hubs/search"};
+      constexpr std::string_view API_SERVERS{"/servers"};
+      constexpr std::string_view API_LIBRARIES{"/library/sections/"};
+      constexpr std::string_view API_LIBRARY_DATA{"/library/metadata/"};
+      constexpr std::string_view API_SEARCH{"/hubs/search"};
 
       constexpr std::string_view ELEM_MEDIA_CONTAINER{"MediaContainer"};
       constexpr std::string_view ELEM_MEDIA{"Media"};
@@ -34,11 +38,33 @@ namespace loomis
 
    PlexApi::PlexApi(const ServerConfig& serverConfig)
       : ApiBase(serverConfig.server_name, serverConfig.url, serverConfig.api_key, "PlexApi", warp::ANSI_CODE_PLEX)
-      , client_(GetUrl())
       , mediaPath_(serverConfig.media_path)
    {
-      constexpr time_t timeoutSec{5};
-      client_.set_connection_timeout(timeoutSec);
+      headers_ = {
+        {"X-Plex-Token", serverConfig.api_key},
+        {"X-Plex-Client-Identifier", "6e7417e2-8d76-4b1f-9c23-018274959a37"},
+        {"Accept", "application/json"},
+        {"User-Agent", std::format("Loomis/{}", LOOMIS_VERSION)}
+      };
+
+      BuildData(true);
+   }
+
+   std::optional<std::vector<Task>> PlexApi::GetTaskList()
+   {
+      std::vector<Task> tasks;
+
+      auto& quickCheck = tasks.emplace_back();
+      quickCheck.name = std::format("PlexApi({}) - Data Quick Check", GetName());
+      quickCheck.cronExpression = "45 */5 * * * *";
+      quickCheck.func = [this]() {this->BuildData(false); };
+
+      auto& fullUpdate = tasks.emplace_back();
+      fullUpdate.name = std::format("PlexApi({}) - Data Full Update", GetName());
+      fullUpdate.cronExpression = "0 48 3 * * *";
+      fullUpdate.func = [this]() {this->BuildData(true); };
+
+      return tasks;
    }
 
    std::string_view PlexApi::GetApiBase() const
@@ -48,16 +74,16 @@ namespace loomis
 
    std::string_view PlexApi::GetApiTokenName() const
    {
-      return API_TOKEN_NAME;
+      return "";
    }
 
    bool PlexApi::GetValid()
    {
-      auto res = client_.Get(BuildApiPath(API_SERVERS), headers_);
+      auto res = GetClient().Get(BuildApiPath(API_SERVERS), headers_);
       return res.error() == httplib::Error::Success && res.value().status < VALID_HTTP_RESPONSE_MAX;
    }
 
-   const std::string& PlexApi::GetMediaPath() const
+   std::string_view PlexApi::GetMediaPath() const
    {
       return mediaPath_;
    }
@@ -67,63 +93,67 @@ namespace loomis
       const auto apiUrl = BuildApiParamsPath(API_SEARCH, {
          {"query", name}
       });
-      auto res = client_.Get(apiUrl, headers_);
+      auto res = GetClient().Get(apiUrl, headers_);
 
       if (!IsHttpSuccess(__func__, res)) return std::nullopt;
 
-      pugi::xml_document doc;
-      if (doc.load_buffer(res->body.data(), res->body.size()).status != pugi::status_ok)
+      JsonPlexResponse<JsonPlexSearchResult> serverResponse;
+      if (auto ec = glz::read < glz::opts{.error_on_unknown_keys = false} > (serverResponse, res.value().body))
       {
-         LogWarning("{} - Malformed XML reply received", std::string(__func__));
+         LogWarning("{} - JSON Parse Error: {}",
+                    __func__, glz::format_error(ec, res.value().body));
          return std::nullopt;
       }
 
       PlexSearchResults returnResults;
 
-      // Faster XPath by providing the direct path
-      pugi::xpath_node_set videos = doc.select_nodes("/MediaContainer/Hub[@type='episode' or @type='movie']/Video");
-
-      for (pugi::xpath_node node : videos)
+      for (auto& hub : serverResponse.response.hub)
       {
-         pugi::xml_node video = node.node();
+         if (hub.data.size() == 0 || (hub.type != "movie" && hub.type != "episode")) continue;
+
+         auto& hubData = hub.data[0];
+
+         if (hubData.title != name) continue;
+
          auto& item = returnResults.items.emplace_back();
 
-         item.libraryName = video.attribute("librarySectionTitle").as_string();
+         item.libraryName = std::move(hubData.library);
 
-         // Get the correct title for both Movies and Episodes
-         if (video.attribute("grandparentTitle").empty())
+         if (hubData.showTitle)
          {
-            item.title = video.attribute("title").as_string();
+            item.title = std::move(*hubData.showTitle);
+            item.title += " - ";
+            item.title += hubData.title;
          }
          else
          {
-            item.title = video.attribute("grandparentTitle").as_string();
-            item.title += " - ";
-            item.title += video.attribute("title").as_string();
+            item.title = std::move(hubData.title);
          }
 
-         item.ratingKey = video.attribute("ratingKey").as_string();
-         item.durationMs = video.attribute("duration").as_llong();
-         item.watched = !video.attribute("viewCount").empty() && video.attribute("viewOffset").empty();
+         item.ratingKey = hubData.ratingKey;
+         item.durationMs = hubData.duration;
+         item.watched = hubData.viewCount && !hubData.viewOffset;
 
          if (item.watched)
          {
             item.playbackPercentage = 100;
          }
-         else if (item.durationMs > 0)
+         else if (item.durationMs > 0 && hubData.viewOffset)
          {
-            auto offset = static_cast<double>(video.attribute("viewOffset").as_llong(0));
-            auto duration = static_cast<double>(item.durationMs);
-            item.playbackPercentage = std::lround((offset / duration) * 100.0);
+            // std::lround handles the floating point conversion safely
+            item.playbackPercentage = std::lround((*hubData.viewOffset * 100.0) / item.durationMs);
          }
          else
          {
             item.playbackPercentage = 0;
          }
 
-         if (pugi::xml_node part = video.child("Media").child("Part"))
+         for (auto& media : hubData.media)
          {
-            item.path = part.attribute("file").as_string();
+            for (auto& part : media.part)
+            {
+               item.paths.emplace_back(std::move(part.file));
+            }
          }
       }
 
@@ -132,51 +162,33 @@ namespace loomis
 
    std::optional<std::string> PlexApi::GetServerReportedName()
    {
-      auto res = client_.Get(BuildApiPath(API_SERVERS), headers_);
+      auto res = GetClient().Get(BuildApiPath(API_SERVERS), headers_);
 
       if (!IsHttpSuccess(__func__, res)) return std::nullopt;
 
-      pugi::xml_document doc;
-      if (doc.load_buffer(res->body.data(), res->body.size()).status != pugi::status_ok)
+      JsonPlexResponse<JsonPlexServerData> serverResponse;
+      if (auto ec = glz::read < glz::opts{.error_on_unknown_keys = false} > (serverResponse, res.value().body))
       {
-         LogWarning("{} - Malformed XML reply received", std::string(__func__));
+         LogWarning("{} - JSON Parse Error: {}",
+                    __func__, glz::format_error(ec, res.value().body));
          return std::nullopt;
       }
 
-      pugi::xpath_node serverNode = doc.select_node("//Server[@name]");
-
-      if (!serverNode)
+      if (serverResponse.response.data.size() == 0)
       {
-         LogWarning("{} - No Server element with a name attribute found", __func__);
+         LogWarning("{} - No server names reported", __func__);
          return std::nullopt;
       }
 
-      return serverNode.node().attribute(ATTR_NAME).as_string();
+      // Return the first name
+      return serverResponse.response.data[0].name;
    }
 
-   std::optional<std::string> PlexApi::GetLibraryId(std::string_view libraryName)
+   std::optional<std::string> PlexApi::GetLibraryId(std::string_view libraryName) const
    {
-      auto res = client_.Get(BuildApiPath(API_LIBRARIES), headers_);
-
-      if (!IsHttpSuccess(__func__, res)) return std::nullopt;
-
-      pugi::xml_document doc;
-      if (doc.load_buffer(res->body.data(), res->body.size()).status != pugi::status_ok)
-      {
-         return std::nullopt;
-      }
-
-      std::string query = std::format("//{}[@{}='{}']", "Directory", ATTR_TITLE, libraryName);
-      pugi::xpath_node libraryNode = doc.select_node(query.c_str());
-
-      if (!libraryNode)
-      {
-         return std::nullopt;
-      }
-
-      std::string key = libraryNode.node().attribute(ATTR_KEY).as_string();
-
-      return key.empty() ? std::nullopt : std::make_optional(key);
+      std::shared_lock lock(dataLock_);
+      auto iter = libraries_.find(libraryName);
+      return iter == libraries_.end() ? std::nullopt : std::make_optional(iter->second);
    }
 
    std::optional<PlexSearchResults> PlexApi::GetItemInfo(std::string_view name)
@@ -184,31 +196,34 @@ namespace loomis
       return SearchItem(name);
    }
 
-   std::unordered_map<int32_t, std::string> PlexApi::GetItemsPaths(const std::vector<int32_t>& ids)
+   std::unordered_map<std::string, std::string> PlexApi::GetItemsPaths(const std::vector<std::string>& ids)
    {
-      auto res = client_.Get(BuildApiPath(API_LIBRARY_DATA + BuildCommaSeparatedList(ids)), headers_);
+      std::string path{API_LIBRARY_DATA};
+      path += BuildCommaSeparatedList(ids);
+      auto res = GetClient().Get(BuildApiPath(path), headers_);
       if (!IsHttpSuccess(__func__, res)) return {};
 
-      pugi::xml_document doc;
-      auto parse_result = doc.load_buffer(res->body.data(), res->body.size());
+      JsonPlexResponse<JsonPlexMetadataContainer> serverResponse;
+      if (auto ec = glz::read < glz::opts{.error_on_unknown_keys = false} > (serverResponse, res.value().body))
+      {
+         LogWarning("{} - JSON Parse Error: {}",
+                    __func__, glz::format_error(ec, res.value().body));
+         return {};
+      }
 
-      if (parse_result.status != pugi::status_ok) return {};
+      if (serverResponse.response.data.size() == 0) return {};
 
-      auto container = doc.child(ELEM_MEDIA_CONTAINER);
-      if (!container) return {};
-
-      std::unordered_map<int32_t, std::string> results;
+      std::unordered_map<std::string, std::string> results;
       results.reserve(ids.size());
 
-      for (auto videoNode : container.children(ELEM_VIDEO.data()))
+      for (auto& data : serverResponse.response.data)
       {
-         int32_t ratingKey = videoNode.attribute("ratingKey").as_int();
-         std::string filePath = videoNode.child("Media").child("Part").attribute("file").as_string();
-
-         if (ratingKey != 0 && !filePath.empty())
+         if (!data.ratingKey.empty()
+             && data.media.size() > 0
+             && data.media[0].part.size() > 0
+             && !data.media[0].part[0].file.empty())
          {
-            // Use move to transfer the string into the map efficiently
-            results.emplace(ratingKey, std::move(filePath));
+            results.emplace(data.ratingKey, std::move(data.media[0].part[0].file));
          }
       }
 
@@ -218,75 +233,64 @@ namespace loomis
    void PlexApi::SetLibraryScan(std::string_view libraryId)
    {
       auto apiUrl = BuildApiPath(std::format("{}{}/refresh", API_LIBRARIES, libraryId));
-      auto res = client_.Get(apiUrl, headers_);
+      auto res = GetClient().Get(apiUrl, headers_);
       IsHttpSuccess(__func__, res);
    }
 
-   pugi::xml_node PlexApi::GetCollectionNode(std::string_view library, std::string_view collection)
+   std::string PlexApi::GetCollectionKey(std::string_view library, std::string_view collection)
    {
+      std::shared_lock lock(dataLock_);
+
       auto libraryId = GetLibraryId(library);
       if (!libraryId) return {}; // Returns a "null" node
 
-      std::string apiUrl = BuildApiPath(std::format("{}{}/all", API_LIBRARIES, *libraryId));
-      apiUrl += std::format("&type={}&title={}",
-                            static_cast<int>(PlexSearchTypes::collection),
-                            collection);
+      auto iter = collections_.find(*libraryId);
+      if (iter == collections_.end()) return {};
 
-      auto res = client_.Get(apiUrl, headers_);
+      auto subIter = iter->second.find(collection);
+      if (subIter == iter->second.end()) return {};
 
-      if (!IsHttpSuccess(__func__, res)) return {};
-
-      if (collectionDoc_.load_buffer(res->body.data(), res->body.size()).status != pugi::status_ok)
-      {
-         return {};
-      }
-
-      std::string query = std::format("//{}[@{}='{}']", "Directory", ATTR_TITLE, collection);
-      pugi::xpath_node match = collectionDoc_.select_node(query.c_str());
-
-      return match.node();
+      return subIter->second;
    }
 
    bool PlexApi::GetCollectionValid(std::string_view library, std::string_view collection)
    {
-      return !GetCollectionNode(library, collection).empty();
+      return !GetCollectionKey(library, collection).empty();
    }
 
    std::optional<PlexCollection> PlexApi::GetCollection(std::string_view library, std::string_view collectionName)
    {
-      auto node = GetCollectionNode(library, collectionName);
-      if (node.empty()) return std::nullopt;
+      auto collectionPath = GetCollectionKey(library, collectionName);
+      if (collectionPath.empty()) return std::nullopt;
 
-      auto key = node.attribute(ATTR_KEY).as_string();
-      if (std::string_view(key).empty()) return std::nullopt;
-
-      auto res = client_.Get(BuildApiPath(key), headers_);
+      auto res = GetClient().Get(BuildApiPath(collectionPath), headers_);
       if (!IsHttpSuccess(__func__, res)) return std::nullopt;
 
-      pugi::xml_document doc;
-      if (doc.load_buffer(res->body.data(), res->body.size()).status != pugi::status_ok) return std::nullopt;
+      JsonPlexResponse<JsonPlexCollectionResult> serverResponse;
+      if (auto ec = glz::read < glz::opts{.error_on_unknown_keys = false} > (serverResponse, res.value().body))
+      {
+         LogWarning("{} - JSON Parse Error: {}",
+                    __func__, glz::format_error(ec, res.value().body));
+         return {};
+      }
 
-      auto container = doc.child(ELEM_MEDIA_CONTAINER);
-      if (!container) return std::nullopt;
+      if (serverResponse.response.data.size() == 0) return std::nullopt;
 
       PlexCollection collection;
       collection.name = collectionName;
 
-      for (auto itemNode : container.children())
+      for (auto& data : serverResponse.response.data)
       {
-         // Skip items without media info
-         auto mediaNode = itemNode.child(ELEM_MEDIA);
-         if (!mediaNode) continue;
+         if (data.media.size() == 0) continue;
 
          auto& item = collection.items.emplace_back();
-         item.title = itemNode.attribute(ATTR_TITLE).as_string();
+         item.title = data.title;
 
-         // 4. Extract paths from Media -> Part hierarchy
-         for (auto partNode : itemNode.select_nodes("Media/Part"))
+         for (auto& media : data.media)
          {
-            if (auto path = partNode.node().attribute("file").as_string(); *path)
+            for (auto& part : media.part)
             {
-               item.paths.emplace_back(path);
+               item.paths.emplace_back(std::move(part.file));
             }
          }
       }
@@ -299,11 +303,11 @@ namespace loomis
       const auto apiUrl = BuildApiParamsPath("/:/progress", {
          {"identifier", "com.plexapp.plugins.library"},
          {"key", ratingKey},
-         {"time", std::to_string(locationMs)},
+         {"time", std::format("{}", locationMs)},
          {"state", "stopped"} // 'stopped' commits the time to the database
       });
 
-      auto res = client_.Get(apiUrl, headers_);
+      auto res = GetClient().Get(apiUrl, headers_);
       if (!IsHttpSuccess(__func__, res))
       {
          auto d = std::chrono::milliseconds(locationMs);
@@ -327,7 +331,7 @@ namespace loomis
          {"key", ratingKey}
       });
 
-      auto res = client_.Get(apiUrl, headers_);
+      auto res = GetClient().Get(apiUrl, headers_);
       if (!IsHttpSuccess(__func__, res))
       {
          LogError("{} - Failed to mark {} as watched", __func__, warp::GetTag("ratingKey", ratingKey));
@@ -335,5 +339,102 @@ namespace loomis
       }
 
       return true;
+   }
+
+   void PlexApi::RebuildLibraryMap()
+   {
+      auto res = GetClient().Get(BuildApiPath(API_LIBRARIES), headers_);
+
+      if (!IsHttpSuccess(__func__, res)) return;
+
+      JsonPlexResponse<JsonPlexLibraryResult> serverResponse;
+      if (auto ec = glz::read < glz::opts{.error_on_unknown_keys = false} > (serverResponse, res.value().body))
+      {
+         LogWarning("{} - JSON Parse Error: {}",
+                    __func__, glz::format_error(ec, res.value().body));
+         return;
+      }
+
+      PlexNameToIdMap newMap;
+      newMap.reserve(serverResponse.response.libraries.size());
+      for (auto& library : serverResponse.response.libraries)
+      {
+         newMap.emplace(std::move(library.title), std::move(library.id));
+      }
+
+      std::unique_lock lock(dataLock_);
+      libraries_ = std::move(newMap);
+   }
+
+   void PlexApi::RebuildCollectionMap()
+   {
+      PlexIdToIdMap newMap;
+
+      std::vector<std::string> libraryIds;
+      {
+         std::shared_lock sharedLock(dataLock_);
+         libraryIds.reserve(libraries_.size());
+         for (const auto& [name, id] : libraries_)
+         {
+            libraryIds.emplace_back(id);
+         }
+      }
+
+      bool sucessfulCollectionGet = false;
+      for (const auto& id : libraryIds)
+      {
+         std::string apiUrl = BuildApiParamsPath(std::format("{}{}/all", API_LIBRARIES, id), {
+            {"type", std::format("{}", static_cast<int>(plex_search_collection))}
+         });
+
+         auto res = GetClient().Get(apiUrl, headers_);
+
+         if (!IsHttpSuccess(__func__, res)) continue;
+
+         JsonPlexResponse<JsonPlexCollectionResult> serverResponse;
+         if (auto ec = glz::read < glz::opts{.error_on_unknown_keys = false} > (serverResponse, res.value().body))
+         {
+            LogWarning("{} - JSON Parse Error: {}",
+                       __func__, glz::format_error(ec, res.value().body));
+            continue;
+         }
+
+         // Received valid collections
+         sucessfulCollectionGet = true;
+
+         PlexNameToIdMap nameToIdMap;
+         for (auto& item : serverResponse.response.data)
+         {
+            nameToIdMap.emplace(std::move(item.title), std::move(item.key));
+         }
+
+         newMap.emplace(id, std::move(nameToIdMap));
+      }
+
+      if (sucessfulCollectionGet)
+      {
+         std::unique_lock lock(dataLock_);
+         collections_ = std::move(newMap);
+      }
+      else
+      {
+         LogWarning("{} - Keeping stale collection data due to fetch failures", __func__);
+      }
+   }
+
+   void PlexApi::BuildData(bool forceRefresh)
+   {
+      bool refreshLibraries = false;
+      bool refreshCollections = false;
+
+      // Scope around the lock
+      {
+         std::shared_lock lock(dataLock_);
+         if (forceRefresh || libraries_.empty()) refreshLibraries = true;
+         if (forceRefresh || collections_.empty()) refreshCollections = true;
+      }
+
+      if (refreshLibraries) RebuildLibraryMap();
+      if (refreshCollections) RebuildCollectionMap();
    }
 }

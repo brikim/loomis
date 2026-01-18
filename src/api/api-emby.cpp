@@ -3,6 +3,7 @@
 #include "api/api-emby-json-types.h"
 #include "api/api-utils.h"
 #include "types.h"
+#include "version.h"
 
 #include <glaze/glaze.hpp>
 #include <warp/log-utils.h>
@@ -36,11 +37,14 @@ namespace loomis
 
    EmbyApi::EmbyApi(const ServerConfig& serverConfig)
       : ApiBase(serverConfig.server_name, serverConfig.url, serverConfig.api_key, "EmbyApi", warp::ANSI_CODE_EMBY)
-      , client_(GetUrl())
       , mediaPath_(serverConfig.media_path)
    {
-      constexpr time_t timeoutSec{5};
-      client_.set_connection_timeout(timeoutSec);
+      std::string auth = std::format("MediaBrowser Client=\"Loomis\", Device=\"PC\", DeviceId=\"6e7417e2-8d76-4b1f-9c23-018274959a37\", Version=\"{}\", Token=\"{}\"", LOOMIS_VERSION, serverConfig.api_key);
+      headers_ = {
+        {"Authorization", auth},
+        {"Accept", "application/json"},
+        {"User-Agent", std::format("Loomis/{}", LOOMIS_VERSION)}
+      };
 
       // If the service is valid run any needed tasks
       if (GetValid()) BuildPathMap();
@@ -70,23 +74,23 @@ namespace loomis
 
    std::string_view EmbyApi::GetApiTokenName() const
    {
-      return API_TOKEN_NAME;
+      return "";
    }
 
    bool EmbyApi::GetValid()
    {
-      auto res = client_.Get(BuildApiPath(API_SYSTEM_INFO), emptyHeaders_);
+      auto res = GetClient().Get(BuildApiPath(API_SYSTEM_INFO), headers_);
       return res.error() == httplib::Error::Success && res.value().status < VALID_HTTP_RESPONSE_MAX;
    }
 
-   const std::string& EmbyApi::GetMediaPath() const
+   std::string_view EmbyApi::GetMediaPath() const
    {
       return mediaPath_;
    }
 
    std::optional<std::string> EmbyApi::GetServerReportedName()
    {
-      auto res = client_.Get(BuildApiPath(API_SYSTEM_INFO), emptyHeaders_);
+      auto res = GetClient().Get(BuildApiPath(API_SYSTEM_INFO), headers_);
 
       if (!IsHttpSuccess(__func__, res))
       {
@@ -110,7 +114,7 @@ namespace loomis
 
    std::optional<std::string> EmbyApi::GetLibraryId(std::string_view libraryName)
    {
-      auto res = client_.Get(BuildApiPath(API_MEDIA_FOLDERS), emptyHeaders_);
+      auto res = GetClient().Get(BuildApiPath(API_MEDIA_FOLDERS), headers_);
 
       if (!IsHttpSuccess(__func__, res)) return std::nullopt;
 
@@ -157,7 +161,7 @@ namespace loomis
       params.reserve(params.size() + extraSearchArgs.size());
       params.insert(params.end(), extraSearchArgs.begin(), extraSearchArgs.end());
 
-      auto res{client_.Get(BuildApiParamsPath(API_ITEMS, params), emptyHeaders_)};
+      auto res{GetClient().Get(BuildApiParamsPath(API_ITEMS, params), headers_)};
       if (!IsHttpSuccess(__func__, res)) return std::nullopt;
 
       JsonEmbyItemsResponse response;
@@ -204,7 +208,7 @@ namespace loomis
 
    std::optional<EmbyUserData> EmbyApi::GetUser(std::string_view name)
    {
-      auto res = client_.Get(BuildApiPath(API_USERS), emptyHeaders_);
+      auto res = GetClient().Get(BuildApiPath(API_USERS), headers_);
 
       if (!IsHttpSuccess(__func__, res)) return std::nullopt;
 
@@ -233,7 +237,7 @@ namespace loomis
          {IDS, itemId},
          {"IsPlayed", "true"}
       });
-      auto res = client_.Get(apiUrl, emptyHeaders_);
+      auto res = GetClient().Get(apiUrl, headers_);
       if (!IsHttpSuccess(__func__, res)) return false;
 
       JsonTotalRecordCount response;
@@ -250,7 +254,7 @@ namespace loomis
    bool EmbyApi::SetWatchedStatus(std::string_view userId, std::string_view itemId)
    {
       const auto apiUrl = BuildApiPath(std::format("{}/{}/PlayedItems/{}", API_USERS, userId, itemId));
-      auto res{client_.Post(apiUrl, jsonHeaders_)};
+      auto res{GetClient().Post(apiUrl, headers_)};
       return IsHttpSuccess(__func__, res);
    }
 
@@ -261,7 +265,7 @@ namespace loomis
          {"Fields", "Path,UserDataLastPlayedDate,UserDataPlayCount"}
       });
 
-      auto res = client_.Get(apiUrl, emptyHeaders_);
+      auto res = GetClient().Get(apiUrl, headers_);
       if (!IsHttpSuccess(__func__, res)) return std::nullopt;
 
       JsonEmbyPlayStates response;
@@ -292,7 +296,7 @@ namespace loomis
          {"PlaybackPositionTicks", std::to_string(positionTicks)},
          {"LastPlayedDate", dateTimeStr}
       });
-      auto res{client_.Post(apiUrl, jsonHeaders_)};
+      auto res{GetClient().Post(apiUrl, headers_)};
       return IsHttpSuccess(__func__, res);
    }
 
@@ -306,7 +310,7 @@ namespace loomis
       auto item = GetItem(EmbySearchType::name, name, {{"IncludeItemTypes", "Playlist"}});
       if (!item.has_value()) return std::nullopt;
 
-      auto res = client_.Get(BuildApiPath(std::format("{}/{}/Items", API_PLAYLISTS, item->id)), emptyHeaders_);
+      auto res = GetClient().Get(BuildApiPath(std::format("{}/{}/Items", API_PLAYLISTS, item->id)), headers_);
       if (!IsHttpSuccess(__func__, res)) return std::nullopt;
 
       // Parse the entire "Items" array directly into our struct
@@ -342,7 +346,7 @@ namespace loomis
          {IDS, BuildCommaSeparatedList(itemIds)},
          {MEDIA_TYPE, MOVIES}
       });
-      auto res{client_.Post(apiUrl, jsonHeaders_)};
+      auto res{GetClient().Post(apiUrl, headers_)};
       IsHttpSuccess(__func__, res);
    }
 
@@ -351,7 +355,7 @@ namespace loomis
       auto apiUrl = BuildApiParamsPath(std::format("{}/{}/Items", API_PLAYLISTS, playlistId), {
          {IDS, BuildCommaSeparatedList(addIds)}
       });
-      auto res{client_.Post(apiUrl, jsonHeaders_)};
+      auto res{GetClient().Post(apiUrl, headers_)};
       return IsHttpSuccess(__func__, res);
    }
 
@@ -360,14 +364,14 @@ namespace loomis
       const auto apiUrl = BuildApiParamsPath(std::format("{}/{}/Items/Delete", API_PLAYLISTS, playlistId), {
          {ENTRY_IDS, BuildCommaSeparatedList(removeIds)}
       });
-      auto res{client_.Post(apiUrl, jsonHeaders_)};
+      auto res{GetClient().Post(apiUrl, headers_)};
       return IsHttpSuccess(__func__, res);
    }
 
    bool EmbyApi::MovePlaylistItem(std::string_view playlistId, std::string_view itemId, uint32_t index)
    {
       auto apiUrl{BuildApiPath(std::format("{}/{}/Items/{}/Move/{}", API_PLAYLISTS, playlistId, itemId, index))};
-      auto res{client_.Post(apiUrl, jsonHeaders_)};
+      auto res{GetClient().Post(apiUrl, headers_)};
       return IsHttpSuccess(__func__, res);
    }
 
@@ -384,7 +388,7 @@ namespace loomis
          {"ReplaceAllMetadata", "false"}
       });
 
-      auto res = client_.Post(apiUrl, headers);
+      auto res = GetClient().Post(apiUrl, headers);
       IsHttpSuccess(__func__, res);
    }
 
@@ -397,7 +401,7 @@ namespace loomis
           {"IsMissing", "false"}
       });
 
-      auto res = client_.Get(apiUrl, emptyHeaders_);
+      auto res = GetClient().Get(apiUrl, headers_);
       if (!IsHttpSuccess(__func__, res)) return;
 
       PathRebuildItems response;
@@ -448,7 +452,7 @@ namespace loomis
           {"Fields", "DateModified"}
       });
 
-      auto res = client_.Get(apiUrl, emptyHeaders_);
+      auto res = GetClient().Get(apiUrl, headers_);
       if (!IsHttpSuccess(__func__, res)) return false;
 
       PathRebuildItems response;

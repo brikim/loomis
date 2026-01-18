@@ -26,7 +26,7 @@ namespace loomis
 
       // Returns true if the server is reachable and the API key is valid
       [[nodiscard]] bool GetValid() override;
-      [[nodiscard]] const std::string& GetMediaPath() const;
+      [[nodiscard]] std::string_view GetMediaPath() const;
       [[nodiscard]] std::optional<std::string> GetServerReportedName() override;
       [[nodiscard]] std::optional<std::string> GetLibraryId(std::string_view libraryName);
 
@@ -65,9 +65,7 @@ namespace loomis
 
       std::string_view GetSearchTypeStr(EmbySearchType type);
 
-      httplib::Client client_;
-      httplib::Headers emptyHeaders_;
-      httplib::Headers jsonHeaders_{{{"accept", "application/json"}}};
+      httplib::Headers headers_;
 
       std::string mediaPath_;
 

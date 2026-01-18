@@ -5,11 +5,11 @@
 #include "config-reader/config-reader-types.h"
 
 #include <httplib.h>
-#include <pugixml.hpp>
 
 #include <cstdint>
 #include <list>
 #include <optional>
+#include <shared_mutex>
 #include <string>
 #include <unordered_map>
 
@@ -21,13 +21,15 @@ namespace loomis
       PlexApi(const ServerConfig& serverConfig);
       virtual ~PlexApi() = default;
 
+      [[nodiscard]] std::optional<std::vector<Task>> GetTaskList() override;
+
       // Returns true if the server is reachable and the API key is valid
       [[nodiscard]] bool GetValid() override;
-      [[nodiscard]] const std::string& GetMediaPath() const;
+      [[nodiscard]] std::string_view GetMediaPath() const;
       [[nodiscard]] std::optional<std::string> GetServerReportedName() override;
-      [[nodiscard]] std::optional<std::string> GetLibraryId(std::string_view libraryName);
+      [[nodiscard]] std::optional<std::string> GetLibraryId(std::string_view libraryName) const;
       [[nodiscard]] std::optional<PlexSearchResults> GetItemInfo(std::string_view name);
-      [[nodiscard]] std::unordered_map<int32_t, std::string> GetItemsPaths(const std::vector<int32_t>& ids);
+      [[nodiscard]] std::unordered_map<std::string, std::string> GetItemsPaths(const std::vector<std::string>& ids);
 
       // Returns if the collection in the library is valid on this server
       [[nodiscard]] bool GetCollectionValid(std::string_view library, std::string_view collection);
@@ -45,15 +47,38 @@ namespace loomis
       std::string_view GetApiBase() const override;
       std::string_view GetApiTokenName() const override;
 
-      pugi::xml_node GetCollectionNode(std::string_view library, std::string_view collection);
+      void RebuildLibraryMap();
+      void RebuildCollectionMap();
+      void BuildData(bool forceRefresh);
+
+      // Returns the collection api path
+      std::string GetCollectionKey(std::string_view library, std::string_view collection);
 
       std::optional<PlexSearchResults> SearchItem(std::string_view name);
 
-      httplib::Client client_;
       httplib::Headers headers_;
 
       std::string mediaPath_;
 
-      pugi::xml_document collectionDoc_;
+      struct string_hash
+      {
+         using is_transparent = void; // This enables heterogeneous lookup
+         size_t operator()(std::string_view sv) const
+         {
+            return std::hash<std::string_view>{}(sv);
+         }
+         size_t operator()(const std::string& s) const
+         {
+            return std::hash<std::string>{}(s);
+         }
+      };
+
+      mutable std::shared_mutex dataLock_;
+
+      using PlexNameToIdMap = std::unordered_map<std::string, std::string, string_hash, std::equal_to<>>;
+      PlexNameToIdMap libraries_;
+
+      using PlexIdToIdMap = std::unordered_map<std::string, PlexNameToIdMap, string_hash, std::equal_to<>>;
+      PlexIdToIdMap collections_;
    };
 }

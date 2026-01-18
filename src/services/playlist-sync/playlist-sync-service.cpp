@@ -24,8 +24,8 @@ namespace loomis
    {
       for (const auto& plexCollection : config.plex_collection_sync)
       {
-         auto plexApi{GetApiManager()->GetPlexApi(plexCollection.server)};
-         if (plexApi != nullptr)
+         if (auto plexApi = GetApiManager()->GetPlexApi(plexCollection.server);
+             plexApi != nullptr)
          {
             if (plexApi->GetValid() && !plexApi->GetCollectionValid(plexCollection.library, plexCollection.collection_name))
             {
@@ -39,8 +39,7 @@ namespace loomis
             PlaylistPlexCollection collection;
             for (const auto& embyServerName : plexCollection.target_emby_servers)
             {
-               auto* embyApi{GetApiManager()->GetEmbyApi(embyServerName.server)};
-               if (embyApi)
+               if (auto* embyApi{GetApiManager()->GetEmbyApi(embyServerName.server)}; embyApi)
                {
                   collection.target_emby_servers.emplace_back(embyServerName);
                }
@@ -157,7 +156,6 @@ namespace loomis
          return;
       }
 
-      // Use a lightweight tracker to avoid copying heavy strings
       struct MoveTracker
       {
          std::string_view id; std::string_view pId;
@@ -172,7 +170,6 @@ namespace loomis
          // If already correct, skip search
          if (virtualItems[i].id == correctIds[i]) continue;
 
-         // Efficiency gain: Search from current position 'i'
          auto it = std::find_if(virtualItems.begin() + i, virtualItems.end(),
                                 [&](const auto& vt) { return vt.id == correctIds[i]; });
 
@@ -254,10 +251,10 @@ namespace loomis
 
    void PlaylistSyncService::SyncPlexCollection(PlexApi* plexApi, EmbyApi* embyApi, const PlaylistPlexCollection& collection)
    {
-      auto plexCollection{plexApi->GetCollection(collection.library, collection.collection_name)};
-      if (plexCollection.has_value())
+      auto plexCollection = plexApi->GetCollection(collection.library, collection.collection_name);
+      if (plexCollection)
       {
-         SyncEmbyPlaylist(plexApi, embyApi, plexCollection.value());
+         SyncEmbyPlaylist(plexApi, embyApi, *plexCollection);
       }
    }
 

@@ -1,5 +1,7 @@
 #include "api-jellystat.h"
 
+#include "version.h"
+
 #include <glaze/glaze.hpp>
 #include <warp/log-utils.h>
 
@@ -19,15 +21,12 @@ namespace loomis
 
    JellystatApi::JellystatApi(const ServerConfig& serverConfig)
       : ApiBase(serverConfig.server_name, serverConfig.tracker_url, serverConfig.tracker_api_key, "JellystatApi", warp::ANSI_CODE_JELLYSTAT)
-      , client_(GetUrl())
    {
       headers_ = {
          {"x-api-token", GetApiKey()},
-         {"Content-Type", APPLICATION_JSON}
+         {"Content-Type", APPLICATION_JSON},
+         {"User-Agent", std::format("Loomis/{}", LOOMIS_VERSION)}
       };
-
-      constexpr time_t timeoutSec{5};
-      client_.set_connection_timeout(timeoutSec);
    }
 
    std::string_view JellystatApi::GetApiBase() const
@@ -55,7 +54,7 @@ namespace loomis
 
    bool JellystatApi::GetValid()
    {
-      auto res = client_.Get(BuildApiPath(API_GET_CONFIG), headers_);
+      auto res = GetClient().Get(BuildApiPath(API_GET_CONFIG), headers_);
       return res.error() == httplib::Error::Success && res.value().status < VALID_HTTP_RESPONSE_MAX;
    }
 
@@ -68,7 +67,7 @@ namespace loomis
    std::optional<JellystatHistoryItems> JellystatApi::GetWatchHistoryForUser(std::string_view userId)
    {
       auto payload = ParamsToJson({{ "userid", userId }});
-      auto res = client_.Post(BuildApiPath(API_GET_USER_HISTORY), headers_, payload, APPLICATION_JSON);
+      auto res = GetClient().Post(BuildApiPath(API_GET_USER_HISTORY), headers_, payload, APPLICATION_JSON);
       if (!IsHttpSuccess(__func__, res)) return std::nullopt;
 
       JellystatHistoryItems serverResponse;

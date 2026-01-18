@@ -126,23 +126,23 @@ namespace loomis
       }
    }
 
-   std::unordered_map<int32_t, std::string> WatchStateUser::GetPlexPathsForHistoryItems(std::string_view server, const std::vector<const TautulliHistoryItem*> historyItems)
+   std::unordered_map<std::string, std::string> WatchStateUser::GetPlexPathsForHistoryItems(std::string_view server, const std::vector<const TautulliHistoryItem*> historyItems)
    {
       auto plexApi = apiManager_->GetPlexApi(server);
 
       // Guard Clause: Exit early if API is unavailable
       if (!plexApi || !plexApi->GetValid()) return {};
 
-      std::vector<int32_t> ids;
+      std::vector<std::string> ids;
       ids.reserve(historyItems.size());
       for (const auto* item : historyItems) ids.push_back(item->id);
 
       return plexApi->GetItemsPaths(ids);
    }
 
-   void WatchStateUser::SyncPlexState(PlexUser& plexUser, std::string_view historyDate)
+   void WatchStateUser::SyncPlexState(PlexUser& plexUser, std::string_view historyDate, int64_t epochHistoryTime)
    {
-      auto userHistory = plexUser.GetWatchHistory(historyDate);
+      auto userHistory = plexUser.GetWatchHistory(historyDate, epochHistoryTime);
       if (!userHistory || userHistory->items.empty()) return;
 
       auto consolidatedHistory = GetConsolidatedPlexHistory(*userHistory);
@@ -243,8 +243,9 @@ namespace loomis
       UpdateAllUsers();
 
       constexpr uint32_t daysOfHistory{1};
-      auto plexHistoryTime{GetDatetimeForHistoryPlex(daysOfHistory)};
-      for (auto& plexUser : plexUsers_) SyncPlexState(*plexUser, plexHistoryTime);
+      auto plexHistoryTime = GetDatetimeForHistoryPlex(daysOfHistory);
+      auto plexEpochHistoryTime = GetEpochTimeForPlexHistory(daysOfHistory);
+      for (auto& plexUser : plexUsers_) SyncPlexState(*plexUser, plexHistoryTime, plexEpochHistoryTime);
       for (auto& embyUser : embyUsers_) SyncEmbyState(*embyUser);
    }
 }

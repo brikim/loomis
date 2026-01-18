@@ -3,6 +3,7 @@
 #include "types.h"
 
 #include <chrono>
+#include <cstdint>
 #include <format>
 #include <string>
 
@@ -18,18 +19,28 @@ namespace loomis
       return std::format("{:%Y-%m-%d}", GetTimePointForHistory(minusDays));
    }
 
+   inline int64_t GetEpochTimeForPlexHistory(uint32_t minusDays)
+   {
+      auto yesterday = std::chrono::system_clock::now() - std::chrono::days(minusDays);
+
+      // Convert to seconds since epoch
+      return std::chrono::duration_cast<std::chrono::seconds>(
+          yesterday.time_since_epoch()
+      ).count();
+   }
+
    inline std::string GetIsoTimeStr(sys_clk::time_point tp)
    {
       return std::format("{:%FT%TZ}", tp);
    }
 
-   inline std::string ReplaceMediaPath(const std::string& fullPath, const std::string& oldPath, const std::string& newPath)
+   inline std::string ReplaceMediaPath(std::string_view fullPath, std::string_view oldPath, std::string_view newPath)
    {
       if (fullPath.starts_with(oldPath))
       {
-         auto returnPath = fullPath;
+         std::string returnPath{fullPath};
          return returnPath.replace(0, oldPath.length(), newPath);
       }
-      return fullPath;
+      return std::string(fullPath);
    }
 }

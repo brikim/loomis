@@ -30,7 +30,6 @@ namespace loomis
 
       std::string ParamsToJson(const std::list<std::pair<std::string_view, std::string_view>> params);
 
-      httplib::Client client_;
       httplib::Headers headers_;
    };
 }

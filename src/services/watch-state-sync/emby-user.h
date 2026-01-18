@@ -26,7 +26,7 @@ namespace loomis
       [[nodiscard]] std::string_view GetServerName() const;
       [[nodiscard]] std::string_view GetTypeAndServerName() const;
       [[nodiscard]] std::string_view GetUser() const;
-      [[nodiscard]] const std::string& GetMediaPath() const;
+      [[nodiscard]] std::string_view GetMediaPath() const;
       [[nodiscard]] std::optional<JellystatHistoryItems> GetWatchHistory();
       [[nodiscard]] std::optional<EmbyPlayState> GetPlayState(std::string_view id);
 
@@ -43,11 +43,11 @@ namespace loomis
 
       struct EmbySyncState
       {
-         const std::string& mediaPath;
-         const std::string& path;
+         std::string_view mediaPath;
+         std::string_view path;
          bool watched{false};
          int32_t playbackPercentage{0};
-         const std::string& timeWatched;
+         std::string_view timeWatched;
       };
       void SyncStateWithEmby(const EmbySyncState& syncState, std::string& syncResults);
 

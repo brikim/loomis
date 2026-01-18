@@ -38,12 +38,11 @@ namespace loomis
       [[nodiscard]] virtual std::string_view GetApiBase() const = 0;
       [[nodiscard]] virtual std::string_view GetApiTokenName() const = 0;
 
+      httplib::Client& GetClient();
+
       void AddApiParam(std::string& url, const ApiParams& params) const;
       [[nodiscard]] std::string BuildApiPath(std::string_view path) const;
       [[nodiscard]] std::string BuildApiParamsPath(std::string_view path, const ApiParams& params) const;
-
-      // Encode the source string to percent encoding
-      [[nodiscard]] std::string GetPercentEncoded(std::string_view src) const;
 
       // Returns if the http request was successful and outputs to the log if not successful
       bool IsHttpSuccess(std::string_view name, const httplib::Result& result, bool log = true);
@@ -52,5 +51,7 @@ namespace loomis
       std::string name_;
       std::string url_;
       std::string apiKey_;
+
+      httplib::Client client_;
    };
 }

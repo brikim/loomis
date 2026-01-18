@@ -51,7 +51,8 @@ namespace loomis
    {
       std::string title;
       std::string full_title;
-      int32_t rating_key{0};
+      int64_t date{0};
+      int64_t rating_key{0};
       int64_t stopped{0};
       int32_t percent_complete{0};
 
@@ -60,6 +61,7 @@ namespace loomis
          static constexpr auto value = glz::object(
              "title", &JsonTautulliHistoryItem::title,
              "full_title", &JsonTautulliHistoryItem::full_title,
+             "date", &JsonTautulliHistoryItem::date,
              "rating_key", &JsonTautulliHistoryItem::rating_key,
              "stopped", &JsonTautulliHistoryItem::stopped,
              "percent_complete", &JsonTautulliHistoryItem::percent_complete

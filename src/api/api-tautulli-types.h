@@ -17,10 +17,10 @@ namespace loomis
    {
       std::string name;
       std::string fullName;
-      int32_t id;
-      bool watched;
-      int64_t timeWatchedEpoch;
-      int32_t playbackPercentage;
+      std::string id;
+      bool watched{false};
+      int64_t timeWatchedEpoch{0};
+      int32_t playbackPercentage{0};
    };
 
    // data representing an Tautulli History items

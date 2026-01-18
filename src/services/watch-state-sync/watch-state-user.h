@@ -32,7 +32,7 @@ namespace loomis
    private:
       void UpdateAllUsers();
 
-      void SyncPlexState(PlexUser& plexUser, std::string_view historyDate);
+      void SyncPlexState(PlexUser& plexUser, std::string_view historyDate, int64_t epochHistoryTime);
       void SyncEmbyState(EmbyUser& embyUser);
 
       struct LogSyncData
@@ -50,7 +50,7 @@ namespace loomis
       std::vector<const TautulliHistoryItem*> GetConsolidatedPlexHistory(const TautulliHistoryItems& historyItems);
       std::vector<const JellystatHistoryItem*> GetConsolidatedEmbyHistory(const JellystatHistoryItems& historyItems);
 
-      std::unordered_map<int32_t, std::string> GetPlexPathsForHistoryItems(std::string_view server, const std::vector<const TautulliHistoryItem*> historyItems);
+      std::unordered_map<std::string, std::string> GetPlexPathsForHistoryItems(std::string_view server, const std::vector<const TautulliHistoryItem*> historyItems);
 
       bool valid_{false};
       std::shared_ptr<ApiManager> apiManager_;

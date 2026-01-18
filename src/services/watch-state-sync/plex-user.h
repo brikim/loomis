@@ -8,6 +8,7 @@
 #include "types.h"
 
 #include <functional>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -27,7 +28,7 @@ namespace loomis
       [[nodiscard]] std::string_view GetServerName() const;
       [[nodiscard]] std::string_view GetTypeAndServerName() const;
       [[nodiscard]] std::string_view GetUser() const;
-      [[nodiscard]] std::optional<TautulliHistoryItems> GetWatchHistory(std::string_view historyDate);
+      [[nodiscard]] std::optional<TautulliHistoryItems> GetWatchHistory(std::string_view historyDate, int64_t epochHistoryTime);
 
       void Update();
 
@@ -35,16 +36,17 @@ namespace loomis
 
       struct EmbySyncState
       {
-         const std::string& name;
-         const std::string& mediaPath;
-         const std::string& path;
+         std::string_view name;
+         std::string_view mediaPath;
+         std::string_view path;
          bool watched{false};
          int32_t playbackPercentage{0};
-         const std::string& timeWatched;
+         std::string_view timeWatched;
       };
       void SyncStateWithEmby(const EmbySyncState& syncState, std::string& syncResults);
 
    private:
+      std::optional<PlexSearchResult> GetSyncStateItem(const EmbySyncState& syncState) const;
       bool SyncEmbyWatchedState(const EmbySyncState& syncState);
       bool SyncEmbyPlayState(const EmbySyncState& syncState);
 

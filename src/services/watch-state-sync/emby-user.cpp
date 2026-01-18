@@ -79,7 +79,7 @@ namespace loomis
       return config_.user_name;
    }
 
-   const std::string& EmbyUser::GetMediaPath() const
+   std::string_view EmbyUser::GetMediaPath() const
    {
       return embyApi_->GetMediaPath();
    }
