@@ -4,9 +4,9 @@
 #include "api/api-manager.h"
 #include "api/api-tautulli-types.h"
 #include "config-reader/config-reader-types.h"
+#include "services/service-logger.h"
 #include "services/watch-state-sync/emby-user.h"
 #include "services/watch-state-sync/plex-user.h"
-#include "services/watch-state-sync/watch-state-logger.h"
 #include "types.h"
 
 #include <functional>
@@ -21,7 +21,7 @@ namespace loomis
    public:
       WatchStateUser(const UserSyncConfig& config,
                      std::shared_ptr<ApiManager> apiManager,
-                     WatchStateLogger logger);
+                     ServiceLogger logger);
       virtual ~WatchStateUser() = default;
 
       [[nodiscard]] bool GetValid() const;
@@ -54,7 +54,7 @@ namespace loomis
 
       bool valid_{false};
       std::shared_ptr<ApiManager> apiManager_;
-      WatchStateLogger logger_;
+      ServiceLogger logger_;
 
       std::vector<std::unique_ptr<PlexUser>> plexUsers_;
       std::vector<std::unique_ptr<EmbyUser>> embyUsers_;

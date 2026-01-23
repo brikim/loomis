@@ -5,6 +5,7 @@
 
 #include <glaze/glaze.hpp>
 #include <warp/log-utils.h>
+#include <warp/utils.h>
 
 #include <format>
 #include <ranges>
@@ -30,7 +31,12 @@ namespace loomis
    }
 
    TautulliApi::TautulliApi(const ServerConfig& serverConfig)
-      : ApiBase(serverConfig.server_name, serverConfig.tracker_url, serverConfig.tracker_api_key, "TautulliApi", warp::ANSI_CODE_TAUTULLI)
+      : ApiBase(ApiBaseData{.name = serverConfig.server_name,
+            .url = serverConfig.tracker_url,
+            .apiKey = serverConfig.tracker_api_key,
+            .className = "TautulliApi",
+            .ansiiCode = warp::ANSI_CODE_TAUTULLI,
+            .prettyName = warp::GetServerName(warp::GetFormattedTautulli(), serverConfig.server_name)})
    {
       // Standardize headers
       headers_.insert({"User-Agent", std::format("Loomis/{}", LOOMIS_VERSION)});

@@ -1,5 +1,6 @@
 ﻿#include "service-manager.h"
 
+#include "services/dvr-maintainer/dvr-maintainer-service.h"
 #include "services/folder-cleanup/folder-cleanup-service.h"
 #include "services/playlist-sync/playlist-sync-service.h"
 #include "services/watch-state-sync/watch-state-sync-service.h"
@@ -33,6 +34,11 @@ namespace loomis
       if (configReader_->GetFolderCleanupConfig().enabled)
       {
          services_.emplace_back(std::make_unique<FolderCleanupService>(configReader_->GetFolderCleanupConfig(), apiManager_));
+      }
+
+      if (configReader_->GetDvrMaintainerConfig().enabled)
+      {
+         services_.emplace_back(std::make_unique<DvrMaintainerService>(configReader_->GetDvrMaintainerConfig(), apiManager_));
       }
    }
 

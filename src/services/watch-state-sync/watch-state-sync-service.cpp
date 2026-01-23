@@ -1,7 +1,7 @@
 ﻿#include "watch-state-sync-service.h"
 
+#include "services/service-logger.h"
 #include "services/service-types.h"
-#include "services/watch-state-sync/watch-state-logger.h"
 
 #include <warp/log-utils.h>
 
@@ -21,7 +21,7 @@ namespace loomis
    {
       for (const auto& user : config.users)
       {
-         auto watchStateUser{std::make_unique<WatchStateUser>(user, GetApiManager(), WatchStateLogger(*this))};
+         auto watchStateUser{std::make_unique<WatchStateUser>(user, GetApiManager(), ServiceLogger(*this))};
          if (watchStateUser->GetValid())
          {
             users_.emplace_back(std::move(watchStateUser));

@@ -28,8 +28,8 @@ namespace loomis
       bool IsFolderEmpty(const fs::path& p);
       void CheckFolder(const FolderCleanupPathToCheck& pathConfig);
 
-      bool CheckMediaConnectionsValid(const std::vector<FolderCleanupServerConfig>& plex,
-                                      const std::vector<FolderCleanupServerConfig>& emby);
+      bool CheckMediaConnectionsValid(const std::vector<ServerLibraryConfig>& plex,
+                                      const std::vector<ServerLibraryConfig>& emby);
 
       FolderCleanupConfig config_;
    };

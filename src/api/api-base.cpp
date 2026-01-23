@@ -6,18 +6,16 @@
 #include <warp/log-utils.h>
 
 #include <format>
+#include <string_view>
 
 namespace loomis
 {
-   ApiBase::ApiBase(std::string_view name,
-                    std::string_view url,
-                    std::string_view apiKey,
-                    std::string_view className,
-                    std::string_view ansiiCode)
-      : Base(className, ansiiCode, name)
-      , name_(name)
-      , url_(url)
-      , apiKey_(apiKey)
+   ApiBase::ApiBase(const ApiBaseData& data)
+      : Base(data.className, data.ansiiCode, data.name)
+      , name_(data.name)
+      , prettyName_(data.prettyName)
+      , url_(data.url)
+      , apiKey_(data.apiKey)
       , client_(url_)
    {
       constexpr time_t timeoutSec{5};
@@ -41,6 +39,11 @@ namespace loomis
    const std::string& ApiBase::GetName() const
    {
       return name_;
+   }
+
+   const std::string& ApiBase::GetPrettyName() const
+   {
+      return prettyName_;
    }
 
    const std::string& ApiBase::GetUrl() const

@@ -14,10 +14,9 @@ namespace loomis
 
    EmbyUser::EmbyUser(const ServerUser& config,
                       const std::shared_ptr<ApiManager>& apiManager,
-                      WatchStateLogger logger)
+                      ServiceLogger logger)
       : logger_(logger)
       , config_(config)
-      , typeServerName_(warp::GetServerName(warp::GetFormattedEmby(), config_.server))
    {
       // Do some quick checking on the users and make sure the api in the config exists.
       // Don't want to check if the user is valid on the api yet since it might be offline.
@@ -31,7 +30,7 @@ namespace loomis
          {
             logger_.LogWarning("{} not found on {}. Is user name correct?",
                                warp::GetTag("user", config_.user_name),
-                               typeServerName_);
+                               embyApi_->GetPrettyName());
          }
 
          valid_ = true;
@@ -41,7 +40,7 @@ namespace loomis
          if (!embyApi_)
          {
             logger_.LogWarning("{} api not found for {}",
-                               typeServerName_,
+                               warp::GetServerName(warp::GetFormattedEmby(), config.server),
                                warp::GetTag("user", config_.user_name));
          }
 
@@ -61,7 +60,7 @@ namespace loomis
 
    std::string EmbyUser::GetServerAndUserName() const
    {
-      return typeServerName_ + ":" + config_.user_name;
+      return embyApi_->GetPrettyName() + ":" + config_.user_name;
    }
 
    std::string_view EmbyUser::GetServerName() const
@@ -71,7 +70,7 @@ namespace loomis
 
    std::string_view EmbyUser::GetTypeAndServerName() const
    {
-      return typeServerName_;
+      return embyApi_->GetPrettyName();
    }
 
    std::string_view EmbyUser::GetUser() const

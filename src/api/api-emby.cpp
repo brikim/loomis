@@ -7,6 +7,7 @@
 
 #include <glaze/glaze.hpp>
 #include <warp/log-utils.h>
+#include <warp/utils.h>
 
 #include <format>
 #include <mutex>
@@ -36,7 +37,12 @@ namespace loomis
    }
 
    EmbyApi::EmbyApi(const ServerConfig& serverConfig)
-      : ApiBase(serverConfig.server_name, serverConfig.url, serverConfig.api_key, "EmbyApi", warp::ANSI_CODE_EMBY)
+      : ApiBase(ApiBaseData{.name = serverConfig.server_name,
+            .url = serverConfig.url,
+            .apiKey = serverConfig.api_key,
+            .className = "EmbyApi",
+            .ansiiCode = warp::ANSI_CODE_EMBY,
+            .prettyName = warp::GetServerName(warp::GetFormattedEmby(), serverConfig.server_name)})
       , mediaPath_(serverConfig.media_path)
    {
       std::string auth = std::format("MediaBrowser Client=\"Loomis\", Device=\"PC\", DeviceId=\"{}\", Version=\"{}\", Token=\"{}\"",

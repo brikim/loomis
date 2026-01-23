@@ -38,11 +38,11 @@ namespace loomis
                           warp::GetFormattedPlex(),
                           warp::GetTag("server", plex.server));
             }
-            else if (api->GetValid() && !api->GetLibraryId(plex.libraryName))
+            else if (api->GetValid() && !api->GetLibraryId(plex.library))
             {
                LogWarning("{} library {} not found",
-                          warp::GetServerName(warp::GetFormattedPlex(), plex.server),
-                          warp::GetTag("library", plex.libraryName));
+                          api->GetPrettyName(),
+                          warp::GetTag("library", plex.library));
             }
          }
 
@@ -55,11 +55,11 @@ namespace loomis
                           warp::GetFormattedEmby(),
                           warp::GetTag("server", emby.server));
             }
-            else if (api->GetValid() && !api->GetLibraryId(emby.libraryName))
+            else if (api->GetValid() && !api->GetLibraryId(emby.library))
             {
                LogWarning("{} library {} not found",
-                          warp::GetServerName(warp::GetFormattedEmby(), emby.server),
-                          warp::GetTag("library", emby.libraryName));
+                          api->GetPrettyName(),
+                          warp::GetTag("library", emby.library));
             }
          }
       }
@@ -118,13 +118,13 @@ namespace loomis
          if (auto* plexApi = GetApiManager()->GetPlexApi(plexConfig.server);
              plexApi && plexApi->GetValid())
          {
-            auto libraryId = plexApi->GetLibraryId(plexConfig.libraryName);
+            auto libraryId = plexApi->GetLibraryId(plexConfig.library);
             if (!libraryId) continue;
 
             // Assuming Library Refresh is the intended notification
             plexApi->SetLibraryScan(*libraryId);
 
-            syncServerNames = warp::BuildSyncServerString(syncServerNames, warp::GetFormattedPlex(), plexConfig.server) + ":" + plexConfig.libraryName;
+            syncServerNames = warp::BuildSyncServerString(syncServerNames, warp::GetFormattedPlex(), plexConfig.server) + ":" + plexConfig.library;
          }
       }
 
@@ -134,12 +134,12 @@ namespace loomis
          if (auto* embyApi = GetApiManager()->GetEmbyApi(embyConfig.server);
              embyApi && embyApi->GetValid())
          {
-            auto libraryId = embyApi->GetLibraryId(embyConfig.libraryName);
+            auto libraryId = embyApi->GetLibraryId(embyConfig.library);
             if (!libraryId) continue;
 
             embyApi->SetLibraryScan(*libraryId);
 
-            syncServerNames = warp::BuildSyncServerString(syncServerNames, warp::GetFormattedEmby(), embyConfig.server) + ":" + embyConfig.libraryName;
+            syncServerNames = warp::BuildSyncServerString(syncServerNames, warp::GetFormattedEmby(), embyConfig.server) + ":" + embyConfig.library;
          }
       }
 
@@ -149,8 +149,8 @@ namespace loomis
       }
    }
 
-   bool FolderCleanupService::CheckMediaConnectionsValid(const std::vector<FolderCleanupServerConfig>& plex,
-                                                         const std::vector<FolderCleanupServerConfig>& emby)
+   bool FolderCleanupService::CheckMediaConnectionsValid(const std::vector<ServerLibraryConfig>& plex,
+                                                         const std::vector<ServerLibraryConfig>& emby)
    {
       for (const auto& p : plex)
       {

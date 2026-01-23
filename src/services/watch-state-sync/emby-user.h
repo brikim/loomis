@@ -5,7 +5,7 @@
 #include "api/api-manager.h"
 #include "api/api-tautulli-types.h"
 #include "config-reader/config-reader-types.h"
-#include "services/watch-state-sync/watch-state-logger.h"
+#include "services/service-logger.h"
 #include "types.h"
 
 #include <chrono>
@@ -18,7 +18,7 @@ namespace loomis
    public:
       EmbyUser(const ServerUser& config,
                const std::shared_ptr<ApiManager>& apiManager,
-               WatchStateLogger logger);
+               ServiceLogger logger);
       virtual ~EmbyUser() = default;
 
       [[nodiscard]] bool GetValid() const;
@@ -59,10 +59,9 @@ namespace loomis
       bool SyncEmbyPlayState(const EmbySyncState& syncState, std::string_view id);
 
       bool valid_{false};
-      WatchStateLogger logger_;
+      ServiceLogger logger_;
       ServerUser config_;
       std::string userId_;
-      std::string typeServerName_;
 
       EmbyApi* embyApi_{nullptr};
       JellystatApi* jellystatApi_{nullptr};

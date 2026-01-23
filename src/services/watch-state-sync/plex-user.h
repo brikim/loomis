@@ -4,7 +4,7 @@
 #include "api/api-plex.h"
 #include "api/api-tautulli.h"
 #include "config-reader/config-reader-types.h"
-#include "services/watch-state-sync/watch-state-logger.h"
+#include "services/service-logger.h"
 #include "types.h"
 
 #include <functional>
@@ -19,7 +19,7 @@ namespace loomis
    public:
       PlexUser(const ServerUser& config,
                const std::shared_ptr<ApiManager>& apiManager,
-               WatchStateLogger logger);
+               ServiceLogger logger);
       virtual ~PlexUser() = default;
 
       [[nodiscard]] bool GetValid() const;
@@ -51,9 +51,8 @@ namespace loomis
       bool SyncEmbyPlayState(const EmbySyncState& syncState);
 
       bool valid_{false};
-      WatchStateLogger logger_;
+      ServiceLogger logger_;
       ServerUser config_;
-      std::string typeServerName_;
 
       PlexApi* api_{nullptr};
       TautulliApi* trackerApi_{nullptr};

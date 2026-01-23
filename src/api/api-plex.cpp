@@ -8,6 +8,7 @@
 #include <glaze/glaze.hpp>
 #include <warp/log.h>
 #include <warp/log-utils.h>
+#include <warp/utils.h>
 
 #include <charconv>
 #include <cmath>
@@ -37,7 +38,12 @@ namespace loomis
    }
 
    PlexApi::PlexApi(const ServerConfig& serverConfig)
-      : ApiBase(serverConfig.server_name, serverConfig.url, serverConfig.api_key, "PlexApi", warp::ANSI_CODE_PLEX)
+      : ApiBase(ApiBaseData{.name = serverConfig.server_name,
+                .url = serverConfig.url,
+                .apiKey = serverConfig.api_key,
+                .className = "PlexApi",
+                .ansiiCode = warp::ANSI_CODE_PLEX,
+                .prettyName = warp::GetServerName(warp::GetFormattedPlex(), serverConfig.server_name)})
       , mediaPath_(serverConfig.media_path)
    {
       headers_ = {

@@ -75,16 +75,16 @@ namespace loomis
       std::vector<UserSyncConfig> users;
    };
 
-   struct FolderCleanupServerConfig
+   struct ServerLibraryConfig
    {
       std::string server;
-      std::string libraryName;
+      std::string library;
 
       struct glaze
       {
          static constexpr auto value = glz::object(
-            "server", &FolderCleanupServerConfig::server,
-            "library_name", &FolderCleanupServerConfig::libraryName
+            "server", &ServerLibraryConfig::server,
+            "library_name", &ServerLibraryConfig::library
          );
       };
    };
@@ -104,8 +104,8 @@ namespace loomis
    struct FolderCleanupPathToCheck
    {
       std::string path;
-      std::vector <FolderCleanupServerConfig> plex;
-      std::vector <FolderCleanupServerConfig> emby;
+      std::vector <ServerLibraryConfig> plex;
+      std::vector <ServerLibraryConfig> emby;
 
       struct glaze
       {
@@ -139,6 +139,59 @@ namespace loomis
       };
    };
 
+   struct DvrMaintainerLibraryActionInfo
+   {
+      std::string name;
+      std::string action;
+   };
+
+   struct DvrMaintainerExtension
+   {
+      std::string extension;
+
+      static constexpr auto value = glz::object(
+            "extension", &DvrMaintainerExtension::extension
+      );
+   };
+
+   struct DvrMaintainerLibrary
+   {
+      std::vector<ServerLibraryConfig> plex;
+      std::vector<ServerLibraryConfig> emby;
+      std::string path;
+      std::vector<DvrMaintainerLibraryActionInfo> actions;
+      std::vector<DvrMaintainerExtension> extensionsToDelete;
+
+      struct glaze
+      {
+         static constexpr auto value = glz::object(
+            "plex", &DvrMaintainerLibrary::plex,
+            "emby", &DvrMaintainerLibrary::emby,
+            "path", &DvrMaintainerLibrary::path,
+            "actions", &DvrMaintainerLibrary::actions,
+            "extensions_to_delete", &DvrMaintainerLibrary::extensionsToDelete
+         );
+      };
+   };
+
+   struct DvrMaintainerConfig
+   {
+      bool enabled{false};
+      bool dryRun{false};
+      std::string cron;
+      std::vector<DvrMaintainerLibrary> libraries;
+
+      struct glaze
+      {
+         static constexpr auto value = glz::object(
+            "enabled", &DvrMaintainerConfig::enabled,
+            "dry_run", &DvrMaintainerConfig::dryRun,
+            "cron", &DvrMaintainerConfig::cron,
+            "libraries", &DvrMaintainerConfig::libraries
+         );
+      };
+   };
+
    struct ConfigServers
    {
       std::vector<ServerConfig> servers;
@@ -153,5 +206,6 @@ namespace loomis
       PlaylistSyncConfig playlist_sync;
       WatchStateSyncConfig watch_state_sync;
       FolderCleanupConfig folder_cleanup;
+      DvrMaintainerConfig dvr_maintainer;
    };
 }

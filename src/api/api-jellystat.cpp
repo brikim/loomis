@@ -4,6 +4,7 @@
 
 #include <glaze/glaze.hpp>
 #include <warp/log-utils.h>
+#include <warp/utils.h>
 
 #include <format>
 #include <ranges>
@@ -20,7 +21,12 @@ namespace loomis
    }
 
    JellystatApi::JellystatApi(const ServerConfig& serverConfig)
-      : ApiBase(serverConfig.server_name, serverConfig.tracker_url, serverConfig.tracker_api_key, "JellystatApi", warp::ANSI_CODE_JELLYSTAT)
+      : ApiBase(ApiBaseData{.name = serverConfig.server_name,
+            .url = serverConfig.tracker_url,
+            .apiKey = serverConfig.tracker_api_key,
+            .className = "JellystatApi",
+            .ansiiCode = warp::ANSI_CODE_JELLYSTAT,
+            .prettyName = warp::GetServerName(warp::GetFormattedJellystat(), serverConfig.server_name)})
    {
       headers_ = {
          {"x-api-token", GetApiKey()},

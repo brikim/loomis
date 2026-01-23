@@ -89,4 +89,9 @@ namespace loomis
    {
       return configData_.folder_cleanup;
    }
+
+   const DvrMaintainerConfig& ConfigReader::GetDvrMaintainerConfig() const
+   {
+      return configData_.dvr_maintainer;
+   }
 }

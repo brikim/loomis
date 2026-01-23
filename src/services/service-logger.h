@@ -6,10 +6,10 @@
 
 namespace loomis
 {
-   class WatchStateLogger
+   class ServiceLogger
    {
    public:
-      WatchStateLogger(Base& parent) : parent_(parent)
+      ServiceLogger(Base& parent) : parent_(parent)
       {
       }
 
@@ -38,6 +38,6 @@ namespace loomis
       }
 
    private:
-      Base& parent_; // Store a reference to the service
+      Base& parent_;
    };
 }

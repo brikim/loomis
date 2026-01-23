@@ -9,10 +9,9 @@ namespace loomis
 {
    PlexUser::PlexUser(const ServerUser& config,
                       const std::shared_ptr<ApiManager>& apiManager,
-                      WatchStateLogger logger)
+                      ServiceLogger logger)
       : logger_(logger)
       , config_(config)
-      , typeServerName_(warp::GetServerName(warp::GetFormattedPlex(), config_.server))
    {
       // Do some quick checking on the users and make sure the api in the config exists.
       // Don't want to check if the user is valid on the api yet since it might be offline.
@@ -26,7 +25,7 @@ namespace loomis
          {
             logger_.LogWarning("{} not found on {}. Is user name correct?",
                                warp::GetTag("user", config_.user_name),
-                               warp::GetServerName(warp::GetFormattedTautulli(), config_.server));
+                               trackerApi_->GetPrettyName());
          }
 
          valid_ = true;
@@ -36,7 +35,7 @@ namespace loomis
          if (!api_)
          {
             logger_.LogWarning("{} api not found for {}",
-                               typeServerName_,
+                               warp::GetServerName(warp::GetFormattedPlex(), config_.server),
                                warp::GetTag("user", config_.user_name));
          }
 
@@ -56,7 +55,7 @@ namespace loomis
 
    std::string PlexUser::GetServerAndUserName() const
    {
-      return typeServerName_ + ":" + config_.user_name;
+      return api_->GetPrettyName() + ":" + config_.user_name;
    }
 
    int32_t PlexUser::GetId() const
@@ -71,7 +70,7 @@ namespace loomis
 
    std::string_view PlexUser::GetTypeAndServerName() const
    {
-      return typeServerName_;
+      return api_->GetPrettyName();
    }
 
    std::string_view PlexUser::GetUser() const

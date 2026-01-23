@@ -23,6 +23,7 @@ namespace loomis
       [[nodiscard]] const PlaylistSyncConfig& GetPlaylistSyncConfig() const;
       [[nodiscard]] const WatchStateSyncConfig& GetWatchStateSyncConfig() const;
       [[nodiscard]] const FolderCleanupConfig& GetFolderCleanupConfig() const;
+      [[nodiscard]] const DvrMaintainerConfig& GetDvrMaintainerConfig() const;
 
    private:
       void ReadConfigFile(const char* path);

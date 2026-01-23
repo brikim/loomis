@@ -11,7 +11,7 @@ namespace loomis
 {
    WatchStateUser::WatchStateUser(const UserSyncConfig& config,
                                   std::shared_ptr<ApiManager> apiManager,
-                                  WatchStateLogger logger)
+                                  ServiceLogger logger)
       : apiManager_(std::move(apiManager))
       , logger_(logger)
    {
