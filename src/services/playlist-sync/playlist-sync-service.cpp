@@ -46,7 +46,7 @@ namespace loomis
                else
                {
                   LogWarning("{} api not found for {} {}",
-                             embyApi->GetPrettyName(),
+                             warp::GetServerName(warp::GetFormattedEmby(), embyServerName.server),
                              plexApi->GetPrettyName(),
                              warp::GetTag("collection", plexCollection.collection_name));
                }
