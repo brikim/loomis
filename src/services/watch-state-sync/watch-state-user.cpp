@@ -1,5 +1,6 @@
 ﻿#include "watch-state-user.h"
 
+#include "api/api-manager.h"
 #include "services/service-utils.h"
 
 #include <warp/log-utils.h>

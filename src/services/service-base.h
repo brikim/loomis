@@ -9,6 +9,8 @@
 #include <string>
 #include <thread>
 
+class ApiManager;
+
 namespace loomis
 {
    class ServiceBase : public Base

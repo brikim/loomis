@@ -10,9 +10,14 @@
 
 namespace loomis
 {
+   namespace
+   {
+      constexpr std::string_view SERVICE_NAME("Watch State Sync");
+   }
+
    WatchStateSyncService::WatchStateSyncService(const WatchStateSyncConfig& config,
                                                 std::shared_ptr<ApiManager> apiManager)
-      : ServiceBase("Watch State Sync", ANSI_CODE_SERVICE_WATCH_STATE_SYNC, apiManager, config.cron)
+      : ServiceBase(SERVICE_NAME, ANSI_CODE_SERVICE_WATCH_STATE_SYNC, apiManager, config.cron)
    {
       Init(config);
    }

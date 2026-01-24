@@ -1,5 +1,7 @@
 ﻿#include "folder-cleanup-service.h"
 
+#include "api/api-manager.h"
+#include "api/api-plex.h"
 #include "services/service-types.h"
 
 #include <warp/log-utils.h>
@@ -7,9 +9,14 @@
 
 namespace loomis
 {
+   namespace
+   {
+      constexpr std::string_view SERVICE_NAME("Folder Cleanup");
+   }
+
    FolderCleanupService::FolderCleanupService(const FolderCleanupConfig& config,
                                             std::shared_ptr<ApiManager> apiManager)
-      : ServiceBase("Folder Cleanup", ANSI_CODE_SERVICE_FOLDER_CLEANUP, apiManager, config.cron)
+      : ServiceBase(SERVICE_NAME, ANSI_CODE_SERVICE_FOLDER_CLEANUP, apiManager, config.cron)
       , config_(config)
    {
       Init(config);
@@ -22,6 +29,7 @@ namespace loomis
          LogInfo("DRY RUN MODE ENABLED - No folders will be physically removed.");
       }
 
+      namespace fs = std::filesystem;
       for (const auto& pathEntry : config.pathsToCheck)
       {
          if (!fs::exists(pathEntry.path))
@@ -31,8 +39,7 @@ namespace loomis
 
          for (const auto& plex : pathEntry.plex)
          {
-            auto* api = GetApiManager()->GetPlexApi(plex.server);
-            if (!api)
+            if (auto* api = GetApiManager()->GetPlexApi(plex.server); !api)
             {
                LogWarning("{} api not found for {}",
                           warp::GetFormattedPlex(),
@@ -48,8 +55,7 @@ namespace loomis
 
          for (const auto& emby : pathEntry.emby)
          {
-            auto* api = GetApiManager()->GetEmbyApi(emby.server);
-            if (!api)
+            if (auto* api = GetApiManager()->GetEmbyApi(emby.server); !api)
             {
                LogWarning("{} api not found for {}",
                           warp::GetFormattedEmby(),
@@ -67,34 +73,28 @@ namespace loomis
       // Pre-lowercase the ignore lists for faster comparison in IsFolderEmpty
       for (auto& item : config_.ignoreFileEmptyCheck)
       {
-         item.item = warp::ToLower(item.item);
+         ignoreFiles_.emplace(warp::ToLower(fs::path(item.item).native()));
       }
       for (auto& item : config_.ignoreFolders)
       {
-         item.item = warp::ToLower(item.item);
+         ignoreFolders_.emplace(warp::ToLower(fs::path(item.item).native()));
       }
    }
 
-   bool FolderCleanupService::IsFolderEmpty(const fs::path& p)
+   bool FolderCleanupService::IsFolderEmpty(const std::filesystem::path& p) const
    {
       try
       {
+         namespace fs = std::filesystem;
          for (const auto& entry : fs::directory_iterator(p))
          {
-            auto name = entry.path().filename().string();
-            auto lowerName = warp::ToLower(name);
+            const auto& path = entry.path();
+            auto name = path.filename().native();
+            if (!name.empty() && name[0] == '.') continue;
 
-            // Skip hidden files/folders (starting with '.')
-            if (!lowerName.empty() && lowerName[0] == '.') continue;
-
-            bool isIgnored = std::any_of(config_.ignoreFileEmptyCheck.begin(), config_.ignoreFileEmptyCheck.end(),
-               [&lowerName](const auto& item) { return lowerName == item.item; });
-            if (isIgnored) continue;
-
-            bool isIgnoredDir = std::any_of(config_.ignoreFolders.begin(),
-                                            config_.ignoreFolders.end(),
-                                            [&lowerName](const auto& item) {return lowerName == item.item; });
-            if (isIgnoredDir) continue;
+            if (auto lowerName = warp::ToLower(name);
+                ignoreFiles_.contains(lowerName) || ignoreFolders_.contains(lowerName))
+               continue;
 
             // If we found something that isn't ignored, the folder isn't empty
             return false;
@@ -173,64 +173,58 @@ namespace loomis
          return;
       }
 
+      namespace fs = std::filesystem;
       fs::path rootPath(pathConfig.path);
       if (!fs::exists(rootPath)) return;
 
+      struct PathEntry
+      {
+         fs::path path;
+         size_t depth;
+      };
       bool directoryDeleted = false;
-      std::vector<fs::path> subdirs;
+      std::vector<PathEntry> subdirs;
+      std::error_code ec;
 
-      try
+      // Use error_code to avoid exceptions on permission-denied subfolders
+      for (auto it = fs::recursive_directory_iterator(rootPath, ec); it != fs::recursive_directory_iterator(); ++it)
       {
-         // Collect all subdirectories inside the top-level path
-         for (const auto& entry : fs::recursive_directory_iterator(rootPath))
+         if (ec)
          {
-            if (entry.is_directory())
-            {
-               subdirs.push_back(entry.path());
-            }
+            LogWarning("Error accessing {}: {}", it->path().string(), ec.message());
+            ec.clear();
+            continue;
          }
-      }
-      catch (const std::exception& e)
-      {
-         LogWarning("Failed to iterate {}: {}", warp::GetTag("path", rootPath.string()), e.what());
-         return;
+         if (it->is_directory()) subdirs.push_back({it->path(), static_cast<size_t>(it.depth())});
       }
 
-      // Sort by depth (deepest first). 
-      // This way if 'Root/Folder/Subfolder' are all empty:
-      // 1. Subfolder is deleted.
-      // 2. Folder is now empty and deleted.
-      // 3. Root is checked but we skip it.
-      std::sort(subdirs.begin(), subdirs.end(), [](const fs::path& a, const fs::path& b) {
-         return a.string().length() > b.string().length();
+      // Robust depth sort: Deepest paths (most components) first
+      std::sort(subdirs.begin(), subdirs.end(), [](const auto& a, const auto& b) {
+         return a.depth > b.depth;
       });
 
       for (const auto& dir : subdirs)
       {
          // Safety: Never delete the top-level path itself
-         if (dir == rootPath) continue;
+         if (dir.path == rootPath) continue;
 
-         if (IsFolderEmpty(dir))
+         if (IsFolderEmpty(dir.path))
          {
             if (config_.dryRun)
             {
-               // We log what WE WOULD HAVE done
                LogInfo("[Dry Run] Would remove empty folder: {}",
-                       warp::GetTag("path", warp::GetStandoutText(dir.string())));
-
-               directoryDeleted = false;
+                       warp::GetTag("path", warp::GetStandoutText(dir.path.string())));
             }
             else
             {
-               std::error_code ec;
-               if (fs::remove_all(dir, ec))
+               if (std::error_code ec; fs::remove_all(dir.path, ec))
                {
-                  LogInfo("Removed empty folder: {}", warp::GetTag("path", warp::GetStandoutText(dir.string())));
+                  LogInfo("Removed empty folder: {}", warp::GetTag("path", warp::GetStandoutText(dir.path.string())));
                   directoryDeleted = true;
                }
                else if (ec)
                {
-                  LogWarning("Failed to remove {}: {}", warp::GetTag("path", dir.string()), ec.message());
+                  LogWarning("Failed to remove {}: {}", warp::GetTag("path", dir.path.string()), ec.message());
                }
             }
          }

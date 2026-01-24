@@ -1,6 +1,5 @@
 #pragma once
 
-#include "api/api-manager.h"
 #include "config-reader/config-reader-types.h"
 #include "services/service-base.h"
 
@@ -9,6 +8,8 @@
 #include <memory>
 #include <mutex>
 #include <vector>
+
+class ApiManager;
 
 namespace loomis
 {

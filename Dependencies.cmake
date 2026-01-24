@@ -1,5 +1,5 @@
 # Version Definitions
-set(WARP_VERSION  v1.0.12)
+set(WARP_VERSION  v1.0.14)
 set(GLAZE_VERSION    v7.0.0)
 set(HTTPLIB_VERSION  v0.30.1)
 set(CRONCPP_VERSION  v2023.03.30)

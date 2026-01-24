@@ -1,15 +1,19 @@
 #include "dvr-maintainer-service.h"
 
-#include "api/api-manager.h"
 #include "services/service-types.h"
 
 #include <warp/log-utils.h>
 
 namespace loomis
 {
+   namespace
+   {
+      constexpr std::string_view SERVICE_NAME("DVR Maintainer");
+   }
+
    DvrMaintainerService::DvrMaintainerService(const DvrMaintainerConfig& config,
                                               std::shared_ptr<ApiManager> apiManager)
-      : ServiceBase("DVR Maintainer", ANSI_CODE_SERVICE_DVR_MAINTAINER, apiManager, config.cron)
+      : ServiceBase(SERVICE_NAME, ANSI_CODE_SERVICE_DVR_MAINTAINER, apiManager, config.cron)
       , config_(config)
    {
       Init(config_);

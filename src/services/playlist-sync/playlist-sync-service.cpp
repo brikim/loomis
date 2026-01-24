@@ -1,5 +1,6 @@
 ﻿#include "playlist-sync-service.h"
 
+#include "api/api-manager.h"
 #include "services/service-types.h"
 
 #include <warp/log.h>
@@ -8,12 +9,19 @@
 
 #include <algorithm>
 #include <ranges>
+#include <unordered_set>
 
 namespace loomis
 {
+   namespace
+   {
+      constexpr std::string_view SERVICE_NAME("Playlist Sync");
+      constexpr auto PLAYLIST_UPDATE_WAIT_TIME(std::chrono::milliseconds(100));
+   }
+
    PlaylistSyncService::PlaylistSyncService(const PlaylistSyncConfig& config,
                                             std::shared_ptr<ApiManager> apiManager)
-      : ServiceBase("Playlist Sync", ANSI_CODE_SERVICE_PLAYLIST_SYNC, apiManager, config.cron)
+      : ServiceBase(SERVICE_NAME, ANSI_CODE_SERVICE_PLAYLIST_SYNC, apiManager, config.cron)
       , timeForEmbyUpdateSec_(config.time_for_emby_to_update_seconds)
       , timeBetweenSyncsSec_(config.time_between_syncs_seconds)
    {
@@ -81,22 +89,38 @@ namespace loomis
                                                                              const EmbyPlaylist& currentPlaylist,
                                                                              const std::vector<std::string>& updatedPlaylistIds)
    {
+      std::unordered_set<std::string_view> currentItemIds;
+      currentItemIds.reserve(currentPlaylist.items.size());
+      for (const auto& item : currentPlaylist.items)
+      {
+         currentItemIds.emplace(item.id);
+      }
+
       std::vector<std::string> addIds;
+      addIds.reserve(updatedPlaylistIds.size());
       for (const auto& targetId : updatedPlaylistIds)
       {
-         bool doesNotExist = std::ranges::none_of(currentPlaylist.items,
-             [&targetId](const auto& item) { return item.id == targetId; });
+         if (!currentItemIds.contains(targetId))
+         {
+            addIds.emplace_back(targetId);
+         }
+      }
 
-         if (doesNotExist) addIds.push_back(targetId);
+      std::unordered_set<std::string_view> targetIdSet;
+      targetIdSet.reserve(updatedPlaylistIds.size());
+      for (const auto& id : updatedPlaylistIds)
+      {
+         targetIdSet.emplace(id);
       }
 
       std::vector<std::string> deleteIds;
       for (const auto& item : currentPlaylist.items)
       {
-         bool doesNotExist = std::ranges::none_of(updatedPlaylistIds,
-             [&item](const auto& targetId) { return item.id == targetId; });
-
-         if (doesNotExist) deleteIds.push_back(item.playlistId);
+         if (!targetIdSet.contains(item.id))
+         {
+            // IMPORTANT: Remove using the PlaylistEntryId, not the Media ID
+            deleteIds.emplace_back(item.playlistId);
+         }
       }
 
       auto logPlaylistWarning = [this, &embyApi, &currentPlaylist](bool addErr, const std::vector<std::string>& ids) {
@@ -158,7 +182,8 @@ namespace loomis
 
       struct MoveTracker
       {
-         std::string_view id; std::string_view pId;
+         std::string_view id;
+         std::string_view pId;
       };
       std::vector<MoveTracker> virtualItems;
       virtualItems.reserve(currentPlaylist.items.size());
@@ -182,7 +207,7 @@ namespace loomis
                virtualItems.insert(virtualItems.begin() + i, itemToMove);
                orderChanged = true;
 
-               std::this_thread::sleep_for(std::chrono::milliseconds(200));
+               std::this_thread::sleep_for(PLAYLIST_UPDATE_WAIT_TIME);
             }
          }
       }

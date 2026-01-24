@@ -1,7 +1,6 @@
 #pragma once
 
 #include "api/api-jellystat-types.h"
-#include "api/api-manager.h"
 #include "api/api-tautulli-types.h"
 #include "config-reader/config-reader-types.h"
 #include "services/service-logger.h"
@@ -13,6 +12,8 @@
 #include <memory>
 #include <unordered_map>
 #include <vector>
+
+class ApiManager;
 
 namespace loomis
 {

@@ -9,6 +9,8 @@
 #include "cron-scheduler.h"
 #include "types.h"
 
+#include <warp/types.h>
+
 #include <memory>
 #include <ranges>
 #include <vector>
@@ -23,11 +25,11 @@ namespace loomis
 
       void AddTasks(CronScheduler& cronScheduler);
 
-      [[nodiscard]] ApiBase* GetApi(ApiType type, std::string_view name) const;
       [[nodiscard]] PlexApi* GetPlexApi(std::string_view name) const;
       [[nodiscard]] EmbyApi* GetEmbyApi(std::string_view name) const;
       [[nodiscard]] TautulliApi* GetTautulliApi(std::string_view name) const;
       [[nodiscard]] JellystatApi* GetJellystatApi(std::string_view name) const;
+      [[nodiscard]] ApiBase* GetApi(warp::ApiType type, std::string_view name) const;
 
    private:
       void SetupPlexApis(const std::vector<ServerConfig>& serverConfigs);

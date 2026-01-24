@@ -13,7 +13,9 @@ namespace loomis
    class Base
    {
    public:
-      Base(std::string_view className, std::string_view ansiiCode, std::optional<std::string_view> classExtra);
+      Base(std::string_view className,
+           std::string_view ansiiCode,
+           std::optional<std::string_view> classExtra);
       virtual ~Base() = default;
 
       template<typename... Args>

@@ -9,7 +9,6 @@
 #include <warp/log-utils.h>
 
 #include <algorithm>
-#include <format>
 
 namespace loomis
 {

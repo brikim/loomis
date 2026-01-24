@@ -17,14 +17,6 @@ namespace loomis
       ERR
    };
 
-   enum class ApiType
-   {
-      PLEX,
-      EMBY,
-      TAUTULLI,
-      JELLYSTAT
-   };
-
    struct Task
    {
       bool service{false};

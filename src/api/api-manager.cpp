@@ -83,14 +83,14 @@ namespace loomis
       return FindApi(jellystatApis_, name);
    }
 
-   ApiBase* ApiManager::GetApi(ApiType type, std::string_view name) const
+   ApiBase* ApiManager::GetApi(warp::ApiType type, std::string_view name) const
    {
       switch (type)
       {
-         case ApiType::PLEX:      return FindApi(plexApis_, name);
-         case ApiType::EMBY:      return FindApi(embyApis_, name);
-         case ApiType::TAUTULLI:  return FindApi(tautulliApis_, name);
-         case ApiType::JELLYSTAT: return FindApi(jellystatApis_, name);
+         case warp::ApiType::PLEX:      return FindApi(plexApis_, name);
+         case warp::ApiType::EMBY:      return FindApi(embyApis_, name);
+         case warp::ApiType::TAUTULLI:  return FindApi(tautulliApis_, name);
+         case warp::ApiType::JELLYSTAT: return FindApi(jellystatApis_, name);
          default:                 return nullptr;
       }
    }
