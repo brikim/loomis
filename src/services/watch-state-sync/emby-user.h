@@ -1,12 +1,13 @@
 #pragma once
 
-#include "api/api-emby.h"
-#include "api/api-jellystat.h"
-#include "api/api-manager.h"
-#include "api/api-tautulli-types.h"
 #include "config-reader/config-reader-types.h"
 #include "services/service-logger.h"
-#include "types.h"
+
+#include <warp/api/api-emby.h>
+#include <warp/api/api-jellystat.h>
+#include <warp/api/api-manager.h>
+#include <warp/api/api-tautulli-types.h>
+#include <warp/types.h>
 
 #include <chrono>
 #include <functional>
@@ -17,7 +18,7 @@ namespace loomis
    {
    public:
       EmbyUser(const ServerUser& config,
-               const std::shared_ptr<ApiManager>& apiManager,
+               const std::shared_ptr<warp::ApiManager>& apiManager,
                ServiceLogger logger);
       virtual ~EmbyUser() = default;
 
@@ -27,8 +28,8 @@ namespace loomis
       [[nodiscard]] std::string_view GetTypeAndServerName() const;
       [[nodiscard]] std::string_view GetUser() const;
       [[nodiscard]] std::string_view GetMediaPath() const;
-      [[nodiscard]] std::optional<JellystatHistoryItems> GetWatchHistory();
-      [[nodiscard]] std::optional<EmbyPlayState> GetPlayState(std::string_view id);
+      [[nodiscard]] std::optional<warp::JellystatHistoryItems> GetWatchHistory();
+      [[nodiscard]] std::optional<warp::EmbyPlayState> GetPlayState(std::string_view id);
 
       void Update();
 
@@ -63,7 +64,7 @@ namespace loomis
       ServerUser config_;
       std::string userId_;
 
-      EmbyApi* embyApi_{nullptr};
-      JellystatApi* jellystatApi_{nullptr};
+      warp::EmbyApi* embyApi_{nullptr};
+      warp::JellystatApi* jellystatApi_{nullptr};
    };
 }

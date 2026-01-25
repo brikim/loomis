@@ -2,7 +2,7 @@
 #include "service-manager.h"
 #include "version.h"
 
-#include <warp/log.h>
+#include <warp/log/log.h>
 
 #include <csignal>
 #include <memory>

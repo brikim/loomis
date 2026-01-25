@@ -1,11 +1,12 @@
 #pragma once
 
-#include "api/api-manager.h"
-#include "api/api-plex.h"
-#include "api/api-tautulli.h"
 #include "config-reader/config-reader-types.h"
 #include "services/service-logger.h"
-#include "types.h"
+
+#include <warp/api/api-manager.h>
+#include <warp/api/api-plex.h>
+#include <warp/api/api-tautulli.h>
+#include <warp/types.h>
 
 #include <functional>
 #include <optional>
@@ -18,7 +19,7 @@ namespace loomis
    {
    public:
       PlexUser(const ServerUser& config,
-               const std::shared_ptr<ApiManager>& apiManager,
+               const std::shared_ptr<warp::ApiManager>& apiManager,
                ServiceLogger logger);
       virtual ~PlexUser() = default;
 
@@ -28,7 +29,7 @@ namespace loomis
       [[nodiscard]] std::string_view GetServerName() const;
       [[nodiscard]] std::string_view GetTypeAndServerName() const;
       [[nodiscard]] std::string_view GetUser() const;
-      [[nodiscard]] std::optional<TautulliHistoryItems> GetWatchHistory(std::string_view historyDate, int64_t epochHistoryTime);
+      [[nodiscard]] std::optional<warp::TautulliHistoryItems> GetWatchHistory(std::string_view historyDate, int64_t epochHistoryTime);
 
       void Update();
 
@@ -46,7 +47,7 @@ namespace loomis
       void SyncStateWithEmby(const EmbySyncState& syncState, std::string& syncResults);
 
    private:
-      std::optional<PlexSearchResult> GetSyncStateItem(const EmbySyncState& syncState) const;
+      std::optional<warp::PlexSearchResult> GetSyncStateItem(const EmbySyncState& syncState) const;
       bool SyncEmbyWatchedState(const EmbySyncState& syncState);
       bool SyncEmbyPlayState(const EmbySyncState& syncState);
 
@@ -54,9 +55,9 @@ namespace loomis
       ServiceLogger logger_;
       ServerUser config_;
 
-      PlexApi* api_{nullptr};
-      TautulliApi* trackerApi_{nullptr};
+      warp::PlexApi* api_{nullptr};
+      warp::TautulliApi* trackerApi_{nullptr};
 
-      TautulliUserInfo userInfo_;
+      warp::TautulliUserInfo userInfo_;
    };
 }

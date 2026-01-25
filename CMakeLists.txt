@@ -21,14 +21,8 @@ include(Dependencies.cmake)
 
 FetchContent_Declare(warp     GIT_REPOSITORY ${WARP_REPO}    GIT_TAG ${WARP_VERSION})
 FetchContent_Declare(glaze    GIT_REPOSITORY ${GLAZE_REPO}   GIT_TAG ${GLAZE_VERSION})
-FetchContent_Declare(httplib  GIT_REPOSITORY ${HTTPLIB_REPO} GIT_TAG ${HTTPLIB_VERSION})
-FetchContent_Declare(croncpp  GIT_REPOSITORY ${CRONCPP_REPO} GIT_TAG ${CRONCPP_VERSION})
 
-set(HTTPLIB_COMPILE OFF CACHE BOOL "" FORCE)
-set(PUGIXML_BUILD_SHARED OFF CACHE BOOL "" FORCE)
-set(SPDLOG_MSVC_RUNTIME_LIBRARY "${CMAKE_MSVC_RUNTIME_LIBRARY}" CACHE STRING "" FORCE)
-
-FetchContent_MakeAvailable(warp glaze httplib croncpp)
+FetchContent_MakeAvailable(warp glaze)
 
 # 5. SOURCE DISCOVERY
 file(GLOB_RECURSE LOOMIS_SOURCES 
@@ -79,8 +73,6 @@ target_precompile_headers(loomis PRIVATE
     <string_view>
 
     # Third-Party
-    <httplib.h>
-    <croncpp.h>
     <glaze/glaze.hpp>
 )
 
@@ -90,6 +82,4 @@ target_include_directories(loomis PRIVATE include src)
 target_link_libraries(loomis PRIVATE
     warp::warp
     glaze::glaze
-    httplib::httplib
-    croncpp::croncpp
 )

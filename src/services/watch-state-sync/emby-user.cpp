@@ -2,7 +2,7 @@
 
 #include "services/service-utils.h"
 
-#include <warp/log-utils.h>
+#include <warp/log/log-utils.h>
 #include <warp/utils.h>
 
 namespace loomis
@@ -13,7 +13,7 @@ namespace loomis
    }
 
    EmbyUser::EmbyUser(const ServerUser& config,
-                      const std::shared_ptr<ApiManager>& apiManager,
+                      const std::shared_ptr<warp::ApiManager>& apiManager,
                       ServiceLogger logger)
       : logger_(logger)
       , config_(config)
@@ -83,7 +83,7 @@ namespace loomis
       return embyApi_->GetMediaPath();
    }
 
-   std::optional<EmbyPlayState> EmbyUser::GetPlayState(std::string_view id)
+   std::optional<warp::EmbyPlayState> EmbyUser::GetPlayState(std::string_view id)
    {
       return embyApi_->GetPlayState(userId_, id);
    }
@@ -95,7 +95,7 @@ namespace loomis
       if (valid_) userId_ = std::move(user->id);
    }
 
-   std::optional<JellystatHistoryItems> EmbyUser::GetWatchHistory()
+   std::optional<warp::JellystatHistoryItems> EmbyUser::GetWatchHistory()
    {
       return jellystatApi_->GetWatchHistoryForUser(userId_);
    }

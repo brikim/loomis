@@ -1,10 +1,10 @@
 ﻿#include "playlist-sync-service.h"
 
-#include "api/api-manager.h"
 #include "services/service-types.h"
 
-#include <warp/log.h>
-#include <warp/log-utils.h>
+#include <warp/api/api-manager.h>
+#include <warp/log/log.h>
+#include <warp/log/log-utils.h>
 #include <warp/utils.h>
 
 #include <algorithm>
@@ -20,7 +20,7 @@ namespace loomis
    }
 
    PlaylistSyncService::PlaylistSyncService(const PlaylistSyncConfig& config,
-                                            std::shared_ptr<ApiManager> apiManager)
+                                            std::shared_ptr<warp::ApiManager> apiManager)
       : ServiceBase(SERVICE_NAME, ANSI_CODE_SERVICE_PLAYLIST_SYNC, apiManager, config.cron)
       , timeForEmbyUpdateSec_(config.time_for_emby_to_update_seconds)
       , timeBetweenSyncsSec_(config.time_between_syncs_seconds)
@@ -85,8 +85,8 @@ namespace loomis
       }
    }
 
-   std::pair<size_t, size_t> PlaylistSyncService::AddRemoveEmbyPlaylistItems(EmbyApi* embyApi,
-                                                                             const EmbyPlaylist& currentPlaylist,
+   std::pair<size_t, size_t> PlaylistSyncService::AddRemoveEmbyPlaylistItems(warp::EmbyApi* embyApi,
+                                                                             const warp::EmbyPlaylist& currentPlaylist,
                                                                              const std::vector<std::string>& updatedPlaylistIds)
    {
       std::unordered_set<std::string_view> currentItemIds;
@@ -145,9 +145,9 @@ namespace loomis
       return {addIds.size(), deleteIds.size()};
    }
 
-   void PlaylistSyncService::UpdateEmbyPlaylist(PlexApi* plexApi,
-                                                EmbyApi* embyApi,
-                                                EmbyPlaylist currentPlaylist,
+   void PlaylistSyncService::UpdateEmbyPlaylist(warp::PlexApi* plexApi,
+                                                warp::EmbyApi* embyApi,
+                                                warp::EmbyPlaylist currentPlaylist,
                                                 const std::vector<std::string>& correctIds)
    {
       auto [added, removed] = AddRemoveEmbyPlaylistItems(embyApi, currentPlaylist, correctIds);
@@ -224,7 +224,7 @@ namespace loomis
       }
    }
 
-   void PlaylistSyncService::SyncEmbyPlaylist(PlexApi* plexApi, EmbyApi* embyApi, const PlexCollection& plexCollection)
+   void PlaylistSyncService::SyncEmbyPlaylist(warp::PlexApi* plexApi, warp::EmbyApi* embyApi, const warp::PlexCollection& plexCollection)
    {
       if (embyApi->GetPathMapEmpty() && !plexCollection.items.empty())
       {
@@ -274,7 +274,7 @@ namespace loomis
       }
    }
 
-   void PlaylistSyncService::SyncPlexCollection(PlexApi* plexApi, EmbyApi* embyApi, const PlaylistPlexCollection& collection)
+   void PlaylistSyncService::SyncPlexCollection(warp::PlexApi* plexApi, warp::EmbyApi* embyApi, const PlaylistPlexCollection& collection)
    {
       auto plexCollection = plexApi->GetCollection(collection.library, collection.collection_name);
       if (plexCollection)

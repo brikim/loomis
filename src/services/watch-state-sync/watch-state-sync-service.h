@@ -1,13 +1,12 @@
 #pragma once
 
-#include "api/api-manager.h"
 #include "config-reader/config-reader-types.h"
 #include "services/service-base.h"
 #include "services/watch-state-sync/emby-user.h"
 #include "services/watch-state-sync/plex-user.h"
 #include "services/watch-state-sync/watch-state-user.h"
 
-#include "types.h"
+#include <warp/api//api-manager.h>
 
 #include <memory>
 #include <optional>
@@ -19,7 +18,7 @@ namespace loomis
    {
    public:
       WatchStateSyncService(const WatchStateSyncConfig& config,
-                            std::shared_ptr<ApiManager> apiManager);
+                            std::shared_ptr<warp::ApiManager> apiManager);
       virtual ~WatchStateSyncService() = default;
 
       void Run() override;

@@ -4,18 +4,53 @@
 #include "services/folder-cleanup/folder-cleanup-service.h"
 #include "services/playlist-sync/playlist-sync-service.h"
 #include "services/watch-state-sync/watch-state-sync-service.h"
+#include "version.h"
 
-#include <warp/log.h>
-#include <warp/log-utils.h>
+#include <warp/log/log.h>
+#include <warp/log/log-utils.h>
 
 #include <algorithm>
 
 namespace loomis
 {
+   namespace
+   {
+      constexpr std::string_view SERVICE_NAME("Loomis");
+   };
+
    ServiceManager::ServiceManager(std::shared_ptr<ConfigReader> configReader)
       : configReader_(configReader)
-      , apiManager_(std::make_shared<ApiManager>(configReader))
    {
+      std::vector<warp::ServerConfig> plexConfigs;
+      for (const auto& plexServer : configReader_->GetPlexServers())
+      {
+         plexConfigs.emplace_back(warp::ServerConfig{
+                                  .server_name = plexServer.server_name,
+                                  .url = plexServer.url,
+                                  .api_key = plexServer.api_key,
+                                  .tracker_url = plexServer.tracker_url,
+                                  .tracker_api_key = plexServer.tracker_api_key,
+                                  .media_path = plexServer.media_path});
+      }
+
+      std::vector<warp::ServerConfig> embyConfigs;
+      for (const auto& embyServer : configReader_->GetEmbyServers())
+      {
+         embyConfigs.emplace_back(warp::ServerConfig{
+                                  .server_name = embyServer.server_name,
+                                  .url = embyServer.url,
+                                  .api_key = embyServer.api_key,
+                                  .tracker_url = embyServer.tracker_url,
+                                  .tracker_api_key = embyServer.tracker_api_key,
+                                  .media_path = embyServer.media_path});
+      }
+      apiManager_ = std::make_shared<warp::ApiManager>(SERVICE_NAME,
+                                                       LOOMIS_VERSION,
+                                                       plexConfigs,
+                                                       embyConfigs);
+
+      // Loomis requires the extra caching provided by the api manager
+      apiManager_->EnableExtraCaching();
    }
 
    void ServiceManager::CreateServices()
@@ -52,7 +87,13 @@ namespace loomis
       }
 
       // Add any needed api tasks
-      apiManager_->AddTasks(cronScheduler_);
+      std::vector<warp::Task> apiTasks;
+      apiManager_->GetTasks(apiTasks);
+      for (const auto& apiTask : apiTasks)
+      {
+         cronScheduler_.Add(apiTask);
+      }
+      apiTasks.clear();
 
       // Services are required to have tasks so add
       for (const auto& service : services_)

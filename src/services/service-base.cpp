@@ -1,7 +1,7 @@
 ﻿#include "service-base.h"
 
-#include <warp/log.h>
-#include <warp/log-utils.h>
+#include <warp/log/log.h>
+#include <warp/log/log-utils.h>
 
 #include <chrono>
 #include <ranges>
@@ -10,9 +10,9 @@ namespace loomis
 {
    ServiceBase::ServiceBase(std::string_view name,
                             std::string_view ansiiColor,
-                            std::shared_ptr<ApiManager> apiManager,
+                            std::shared_ptr<warp::ApiManager> apiManager,
                             const std::string& cronSchedule)
-      : Base(name, ansiiColor, std::nullopt)
+      : warp::Base(name, ansiiColor, std::nullopt)
       , apiManager_(apiManager)
    {
       task_.service = true;
@@ -21,12 +21,12 @@ namespace loomis
       task_.func = [this]() { this->Run(); };
    }
 
-   const Task& ServiceBase::GetTask() const
+   const warp::Task& ServiceBase::GetTask() const
    {
       return task_;
    }
 
-   const std::shared_ptr<ApiManager> ServiceBase::GetApiManager() const
+   const std::shared_ptr<warp::ApiManager> ServiceBase::GetApiManager() const
    {
       return apiManager_;
    }

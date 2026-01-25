@@ -1,7 +1,7 @@
 ﻿#include "dvr-library.h"
 
-#include <warp/log.h>
-#include <warp/log-utils.h>
+#include <warp/log/log.h>
+#include <warp/log/log-utils.h>
 #include <warp/utils.h>
 
 namespace loomis
@@ -13,7 +13,7 @@ namespace loomis
    }
 
    DvrLibrary::DvrLibrary(const DvrMaintainerLibrary& config,
-                          std::shared_ptr<ApiManager> apiManager,
+                          std::shared_ptr<warp::ApiManager> apiManager,
                           ServiceLogger serviceLogger,
                           bool dryRun)
       : apiManager_(apiManager)

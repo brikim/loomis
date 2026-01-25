@@ -1,10 +1,9 @@
 ﻿#include "folder-cleanup-service.h"
 
-#include "api/api-manager.h"
-#include "api/api-plex.h"
 #include "services/service-types.h"
 
-#include <warp/log-utils.h>
+#include <warp/api/api-plex.h>
+#include <warp/log/log-utils.h>
 #include <warp/utils.h>
 
 namespace loomis
@@ -15,7 +14,7 @@ namespace loomis
    }
 
    FolderCleanupService::FolderCleanupService(const FolderCleanupConfig& config,
-                                            std::shared_ptr<ApiManager> apiManager)
+                                            std::shared_ptr<warp::ApiManager> apiManager)
       : ServiceBase(SERVICE_NAME, ANSI_CODE_SERVICE_FOLDER_CLEANUP, apiManager, config.cron)
       , config_(config)
    {

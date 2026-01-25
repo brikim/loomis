@@ -2,13 +2,13 @@
 
 #include "services/service-utils.h"
 
-#include <warp/log-utils.h>
+#include <warp/log/log-utils.h>
 #include <warp/utils.h>
 
 namespace loomis
 {
    PlexUser::PlexUser(const ServerUser& config,
-                      const std::shared_ptr<ApiManager>& apiManager,
+                      const std::shared_ptr<warp::ApiManager>& apiManager,
                       ServiceLogger logger)
       : logger_(logger)
       , config_(config)
@@ -78,7 +78,7 @@ namespace loomis
       return userInfo_.friendlyName.empty() ? config_.user_name : userInfo_.friendlyName;
    }
 
-   std::optional<TautulliHistoryItems> PlexUser::GetWatchHistory(std::string_view historyDate, int64_t epochHistoryTime)
+   std::optional<warp::TautulliHistoryItems> PlexUser::GetWatchHistory(std::string_view historyDate, int64_t epochHistoryTime)
    {
       return trackerApi_->GetWatchHistoryForUser(config_.user_name, historyDate, epochHistoryTime);
    }
@@ -95,7 +95,7 @@ namespace loomis
       // Currently not supported. Future Growth?
    }
 
-   std::optional<PlexSearchResult> PlexUser::GetSyncStateItem(const EmbySyncState& syncState) const
+   std::optional<warp::PlexSearchResult> PlexUser::GetSyncStateItem(const EmbySyncState& syncState) const
    {
       auto info = api_->GetItemInfo(syncState.name);
       if (!info) return std::nullopt;

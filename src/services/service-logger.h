@@ -1,6 +1,6 @@
 #pragma once
 
-#include "base.h"
+#include <warp/base.h>
 
 #include <format>
 
@@ -9,7 +9,7 @@ namespace loomis
    class ServiceLogger
    {
    public:
-      ServiceLogger(Base& parent) : parent_(parent)
+      ServiceLogger(warp::Base& parent) : parent_(parent)
       {
       }
 
@@ -38,6 +38,6 @@ namespace loomis
       }
 
    private:
-      Base& parent_;
+      warp::Base& parent_;
    };
 }

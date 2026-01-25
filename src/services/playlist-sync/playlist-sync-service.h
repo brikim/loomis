@@ -3,13 +3,15 @@
 #include "config-reader/config-reader-types.h"
 #include "services/service-base.h"
 
+#include <warp/api/api-emby.h>
+#include <warp/api/api-manager.h>
+#include <warp/api/api-plex.h>
+
 #include <atomic>
 #include <cstdint>
 #include <memory>
 #include <mutex>
 #include <vector>
-
-class ApiManager;
 
 namespace loomis
 {
@@ -17,7 +19,7 @@ namespace loomis
    {
    public:
       PlaylistSyncService(const PlaylistSyncConfig& config,
-                          std::shared_ptr<ApiManager> apiManager);
+                          std::shared_ptr<warp::ApiManager> apiManager);
       virtual ~PlaylistSyncService() = default;
 
       void Run() override;
@@ -26,10 +28,10 @@ namespace loomis
       void Init(const PlaylistSyncConfig& config);
 
       // Returns added then deleted item numbers in the pair
-      std::pair<size_t, size_t> AddRemoveEmbyPlaylistItems(EmbyApi* embyApi, const EmbyPlaylist& currentPlaylist, const std::vector<std::string>& updatedPlaylistIds);
-      void UpdateEmbyPlaylist(PlexApi* plexApi, EmbyApi* embyApi, EmbyPlaylist embyPlaylist, const std::vector<std::string>& correctIds);
-      void SyncEmbyPlaylist(PlexApi* plexApi, EmbyApi* embyApi, const PlexCollection& plexCollection);
-      void SyncPlexCollection(PlexApi* plexApi, EmbyApi* embyApi, const PlaylistPlexCollection& collection);
+      std::pair<size_t, size_t> AddRemoveEmbyPlaylistItems(warp::EmbyApi* embyApi, const warp::EmbyPlaylist& currentPlaylist, const std::vector<std::string>& updatedPlaylistIds);
+      void UpdateEmbyPlaylist(warp::PlexApi* plexApi, warp::EmbyApi* embyApi, warp::EmbyPlaylist embyPlaylist, const std::vector<std::string>& correctIds);
+      void SyncEmbyPlaylist(warp::PlexApi* plexApi, warp::EmbyApi* embyApi, const warp::PlexCollection& plexCollection);
+      void SyncPlexCollection(warp::PlexApi* plexApi, warp::EmbyApi* embyApi, const PlaylistPlexCollection& collection);
 
       uint32_t timeForEmbyUpdateSec_{1u};
       uint32_t timeBetweenSyncsSec_{1u};

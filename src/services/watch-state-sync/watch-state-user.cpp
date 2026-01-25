@@ -1,9 +1,8 @@
 ﻿#include "watch-state-user.h"
 
-#include "api/api-manager.h"
 #include "services/service-utils.h"
 
-#include <warp/log-utils.h>
+#include <warp/log/log-utils.h>
 
 #include <algorithm>
 #include <ranges>
@@ -11,7 +10,7 @@
 namespace loomis
 {
    WatchStateUser::WatchStateUser(const UserSyncConfig& config,
-                                  std::shared_ptr<ApiManager> apiManager,
+                                  std::shared_ptr<warp::ApiManager> apiManager,
                                   ServiceLogger logger)
       : apiManager_(std::move(apiManager))
       , logger_(logger)
@@ -96,12 +95,12 @@ namespace loomis
       return consolidated;
    }
 
-   std::vector<const TautulliHistoryItem*> WatchStateUser::GetConsolidatedPlexHistory(const TautulliHistoryItems& historyItems)
+   std::vector<const warp::TautulliHistoryItem*> WatchStateUser::GetConsolidatedPlexHistory(const warp::TautulliHistoryItems& historyItems)
    {
       return ConsolidateHistory(historyItems.items, [](const auto* i) { return i->timeWatchedEpoch; });
    }
 
-   std::vector<const JellystatHistoryItem*> WatchStateUser::GetConsolidatedEmbyHistory(const JellystatHistoryItems& historyItems)
+   std::vector<const warp::JellystatHistoryItem*> WatchStateUser::GetConsolidatedEmbyHistory(const warp::JellystatHistoryItems& historyItems)
    {
       return ConsolidateHistory(historyItems.items, [](const auto* i) { return i->watchTime; });
    }
@@ -127,7 +126,8 @@ namespace loomis
       }
    }
 
-   std::unordered_map<std::string, std::string> WatchStateUser::GetPlexPathsForHistoryItems(std::string_view server, const std::vector<const TautulliHistoryItem*> historyItems)
+   std::unordered_map<std::string, std::string> WatchStateUser::GetPlexPathsForHistoryItems(std::string_view server,
+                                                                                            const std::vector<const warp::TautulliHistoryItem*> historyItems)
    {
       auto plexApi = apiManager_->GetPlexApi(server);
 
@@ -186,7 +186,7 @@ namespace loomis
       auto userHistory = embyUser.GetWatchHistory();
       if (!userHistory || userHistory->items.empty()) return;
 
-      const auto cutoff = GetIsoTimeStr(sys_clk::now() - std::chrono::days(1));
+      const auto cutoff = GetIsoTimeStr(std::chrono::system_clock::now() - std::chrono::days(1));
 
       // Remove all items older than 24 hours
       std::erase_if(userHistory->items, [&cutoff](const auto& item) {

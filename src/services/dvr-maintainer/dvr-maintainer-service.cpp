@@ -2,7 +2,7 @@
 
 #include "services/service-types.h"
 
-#include <warp/log-utils.h>
+#include <warp/log/log-utils.h>
 
 namespace loomis
 {
@@ -12,7 +12,7 @@ namespace loomis
    }
 
    DvrMaintainerService::DvrMaintainerService(const DvrMaintainerConfig& config,
-                                              std::shared_ptr<ApiManager> apiManager)
+                                              std::shared_ptr<warp::ApiManager> apiManager)
       : ServiceBase(SERVICE_NAME, ANSI_CODE_SERVICE_DVR_MAINTAINER, apiManager, config.cron)
       , config_(config)
    {

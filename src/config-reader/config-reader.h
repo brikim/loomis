@@ -1,7 +1,6 @@
 #pragma once
 
 #include "config-reader/config-reader-types.h"
-#include "types.h"
 
 #include <span>
 #include <vector>

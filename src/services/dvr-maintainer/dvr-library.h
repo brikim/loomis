@@ -1,10 +1,11 @@
 #pragma once
 
-#include "api/api-emby.h"
-#include "api/api-manager.h"
-#include "api/api-plex.h"
 #include "config-reader/config-reader-types.h"
 #include "services/service-logger.h"
+
+#include <warp/api/api-emby.h>
+#include <warp/api/api-manager.h>
+#include <warp/api/api-plex.h>
 
 #include <cstdint>
 #include <filesystem>
@@ -33,7 +34,7 @@ namespace loomis
    {
    public:
       DvrLibrary(const DvrMaintainerLibrary& config,
-                 std::shared_ptr<ApiManager> apiManager,
+                 std::shared_ptr<warp::ApiManager> apiManager,
                  ServiceLogger serviceLogger,
                  bool dryRun);
       virtual ~DvrLibrary() = default;
@@ -63,7 +64,7 @@ namespace loomis
 
       void NotifyServers();
 
-      std::shared_ptr<ApiManager> apiManager_;
+      std::shared_ptr<warp::ApiManager> apiManager_;
       ServiceLogger serviceLogger_;
       std::filesystem::path path_;
       bool valid_{false};
@@ -72,7 +73,7 @@ namespace loomis
 
       struct PlexApiData
       {
-         PlexApi* api;
+         warp::PlexApi* api;
          std::string libraryName;
          std::string libraryId;
       };
@@ -80,7 +81,7 @@ namespace loomis
 
       struct EmbyApiData
       {
-         EmbyApi* api;
+         warp::EmbyApi* api;
          std::string libraryName;
          std::string libraryId;
       };

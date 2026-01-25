@@ -4,10 +4,10 @@
 #include "services/dvr-maintainer/dvr-library.h"
 #include "services/service-base.h"
 
+#include <warp/api/api-manager.h>
+
 #include <memory>
 #include <vector>
-
-class ApiManager;
 
 namespace loomis
 {
@@ -15,7 +15,7 @@ namespace loomis
    {
    public:
       DvrMaintainerService(const DvrMaintainerConfig& config,
-                           std::shared_ptr<ApiManager> apiManager);
+                           std::shared_ptr<warp::ApiManager> apiManager);
       virtual ~DvrMaintainerService() = default;
 
       void Run() override;

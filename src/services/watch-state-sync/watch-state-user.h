@@ -1,19 +1,19 @@
 #pragma once
 
-#include "api/api-jellystat-types.h"
-#include "api/api-tautulli-types.h"
 #include "config-reader/config-reader-types.h"
 #include "services/service-logger.h"
 #include "services/watch-state-sync/emby-user.h"
 #include "services/watch-state-sync/plex-user.h"
-#include "types.h"
+
+#include <warp/api/api-jellystat-types.h>
+#include <warp/api/api-manager.h>
+#include <warp/api/api-tautulli-types.h>
+#include <warp/types.h>
 
 #include <functional>
 #include <memory>
 #include <unordered_map>
 #include <vector>
-
-class ApiManager;
 
 namespace loomis
 {
@@ -21,7 +21,7 @@ namespace loomis
    {
    public:
       WatchStateUser(const UserSyncConfig& config,
-                     std::shared_ptr<ApiManager> apiManager,
+                     std::shared_ptr<warp::ApiManager> apiManager,
                      ServiceLogger logger);
       virtual ~WatchStateUser() = default;
 
@@ -48,13 +48,14 @@ namespace loomis
       void LogSyncSummary(const LogSyncData& syncSummary);
 
       // Returns no duplicates. These will be thrown out and the latest item of the duplicates will be returned
-      std::vector<const TautulliHistoryItem*> GetConsolidatedPlexHistory(const TautulliHistoryItems& historyItems);
-      std::vector<const JellystatHistoryItem*> GetConsolidatedEmbyHistory(const JellystatHistoryItems& historyItems);
+      std::vector<const warp::TautulliHistoryItem*> GetConsolidatedPlexHistory(const warp::TautulliHistoryItems& historyItems);
+      std::vector<const warp::JellystatHistoryItem*> GetConsolidatedEmbyHistory(const warp::JellystatHistoryItems& historyItems);
 
-      std::unordered_map<std::string, std::string> GetPlexPathsForHistoryItems(std::string_view server, const std::vector<const TautulliHistoryItem*> historyItems);
+      std::unordered_map<std::string, std::string> GetPlexPathsForHistoryItems(std::string_view server,
+                                                                               const std::vector<const warp::TautulliHistoryItem*> historyItems);
 
       bool valid_{false};
-      std::shared_ptr<ApiManager> apiManager_;
+      std::shared_ptr<warp::ApiManager> apiManager_;
       ServiceLogger logger_;
 
       std::vector<std::unique_ptr<PlexUser>> plexUsers_;

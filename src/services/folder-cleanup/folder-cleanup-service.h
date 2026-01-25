@@ -3,12 +3,12 @@
 #include "config-reader/config-reader-types.h"
 #include "services/service-base.h"
 
+#include <warp/api/api-manager.h>
+
 #include <filesystem>
 #include <memory>
 #include <string>
 #include <unordered_set>
-
-class ApiManager;
 
 namespace loomis
 {
@@ -16,7 +16,7 @@ namespace loomis
    {
    public:
       FolderCleanupService(const FolderCleanupConfig& config,
-                            std::shared_ptr<ApiManager> apiManager);
+                            std::shared_ptr<warp::ApiManager> apiManager);
       virtual ~FolderCleanupService() = default;
 
       void Run() override;
