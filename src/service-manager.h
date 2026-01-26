@@ -11,6 +11,7 @@
 #include <condition_variable>
 #include <memory>
 #include <mutex>
+#include <stop_token>
 #include <vector>
 
 namespace loomis
@@ -40,8 +41,6 @@ namespace loomis
       // Scheduler is last to ensure it's first to stop during destruction
       warp::CronScheduler cronScheduler_;
 
-      std::atomic_bool shutdownService_{false};
-      std::mutex runCvLock_;
-      std::condition_variable runCv_;
+      std::stop_source stopSource_;
    };
 }

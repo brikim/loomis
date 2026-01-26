@@ -104,9 +104,9 @@ namespace loomis
       // If the scheduler successfully started hold the run thread. If not no work to do.
       if (cronScheduler_.Start())
       {
-         // Hold the main thread until shutdown is requested
-         std::unique_lock<std::mutex> cvUniqueLock(runCvLock_);
-         runCv_.wait(cvUniqueLock, [this] { return shutdownService_.load(); });
+         std::mutex m;
+         std::unique_lock lk(m);
+         std::condition_variable_any().wait(lk, stopSource_.get_token(), [] { return false; });
       }
       else
       {
@@ -122,10 +122,6 @@ namespace loomis
 
       cronScheduler_.Shutdown();
 
-      {
-         std::unique_lock<std::mutex> cvUniqueLock(runCvLock_);
-         shutdownService_.store(true);
-         runCv_.notify_all();
-      }
+      stopSource_.request_stop();
    }
 }

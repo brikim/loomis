@@ -225,11 +225,10 @@ namespace loomis
 
          if (!syncServers.empty())
          {
-            auto itemFullName = item->GetFullName();
             LogSyncSummary({
                .server = embyUser.GetTypeAndServerName(),
                .user = embyUser.GetUser(),
-               .name = itemFullName,
+               .name = item->fullName,
                .watched = playState->played,
                .playbackPercentage = static_cast<int32_t>(std::lround(playState->percentage)),
                .syncResults = syncServers
