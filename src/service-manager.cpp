@@ -120,6 +120,7 @@ namespace loomis
    {
       warp::log::Info("Shutdown request received");
 
+      apiManager_->Shutdown();
       cronScheduler_.Shutdown();
 
       stopSource_.request_stop();

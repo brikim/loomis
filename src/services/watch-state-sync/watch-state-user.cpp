@@ -228,7 +228,7 @@ namespace loomis
             LogSyncSummary({
                .server = embyUser.GetTypeAndServerName(),
                .user = embyUser.GetUser(),
-               .name = item->fullName,
+               .name = item->seriesName ? std::format("{} - {}", *item->seriesName, item->name) : item->name,
                .watched = playState->played,
                .playbackPercentage = static_cast<int32_t>(std::lround(playState->percentage)),
                .syncResults = syncServers
