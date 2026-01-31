@@ -87,6 +87,7 @@ namespace loomis
                .api = api,
                .trackerApi = trackerApi,
                .libraryName = plexConfig.library,
+               .mediaPath = plexConfig.mediaPath,
                .users = std::move(users)
             });
          }
@@ -144,6 +145,7 @@ namespace loomis
                .api = api,
                .trackerApi = trackerApi,
                .libraryName = embyConfig.library,
+               .mediaPath = embyConfig.mediaPath,
                .users = std::move(users)
             });
          }
@@ -188,7 +190,7 @@ namespace loomis
 
             returnDeletes.emplace_back(DeleteFileInfo{
                .id = item.id,
-               .path = ReplaceMediaPath(*itemPath, data.api->GetMediaPath(), containerPath_),
+               .path = ReplaceMediaPath(*itemPath, data.mediaPath, containerPath_),
                .userName = user,
                .server = data.api->GetPrettyName()
             });
@@ -226,7 +228,7 @@ namespace loomis
 
          returnDeletes.emplace_back(DeleteFileInfo{
                .id = item.id,
-               .path = ReplaceMediaPath(playState->path, data.api->GetMediaPath(), containerPath_),
+               .path = ReplaceMediaPath(playState->path, data.mediaPath, containerPath_),
                .userName = *userIter,
                .server = data.api->GetPrettyName()
             });
