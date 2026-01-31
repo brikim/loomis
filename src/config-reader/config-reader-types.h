@@ -192,6 +192,72 @@ namespace loomis
       };
    };
 
+   struct DeleteWatchedUserConfig
+   {
+      std::string name;
+
+      struct glaze
+      {
+         static constexpr auto value = glz::object(
+            "name", &DeleteWatchedUserConfig::name
+         );
+      };
+   };
+
+   struct DeleteWatchedServerConfig
+   {
+      std::string server;
+      std::string library;
+      std::vector<DeleteWatchedUserConfig> users;
+      std::string mediaPath;
+
+      struct glaze
+      {
+         static constexpr auto value = glz::object(
+            "server", &DeleteWatchedServerConfig::server,
+            "library_name", &DeleteWatchedServerConfig::library,
+            "users", &DeleteWatchedServerConfig::users,
+            "media_path", &DeleteWatchedServerConfig::mediaPath
+         );
+      };
+   };
+
+   struct DeleteWatchedLibraryConfig
+   {
+      std::string containerPath;
+      std::vector<DeleteWatchedServerConfig> plex;
+      std::vector<DeleteWatchedServerConfig> emby;
+
+      struct glaze
+      {
+         static constexpr auto value = glz::object(
+            "container_path", &DeleteWatchedLibraryConfig::containerPath,
+            "plex", &DeleteWatchedLibraryConfig::plex,
+            "emby", &DeleteWatchedLibraryConfig::emby
+         );
+      };
+   };
+
+   struct DeleteWatchedConfig
+   {
+      bool enabled{false};
+      bool dryRun{false};
+      std::string cron;
+      int32_t deleteTimeHours{24};
+      std::vector<DeleteWatchedLibraryConfig> libraries;
+
+      struct glaze
+      {
+         static constexpr auto value = glz::object(
+            "enabled", &DeleteWatchedConfig::enabled,
+            "dry_run", &DeleteWatchedConfig::dryRun,
+            "cron", &DeleteWatchedConfig::cron,
+            "delete_time_hours", &DeleteWatchedConfig::deleteTimeHours,
+            "libraries", &DeleteWatchedConfig::libraries
+         );
+      };
+   };
+
    struct ConfigServers
    {
       std::vector<ServerConfig> servers;
@@ -207,5 +273,6 @@ namespace loomis
       WatchStateSyncConfig watch_state_sync;
       FolderCleanupConfig folder_cleanup;
       DvrMaintainerConfig dvr_maintainer;
+      DeleteWatchedConfig delete_watched;
    };
 }

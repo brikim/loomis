@@ -94,4 +94,9 @@ namespace loomis
    {
       return configData_.dvr_maintainer;
    }
+
+   const DeleteWatchedConfig& ConfigReader::GetDeleteWatchedConfig() const
+   {
+      return configData_.delete_watched;
+   }
 }

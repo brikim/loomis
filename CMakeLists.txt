@@ -35,7 +35,7 @@ add_executable(loomis ${LOOMIS_SOURCES})
 
 # 7. APPLY TARGET PROPERTIES (Must be AFTER add_executable)
 if(ipo_supported)
-    set_property(TARGET loomis PROPERTY 
+    set_property(TARGET loomis PROPERTY
         INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE
         INTERPROCEDURAL_OPTIMIZATION_MINSIZEREL TRUE
     )
