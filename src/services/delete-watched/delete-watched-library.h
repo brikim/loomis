@@ -43,9 +43,7 @@ namespace loomis
                                                   const std::string& dataTimeForHistory,
                                                   int64_t epochDateTimeForHistory);
 
-      std::vector<DeleteFileInfo> FindEmbyWatched(const DeleteWatchedEmbyData& data,
-                                                  const std::string& dataTimeForHistory,
-                                                  int64_t epochDateTimeForHistory);
+      std::vector<DeleteFileInfo> FindEmbyWatched(const DeleteWatchedEmbyData& data);
 
       [[nodiscard]] bool DeleteFiles(const std::vector<DeleteFileInfo>& files);
 

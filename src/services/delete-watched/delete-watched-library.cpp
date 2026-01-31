@@ -69,7 +69,6 @@ namespace loomis
                users.emplace_back(user.name);
             });
 
-            bool usersValid = true;
             if (trackerApi->GetValid())
             {
                for (const auto& user : users)
@@ -80,7 +79,6 @@ namespace loomis
                      serviceLogger_.LogWarning("{} does not have {} ... Skipping",
                                                api->GetPrettyName(),
                                                warp::GetTag("user", user));
-                     usersValid = false;
                   }
                }
             }
@@ -200,9 +198,7 @@ namespace loomis
       return returnDeletes;
    }
 
-   std::vector<DeleteFileInfo> DeleteWatchedLibrary::FindEmbyWatched(const DeleteWatchedEmbyData& data,
-                                                                     const std::string& dataTimeForHistory,
-                                                                     int64_t epochDateTimeForHistory)
+   std::vector<DeleteFileInfo> DeleteWatchedLibrary::FindEmbyWatched(const DeleteWatchedEmbyData& data)
    {
       auto libraryId = data.api->GetLibraryId(data.libraryName);
       if (!libraryId) return {};
@@ -332,7 +328,7 @@ namespace loomis
 
       for (const auto& embyData : embyDatas_)
       {
-         auto embyDeleteInfo = FindEmbyWatched(embyData, dataTimeForHistoryPlex, plexEpochHistoryTime);
+         auto embyDeleteInfo = FindEmbyWatched(embyData);
          deleteInfo.reserve(deleteInfo.size() + embyDeleteInfo.size());
          deleteInfo.insert(deleteInfo.end(), std::make_move_iterator(embyDeleteInfo.begin()), std::make_move_iterator(embyDeleteInfo.end()));
       }
