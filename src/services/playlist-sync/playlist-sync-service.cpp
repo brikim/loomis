@@ -226,7 +226,7 @@ namespace loomis
 
    void PlaylistSyncService::SyncEmbyPlaylist(warp::PlexApi* plexApi, warp::EmbyApi* embyApi, const warp::PlexCollection& plexCollection)
    {
-      if (embyApi->GetPathMapEmpty() && !plexCollection.items.empty())
+      if (embyApi->GetPathCacheEmpty() && !plexCollection.items.empty())
       {
          LogWarning("{} path map is empty. {} {} can not be synced.",
                     embyApi->GetPrettyName(),
@@ -239,9 +239,9 @@ namespace loomis
       for (auto& item : plexCollection.items)
       {
          bool foundItem{false};
-         for (auto& path : item.paths)
+         for (const auto& path : item.paths)
          {
-            if (auto id = embyApi->GetIdFromPathMap(path))
+            if (auto id = embyApi->GetIdFromPath(path))
             {
                foundItem = true;
                updatedPlaylistIds.emplace_back(std::move(*id));

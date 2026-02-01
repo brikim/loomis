@@ -20,7 +20,7 @@ namespace loomis
    public:
       PlaylistSyncService(const PlaylistSyncConfig& config,
                           std::shared_ptr<warp::ApiManager> apiManager);
-      virtual ~PlaylistSyncService() = default;
+      ~PlaylistSyncService() = default;
 
       void Run() override;
 

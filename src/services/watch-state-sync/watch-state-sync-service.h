@@ -19,7 +19,7 @@ namespace loomis
    public:
       WatchStateSyncService(const WatchStateSyncConfig& config,
                             std::shared_ptr<warp::ApiManager> apiManager);
-      virtual ~WatchStateSyncService() = default;
+      ~WatchStateSyncService() = default;
 
       void Run() override;
 

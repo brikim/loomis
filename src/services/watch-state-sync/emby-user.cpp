@@ -78,7 +78,7 @@ namespace loomis
       return config_.user_name;
    }
 
-   std::string_view EmbyUser::GetMediaPath() const
+   const std::filesystem::path& EmbyUser::GetMediaPath() const
    {
       return embyApi_->GetMediaPath();
    }
@@ -100,9 +100,9 @@ namespace loomis
       return jellystatApi_->GetWatchHistoryForUser(userId_);
    }
 
-   bool EmbyUser::SyncPlexWatchedState(const std::string& plexPath)
+   bool EmbyUser::SyncPlexWatchedState(const std::filesystem::path& plexPath)
    {
-      auto id = embyApi_->GetIdFromPathMap(plexPath);
+      auto id = embyApi_->GetIdFromPath(plexPath);
       if (!id) return false;
 
       // If this item is already watched just return
@@ -115,7 +115,7 @@ namespace loomis
 
    bool EmbyUser::SyncPlexPlayState(const PlexSyncState& syncState)
    {
-      auto id = embyApi_->GetIdFromPathMap(syncState.path);
+      auto id = embyApi_->GetIdFromPath(syncState.path);
       if (!id) return false;
 
       auto playState = embyApi_->GetPlayState(userId_, *id);
@@ -158,7 +158,7 @@ namespace loomis
 
    void EmbyUser::SyncStateWithEmby(const EmbySyncState& syncState, std::string& syncResults)
    {
-      auto id = embyApi_->GetIdFromPathMap(ReplaceMediaPath(syncState.path, syncState.mediaPath, GetMediaPath()));
+      auto id = embyApi_->GetIdFromPath(ReplaceMediaPath(syncState.path, syncState.mediaPath, GetMediaPath()));
       if (!id) return;
 
       bool forceWatched = syncState.watched || syncState.playbackPercentage >= playbackPercentageThreshold;

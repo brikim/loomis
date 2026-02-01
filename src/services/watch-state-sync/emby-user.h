@@ -10,6 +10,7 @@
 #include <warp/types.h>
 
 #include <chrono>
+#include <filesystem>
 #include <functional>
 
 namespace loomis
@@ -20,14 +21,14 @@ namespace loomis
       EmbyUser(const ServerUser& config,
                const std::shared_ptr<warp::ApiManager>& apiManager,
                ServiceLogger logger);
-      virtual ~EmbyUser() = default;
+      ~EmbyUser() = default;
 
       [[nodiscard]] bool GetValid() const;
       [[nodiscard]] std::string GetServerAndUserName() const;
       [[nodiscard]] std::string_view GetServerName() const;
       [[nodiscard]] std::string_view GetTypeAndServerName() const;
       [[nodiscard]] std::string_view GetUser() const;
-      [[nodiscard]] std::string_view GetMediaPath() const;
+      [[nodiscard]] const std::filesystem::path& GetMediaPath() const;
       [[nodiscard]] std::optional<warp::JellystatHistoryItems> GetWatchHistory();
       [[nodiscard]] std::optional<warp::EmbyPlayState> GetPlayState(std::string_view id);
 
@@ -35,7 +36,7 @@ namespace loomis
 
       struct PlexSyncState
       {
-         const std::string& path;
+         const std::filesystem::path& path;
          bool watched{false};
          int32_t playbackPercentage{0};
          int64_t timeWatchedEpoch{0};
@@ -44,8 +45,8 @@ namespace loomis
 
       struct EmbySyncState
       {
-         std::string_view mediaPath;
-         std::string_view path;
+         const std::filesystem::path& mediaPath;
+         const std::filesystem::path& path;
          bool watched{false};
          int32_t playbackPercentage{0};
          std::string_view timeWatched;
@@ -53,7 +54,7 @@ namespace loomis
       void SyncStateWithEmby(const EmbySyncState& syncState, std::string& syncResults);
 
    private:
-      bool SyncPlexWatchedState(const std::string& plexPath);
+      bool SyncPlexWatchedState(const std::filesystem::path& plexPath);
       bool SyncPlexPlayState(const PlexSyncState& syncState);
 
       bool SyncEmbyWatchedState(std::string_view id);

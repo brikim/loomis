@@ -11,7 +11,7 @@ namespace loomis
    {
    public:
       ConfigReader();
-      virtual ~ConfigReader() = default;
+      ~ConfigReader() = default;
 
       [[nodiscard]] bool IsConfigValid() const;
 

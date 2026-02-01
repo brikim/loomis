@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <cstdint>
+#include <filesystem>
 #include <format>
 #include <string>
 
@@ -32,13 +33,21 @@ namespace loomis
       return std::format("{:%FT%TZ}", tp);
    }
 
-   inline std::string ReplaceMediaPath(std::string_view fullPath, std::string_view oldPath, std::string_view newPath)
+   inline std::filesystem::path ReplaceMediaPath(const std::filesystem::path& fullPath,
+                                                 const std::filesystem::path& oldPath,
+                                                 const std::filesystem::path& newPath)
    {
-      if (fullPath.starts_with(oldPath))
+      auto [oldIt, fullIt] = std::mismatch(oldPath.begin(), oldPath.end(), fullPath.begin());
+      if (oldIt == oldPath.end())
       {
-         std::string returnPath{fullPath};
-         return returnPath.replace(0, oldPath.length(), newPath);
+         std::filesystem::path result = newPath;
+         for (; fullIt != fullPath.end(); ++fullIt)
+         {
+            result /= *fullIt;
+         }
+         return result;
       }
-      return std::string(fullPath);
+
+      return fullPath;
    }
 }

@@ -23,7 +23,7 @@ namespace loomis
       WatchStateUser(const UserSyncConfig& config,
                      std::shared_ptr<warp::ApiManager> apiManager,
                      ServiceLogger logger);
-      virtual ~WatchStateUser() = default;
+      ~WatchStateUser() = default;
 
       [[nodiscard]] bool GetValid() const;
       [[nodiscard]] std::string GetServerAndUserName() const;
@@ -51,8 +51,8 @@ namespace loomis
       std::vector<const warp::TautulliHistoryItem*> GetConsolidatedPlexHistory(const warp::TautulliHistoryItems& historyItems);
       std::vector<const warp::JellystatHistoryItem*> GetConsolidatedEmbyHistory(const warp::JellystatHistoryItems& historyItems);
 
-      std::unordered_map<std::string, std::string> GetPlexPathsForHistoryItems(std::string_view server,
-                                                                               const std::vector<const warp::TautulliHistoryItem*> historyItems);
+      std::unordered_map<std::string, std::filesystem::path> GetPlexPathsForHistoryItems(std::string_view server,
+                                                                                         const std::vector<const warp::TautulliHistoryItem*> historyItems);
 
       bool valid_{false};
       std::shared_ptr<warp::ApiManager> apiManager_;

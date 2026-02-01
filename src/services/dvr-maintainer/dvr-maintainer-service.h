@@ -16,7 +16,7 @@ namespace loomis
    public:
       DvrMaintainerService(const DvrMaintainerConfig& config,
                            std::shared_ptr<warp::ApiManager> apiManager);
-      virtual ~DvrMaintainerService() = default;
+      ~DvrMaintainerService() = default;
 
       void Run() override;
 

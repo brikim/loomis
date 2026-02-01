@@ -17,7 +17,7 @@ namespace loomis
    public:
       FolderCleanupService(const FolderCleanupConfig& config,
                             std::shared_ptr<warp::ApiManager> apiManager);
-      virtual ~FolderCleanupService() = default;
+      ~FolderCleanupService() = default;
 
       void Run() override;
 

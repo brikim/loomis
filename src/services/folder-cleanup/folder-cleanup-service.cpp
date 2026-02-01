@@ -33,7 +33,7 @@ namespace loomis
       {
          if (!fs::exists(pathEntry.path))
          {
-            LogWarning("Cleanup path does not exist: {}", warp::GetTag("path", pathEntry.path));
+            LogWarning("Cleanup path does not exist: {}", warp::GetTag("path", pathEntry.path.string()));
          }
 
          for (const auto& plex : pathEntry.plex)
@@ -168,7 +168,7 @@ namespace loomis
    {
       if (!CheckMediaConnectionsValid(pathConfig.plex, pathConfig.emby))
       {
-         LogWarning("Skipping cleanup for {} - one or more servers are offline", warp::GetTag("path", pathConfig.path));
+         LogWarning("Skipping cleanup for {} - one or more servers are offline", warp::GetTag("path", pathConfig.path.string()));
          return;
       }
 

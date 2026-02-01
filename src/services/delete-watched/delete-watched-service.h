@@ -16,7 +16,7 @@ namespace loomis
    public:
       DeleteWatchedService(const DeleteWatchedConfig& config,
                            std::shared_ptr<warp::ApiManager> apiManager);
-      virtual ~DeleteWatchedService() = default;
+      ~DeleteWatchedService() = default;
 
       void Run() override;
 

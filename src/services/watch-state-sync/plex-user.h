@@ -8,6 +8,7 @@
 #include <warp/api/api-tautulli.h>
 #include <warp/types.h>
 
+#include <filesystem>
 #include <functional>
 #include <optional>
 #include <string>
@@ -21,7 +22,7 @@ namespace loomis
       PlexUser(const ServerUser& config,
                const std::shared_ptr<warp::ApiManager>& apiManager,
                ServiceLogger logger);
-      virtual ~PlexUser() = default;
+      ~PlexUser() = default;
 
       [[nodiscard]] bool GetValid() const;
       [[nodiscard]] std::string GetServerAndUserName() const;
@@ -38,8 +39,8 @@ namespace loomis
       struct EmbySyncState
       {
          std::string_view name;
-         std::string_view mediaPath;
-         std::string_view path;
+         const std::filesystem::path& mediaPath;
+         const std::filesystem::path& path;
          bool watched{false};
          int32_t playbackPercentage{0};
          std::string_view timeWatched;

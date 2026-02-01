@@ -26,24 +26,24 @@ namespace loomis
       for (const auto& plexServer : configReader_->GetPlexServers())
       {
          plexConfigs.emplace_back(warp::ServerConfig{
-                                  .server_name = plexServer.server_name,
+                                  .serverName = plexServer.server_name,
                                   .url = plexServer.url,
-                                  .api_key = plexServer.api_key,
-                                  .tracker_url = plexServer.tracker_url,
-                                  .tracker_api_key = plexServer.tracker_api_key,
-                                  .media_path = plexServer.media_path});
+                                  .apiKey = plexServer.api_key,
+                                  .trackerUrl = plexServer.tracker_url,
+                                  .trackerApiKey = plexServer.tracker_api_key,
+                                  .mediaPath = plexServer.media_path});
       }
 
       std::vector<warp::ServerConfig> embyConfigs;
       for (const auto& embyServer : configReader_->GetEmbyServers())
       {
          embyConfigs.emplace_back(warp::ServerConfig{
-                                  .server_name = embyServer.server_name,
+                                  .serverName = embyServer.server_name,
                                   .url = embyServer.url,
-                                  .api_key = embyServer.api_key,
-                                  .tracker_url = embyServer.tracker_url,
-                                  .tracker_api_key = embyServer.tracker_api_key,
-                                  .media_path = embyServer.media_path});
+                                  .apiKey = embyServer.api_key,
+                                  .trackerUrl = embyServer.tracker_url,
+                                  .trackerApiKey = embyServer.tracker_api_key,
+                                  .mediaPath = embyServer.media_path});
       }
       apiManager_ = std::make_shared<warp::ApiManager>(SERVICE_NAME,
                                                        LOOMIS_VERSION,

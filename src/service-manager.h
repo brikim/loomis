@@ -20,7 +20,7 @@ namespace loomis
    {
    public:
       explicit ServiceManager(std::shared_ptr<ConfigReader> configReader);
-      virtual ~ServiceManager() = default;
+      ~ServiceManager() = default;
 
       // Prevents the main thread from exiting
       void Run();

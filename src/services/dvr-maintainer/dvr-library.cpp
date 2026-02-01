@@ -68,7 +68,7 @@ namespace loomis
       }
       else
       {
-         serviceLogger_.LogWarning("Path does not exist: {}", warp::GetTag("path", config.path));
+         serviceLogger_.LogWarning("Path does not exist: {}", warp::GetTag("path", config.path.string()));
          return;
       }
 
@@ -139,7 +139,7 @@ namespace loomis
       return valid_;
    }
 
-   std::vector<DvrLibrary::FileInfo> DvrLibrary::GetFilesInPath(std::string_view path)
+   std::vector<DvrLibrary::FileInfo> DvrLibrary::GetFilesInPath(const std::filesystem::path& path)
    {
       std::vector<FileInfo> files;
       std::error_code ec;
@@ -181,7 +181,7 @@ namespace loomis
       if (dryRun_)
       {
          serviceLogger_.LogInfo("[DRY RUN] Would delete {}",
-                                warp::GetTag("file", pathFileName.filename().string()));
+                                warp::GetTag("file", pathFileName.filename().generic_string()));
       }
       else
       {
@@ -192,13 +192,13 @@ namespace loomis
          catch (const std::filesystem::filesystem_error& e)
          {
             serviceLogger_.LogError("Problem deleting {} {}",
-                                    warp::GetTag("file", pathFileName.string()),
+                                    warp::GetTag("file", pathFileName.generic_string()),
                                     warp::GetTag("error", e.what()));
          }
       }
    }
 
-   bool DvrLibrary::KeepLastDelete(std::string_view path, int32_t value)
+   bool DvrLibrary::KeepLastDelete(const std::filesystem::path& path, int32_t value)
    {
       bool showsDeleted = false;
       auto fileInfo = GetFilesInPath(path);
@@ -208,7 +208,7 @@ namespace loomis
          serviceLogger_.LogInfo("KEEP_LAST_{} {} {}",
                                 value,
                                 warp::GetTag("num_items", fileInfo.size()),
-                                warp::GetTag("path", warp::GetStandoutText(warp::GetDisplayFolder(path))));
+                                warp::GetTag("path", warp::GetStandoutText(warp::GetDisplayFolder(path).generic_string())));
 
          std::sort(fileInfo.begin(), fileInfo.end(), [](const FileInfo& a, const FileInfo& b) {
             return a.ageDays > b.ageDays;
@@ -222,7 +222,7 @@ namespace loomis
             serviceLogger_.LogInfo("KEEP_LAST_{} deleting oldest {} {}",
                                    value,
                                    warp::GetTag("age days", file.ageDays, ".1f"),
-                                   warp::GetTag("file", warp::GetStandoutText(warp::GetDisplayFolder(file.path.string()))));
+                                   warp::GetTag("file", warp::GetStandoutText(warp::GetDisplayFolder(file.path).generic_string())));
 
 
             DeleteItem(file.path);
@@ -235,7 +235,7 @@ namespace loomis
       return showsDeleted;
    }
 
-   bool DvrLibrary::KeepDaysDelete(std::string_view path, int32_t value)
+   bool DvrLibrary::KeepDaysDelete(const std::filesystem::path& path, int32_t value)
    {
       bool showsDeleted = false;
       auto fileInfo = GetFilesInPath(path);
@@ -247,7 +247,7 @@ namespace loomis
             serviceLogger_.LogInfo("KEEP_DAYS_{} deleting {} {}",
                                    value,
                                    warp::GetTag("age days", file.ageDays, ".1f"),
-                                   warp::GetTag("file", warp::GetStandoutText(warp::GetDisplayFolder(file.path.string()))));
+                                   warp::GetTag("file", warp::GetStandoutText(warp::GetDisplayFolder(file.path).generic_string())));
 
             DeleteItem(file.path);
             showsDeleted = true;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <filesystem>
 #include <string>
 #include <vector>
 
@@ -13,7 +14,7 @@ namespace loomis
       std::string api_key;
       std::string tracker_url;
       std::string tracker_api_key;
-      std::string media_path;
+      std::filesystem::path media_path;
    };
 
    struct AppriseLoggingConfig
@@ -103,7 +104,7 @@ namespace loomis
 
    struct FolderCleanupPathToCheck
    {
-      std::string path;
+      std::filesystem::path path;
       std::vector <ServerLibraryConfig> plex;
       std::vector <ServerLibraryConfig> emby;
 
@@ -158,7 +159,7 @@ namespace loomis
    {
       std::vector<ServerLibraryConfig> plex;
       std::vector<ServerLibraryConfig> emby;
-      std::string path;
+      std::filesystem::path path;
       std::vector<DvrMaintainerLibraryActionInfo> actions;
       std::vector<DvrMaintainerExtension> extensionsToDelete;
 
@@ -209,7 +210,7 @@ namespace loomis
       std::string server;
       std::string library;
       std::vector<DeleteWatchedUserConfig> users;
-      std::string mediaPath;
+      std::filesystem::path mediaPath;
 
       struct glaze
       {
@@ -224,7 +225,7 @@ namespace loomis
 
    struct DeleteWatchedLibraryConfig
    {
-      std::string containerPath;
+      std::filesystem::path containerPath;
       std::vector<DeleteWatchedServerConfig> plex;
       std::vector<DeleteWatchedServerConfig> emby;
 

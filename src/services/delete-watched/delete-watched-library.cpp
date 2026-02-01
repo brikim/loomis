@@ -2,9 +2,14 @@
 
 #include "services/service-utils.h"
 
+#include <warp/api/api-emby.h>
+#include <warp/api/api-manager.h>
+#include <warp/api/api-plex.h>
 #include <warp/log/log.h>
 #include <warp/log/log-utils.h>
 #include <warp/utils.h>
+
+#include <ranges>
 
 namespace loomis
 {
@@ -50,52 +55,64 @@ namespace loomis
                                       warp::GetTag("server_name", plexConfig.server));
          }
 
-         if (api && trackerApi)
+         // One of the required api's was not found
+         if (!api || !trackerApi) continue;
+
+         bool libraryValid = true;
+         if (api->GetValid())
          {
-            if (api->GetValid())
+            if (auto libId = api->GetLibraryId(plexConfig.library);
+                !libId)
             {
-               auto libId = api->GetLibraryId(plexConfig.library);
-               if (!libId)
+               serviceLogger_.LogWarning("{} does not have {} ... Skipping",
+                                         api->GetPrettyName(),
+                                         warp::GetTag("library", plexConfig.library));
+               libraryValid = false;
+            }
+         }
+
+         std::vector<std::string> validUsers;
+         validUsers.reserve(plexConfig.users.size());
+         if (trackerApi->GetValid())
+         {
+            for (const auto& user : plexConfig.users)
+            {
+               if (auto userInfo = trackerApi->GetUserInfo(user.name);
+                   userInfo)
+               {
+                  validUsers.emplace_back(user.name);
+               }
+               else
                {
                   serviceLogger_.LogWarning("{} does not have {} ... Skipping",
                                             api->GetPrettyName(),
-                                            warp::GetTag("library", plexConfig.library));
+                                            warp::GetTag("user", user.name));
                }
             }
-
-            std::vector<std::string> users;
-            users.reserve(plexConfig.users.size());
-            std::ranges::for_each(plexConfig.users, [&users](const auto& user) {
-               users.emplace_back(user.name);
+         }
+         else
+         {
+            // Can't check right now since the api is not valid ... add all users
+            std::ranges::for_each(plexConfig.users, [&validUsers](const auto& user) {
+               validUsers.emplace_back(user.name);
             });
+         }
 
-            if (trackerApi->GetValid())
-            {
-               for (const auto& user : users)
-               {
-                  auto userInfo = trackerApi->GetUserInfo(user);
-                  if (!userInfo)
-                  {
-                     serviceLogger_.LogWarning("{} does not have {} ... Skipping",
-                                               api->GetPrettyName(),
-                                               warp::GetTag("user", user));
-                  }
-               }
-            }
-
+         if (libraryValid && !validUsers.empty())
+         {
             plexDatas_.emplace_back(DeleteWatchedPlexData{
                .api = api,
                .trackerApi = trackerApi,
                .libraryName = plexConfig.library,
                .mediaPath = plexConfig.mediaPath,
-               .users = std::move(users)
+               .users = std::move(validUsers)
             });
          }
       }
 
       for (const auto& embyConfig : config.emby)
       {
-         auto api = apiManager_->GetEmbyApi(embyConfig.server);
+         auto* api = apiManager_->GetEmbyApi(embyConfig.server);
          if (!api)
          {
             serviceLogger_.LogWarning("No {} found with {}",
@@ -111,42 +128,54 @@ namespace loomis
                                       warp::GetTag("server_name", embyConfig.server));
          }
 
-         if (api && trackerApi)
-         {
-            std::vector<std::string> users;
-            users.reserve(embyConfig.users.size());
-            std::ranges::for_each(embyConfig.users, [&users](const auto& user) {
-               users.emplace_back(user.name);
-            });
+         // One of the required api's was not found
+         if (!api || !trackerApi) continue;
 
-            if (api->GetValid())
+         bool libraryValid = true;
+         std::vector<std::string> validUsers;
+         validUsers.reserve(embyConfig.users.size());
+         if (api->GetValid())
+         {
+            if (auto libId = api->GetLibraryId(embyConfig.library);
+                !libId)
             {
-               auto libId = api->GetLibraryId(embyConfig.library);
-               if (!libId)
+               libraryValid = false;
+               serviceLogger_.LogWarning("{} does not have {} ... Skipping",
+                                         api->GetPrettyName(),
+                                         warp::GetTag("library", embyConfig.library));
+            }
+
+            for (const auto& user : embyConfig.users)
+            {
+               if (auto userData = api->GetUser(user.name);
+                   userData)
+               {
+                  validUsers.emplace_back(user.name);
+               }
+               else
                {
                   serviceLogger_.LogWarning("{} does not have {} ... Skipping",
                                             api->GetPrettyName(),
-                                            warp::GetTag("library", embyConfig.library));
-               }
-
-               for (const auto& user : users)
-               {
-                  auto userData = api->GetUser(user);
-                  if (!userData)
-                  {
-                     serviceLogger_.LogWarning("{} does not have {} ... Skipping",
-                                               api->GetPrettyName(),
-                                               warp::GetTag("user", user));
-                  }
+                                            warp::GetTag("user", user.name));
                }
             }
+         }
+         else
+         {
+            // Can't check right now since the api is not valid ... add all users
+            std::ranges::for_each(embyConfig.users, [&validUsers](const auto& user) {
+               validUsers.emplace_back(user.name);
+            });
+         }
 
+         if (libraryValid && !validUsers.empty())
+         {
             embyDatas_.emplace_back(DeleteWatchedEmbyData{
                .api = api,
                .trackerApi = trackerApi,
                .libraryName = embyConfig.library,
                .mediaPath = embyConfig.mediaPath,
-               .users = std::move(users)
+               .users = std::move(validUsers)
             });
          }
       }
@@ -189,7 +218,6 @@ namespace loomis
             if ((std::chrono::system_clock::now() - lastWatched) <= deleteTimeHours_) continue;
 
             returnDeletes.emplace_back(DeleteFileInfo{
-               .id = item.id,
                .path = ReplaceMediaPath(*itemPath, data.mediaPath, containerPath_),
                .userName = user,
                .server = data.api->GetPrettyName()
@@ -215,6 +243,7 @@ namespace loomis
             return item.user == user;
          });
 
+         // User is not in the list to be considered watch ... continue
          if (userIter == data.users.end()) continue;
 
          auto userData = data.api->GetUser(*userIter);
@@ -223,11 +252,11 @@ namespace loomis
          auto playState = data.api->GetPlayState(userData->id, item.episodeId ? *item.episodeId : item.id);
          if (!playState || !playState->watched) continue;
 
+         // Check if the show if the amount of time has elapsed before delete
          auto watchTime = warp::ConvertIsoToTimePoint(item.watchTime);
          if (!watchTime || (std::chrono::system_clock::now() - *watchTime) <= deleteTimeHours_) continue;
 
          returnDeletes.emplace_back(DeleteFileInfo{
-               .id = item.id,
                .path = ReplaceMediaPath(playState->path, data.mediaPath, containerPath_),
                .userName = *userIter,
                .server = data.api->GetPrettyName()
@@ -257,7 +286,7 @@ namespace loomis
             else if (ec) // Only log if there's a genuine error (not just 'file not found')
             {
                serviceLogger_.LogWarning("Failed to delete {} - {}",
-                                         warp::GetStandoutText(file.path.string()),
+                                         warp::GetStandoutText(file.path.generic_string()),
                                          ec.message());
             }
          }
@@ -269,7 +298,7 @@ namespace loomis
                                    dryRunText_,
                                    file.userName,
                                    file.server,
-                                   warp::GetTag("file", warp::GetStandoutText(file.path.string())));
+                                   warp::GetTag("file", warp::GetStandoutText(file.path.generic_string())));
          }
       }
 

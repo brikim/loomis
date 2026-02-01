@@ -126,8 +126,8 @@ namespace loomis
       }
    }
 
-   std::unordered_map<std::string, std::string> WatchStateUser::GetPlexPathsForHistoryItems(std::string_view server,
-                                                                                            const std::vector<const warp::TautulliHistoryItem*> historyItems)
+   std::unordered_map<std::string, std::filesystem::path> WatchStateUser::GetPlexPathsForHistoryItems(std::string_view server,
+                                                                                                      const std::vector<const warp::TautulliHistoryItem*> historyItems)
    {
       auto plexApi = apiManager_->GetPlexApi(server);
 

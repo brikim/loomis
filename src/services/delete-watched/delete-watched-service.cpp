@@ -39,7 +39,7 @@ namespace loomis
          }
          else
          {
-            LogError("Failed to initialize DVR library for {}", warp::GetTag("path", library.containerPath));
+            LogError("Failed to initialize DVR library for {}", warp::GetTag("path", library.containerPath.string()));
          }
       }
    }

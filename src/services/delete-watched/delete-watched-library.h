@@ -4,18 +4,17 @@
 #include "services/delete-watched/delete-watched-types.h"
 #include "services/service-logger.h"
 
-#include <warp/api/api-emby.h>
-#include <warp/api/api-manager.h>
-#include <warp/api/api-plex.h>
-
 #include <chrono>
 #include <cstdint>
 #include <filesystem>
 #include <memory>
 #include <string>
-#include <string_view>
-#include <unordered_set>
 #include <vector>
+
+namespace warp
+{
+   class ApiManager;
+}
 
 namespace loomis
 {
@@ -27,7 +26,7 @@ namespace loomis
                            std::shared_ptr<warp::ApiManager> apiManager,
                            ServiceLogger serviceLogger,
                            bool dryRun);
-      virtual ~DeleteWatchedLibrary() = default;
+      ~DeleteWatchedLibrary() = default;
 
       DeleteWatchedLibrary(const DeleteWatchedLibrary&) = delete;
       DeleteWatchedLibrary& operator=(const DeleteWatchedLibrary&) = delete;
@@ -51,7 +50,7 @@ namespace loomis
 
       std::shared_ptr<warp::ApiManager> apiManager_;
       ServiceLogger serviceLogger_;
-      std::string containerPath_;
+      std::filesystem::path containerPath_;
       bool valid_{false};
       std::chrono::hours deleteTimeHours_;
       int32_t historyDays_{1};

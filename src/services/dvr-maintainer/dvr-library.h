@@ -37,7 +37,7 @@ namespace loomis
                  std::shared_ptr<warp::ApiManager> apiManager,
                  ServiceLogger serviceLogger,
                  bool dryRun);
-      virtual ~DvrLibrary() = default;
+      ~DvrLibrary() = default;
 
       DvrLibrary(const DvrLibrary&) = delete;
       DvrLibrary& operator=(const DvrLibrary&) = delete;
@@ -57,9 +57,9 @@ namespace loomis
          std::filesystem::path path;
          double ageDays;
       };
-      std::vector<FileInfo> GetFilesInPath(std::string_view path);
-      bool KeepLastDelete(std::string_view path, int32_t value);
-      bool KeepDaysDelete(std::string_view path, int32_t value);
+      std::vector<FileInfo> GetFilesInPath(const std::filesystem::path& path);
+      bool KeepLastDelete(const std::filesystem::path& path, int32_t value);
+      bool KeepDaysDelete(const std::filesystem::path& path, int32_t value);
       [[nodiscard]] bool CheckDelete(DvrAction& action);
 
       void NotifyServers();

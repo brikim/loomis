@@ -13,6 +13,8 @@ namespace loomis
       {
       }
 
+      ~ServiceLogger() = default;
+
       template<typename... Args>
       void LogTrace(std::format_string<Args...> fmt, Args &&...args)
       {
