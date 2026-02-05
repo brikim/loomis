@@ -67,36 +67,41 @@ namespace loomis
 
    const AppriseLoggingConfig& ConfigReader::GetAppriseLogging() const
    {
-      return configData_.apprise_logging;
+      return configData_.appriseLogging;
    }
 
    const GotifyLoggingConfig& ConfigReader::GetGotifyLogging() const
    {
-      return configData_.gotify_logging;
+      return configData_.gotifyLogging;
    }
 
    const PlaylistSyncConfig& ConfigReader::GetPlaylistSyncConfig() const
    {
-      return configData_.playlist_sync;
+      return configData_.playlistSync;
    }
 
    const WatchStateSyncConfig& ConfigReader::GetWatchStateSyncConfig() const
    {
-      return configData_.watch_state_sync;
+      return configData_.watchStateSync;
    }
 
    const FolderCleanupConfig& ConfigReader::GetFolderCleanupConfig() const
    {
-      return configData_.folder_cleanup;
+      return configData_.folderCleanup;
    }
 
    const DvrMaintainerConfig& ConfigReader::GetDvrMaintainerConfig() const
    {
-      return configData_.dvr_maintainer;
+      return configData_.dvrMaintainer;
    }
 
    const DeleteWatchedConfig& ConfigReader::GetDeleteWatchedConfig() const
    {
-      return configData_.delete_watched;
+      return configData_.deleteWatched;
+   }
+
+   const EmbyTidyConfig& ConfigReader::GetEmbyTidyConfig() const
+   {
+      return configData_.embyTidy;
    }
 }

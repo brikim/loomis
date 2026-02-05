@@ -2,6 +2,7 @@
 
 #include "services/delete-watched/delete-watched-service.h"
 #include "services/dvr-maintainer/dvr-maintainer-service.h"
+#include "services/emby-tidy/emby-tidy-service.h"
 #include "services/folder-cleanup/folder-cleanup-service.h"
 #include "services/playlist-sync/playlist-sync-service.h"
 #include "services/watch-state-sync/watch-state-sync-service.h"
@@ -79,6 +80,11 @@ namespace loomis
       if (configReader_->GetDeleteWatchedConfig().enabled)
       {
          services_.emplace_back(std::make_unique<DeleteWatchedService>(configReader_->GetDeleteWatchedConfig(), apiManager_));
+      }
+
+      if (configReader_->GetEmbyTidyConfig().enabled)
+      {
+         services_.emplace_back(std::make_unique<EmbyTidyService>(configReader_->GetEmbyTidyConfig(), apiManager_));
       }
    }
 

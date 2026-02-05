@@ -259,6 +259,54 @@ namespace loomis
       };
    };
 
+   struct EmbyTidyLibraryConfig
+   {
+      std::string name;
+
+      struct glaze
+      {
+         static constexpr auto value = glz::object(
+            "library", &EmbyTidyLibraryConfig::name
+         );
+      };
+   };
+
+   struct EmbyTidyServerConfig
+   {
+      std::string name;
+      bool cleanUpNonLocalBackdrops;
+      std::filesystem::path localBackdropContainerStartPath;
+      std::vector<EmbyTidyLibraryConfig> libraries;
+
+      struct glaze
+      {
+         static constexpr auto value = glz::object(
+            "server", &EmbyTidyServerConfig::name,
+            "clean_up_non_local_backdrops", &EmbyTidyServerConfig::cleanUpNonLocalBackdrops,
+            "local_backdrop_container_start_path", &EmbyTidyServerConfig::localBackdropContainerStartPath,
+            "libraries", &EmbyTidyServerConfig::libraries
+         );
+      };
+   };
+
+   struct EmbyTidyConfig
+   {
+      bool enabled{false};
+      bool dryRun{false};
+      std::string cron;
+      std::vector<EmbyTidyServerConfig> servers;
+
+      struct glaze
+      {
+         static constexpr auto value = glz::object(
+            "enabled", &EmbyTidyConfig::enabled,
+            "dry_run", &EmbyTidyConfig::dryRun,
+            "cron", &EmbyTidyConfig::cron,
+            "servers", &EmbyTidyConfig::servers
+         );
+      };
+   };
+
    struct ConfigServers
    {
       std::vector<ServerConfig> servers;
@@ -268,12 +316,29 @@ namespace loomis
    {
       ConfigServers plex;
       ConfigServers emby;
-      AppriseLoggingConfig apprise_logging;
-      GotifyLoggingConfig gotify_logging;
-      PlaylistSyncConfig playlist_sync;
-      WatchStateSyncConfig watch_state_sync;
-      FolderCleanupConfig folder_cleanup;
-      DvrMaintainerConfig dvr_maintainer;
-      DeleteWatchedConfig delete_watched;
+      AppriseLoggingConfig appriseLogging;
+      GotifyLoggingConfig gotifyLogging;
+      PlaylistSyncConfig playlistSync;
+      WatchStateSyncConfig watchStateSync;
+      FolderCleanupConfig folderCleanup;
+      DvrMaintainerConfig dvrMaintainer;
+      DeleteWatchedConfig deleteWatched;
+      EmbyTidyConfig embyTidy;
+
+      struct glaze
+      {
+         static constexpr auto value = glz::object(
+            "plex", &ConfigData::plex,
+            "emby", &ConfigData::emby,
+            "apprise_logging", &ConfigData::appriseLogging,
+            "gotify_logging", &ConfigData::gotifyLogging,
+            "playlist_sync", &ConfigData::playlistSync,
+            "watch_state_sync", &ConfigData::watchStateSync,
+            "folder_cleanup", &ConfigData::folderCleanup,
+            "dvr_maintainer", &ConfigData::dvrMaintainer,
+            "delete_watched", &ConfigData::deleteWatched,
+            "emby_tidy", &ConfigData::embyTidy
+         );
+      };
    };
 }

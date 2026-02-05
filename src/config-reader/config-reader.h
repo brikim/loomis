@@ -24,6 +24,7 @@ namespace loomis
       [[nodiscard]] const FolderCleanupConfig& GetFolderCleanupConfig() const;
       [[nodiscard]] const DvrMaintainerConfig& GetDvrMaintainerConfig() const;
       [[nodiscard]] const DeleteWatchedConfig& GetDeleteWatchedConfig() const;
+      [[nodiscard]] const EmbyTidyConfig& GetEmbyTidyConfig() const;
 
    private:
       void ReadConfigFile(const char* path);
