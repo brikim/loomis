@@ -71,13 +71,11 @@ namespace loomis
       }
    }
 
-   void EmbyTidyService::CleanNonLocalBackdrops(const ServerConfig& config)
+   void EmbyTidyService::CleanLibNonLocalBackdrops(const ServerConfig& config, std::string_view libraryId)
    {
-      auto items = config.api->GetAllItemsBackdrop();
+      auto items = config.api->GetItemsWithMultipleBackdrops(libraryId);
       for (const auto& item : items)
       {
-         if (item.backdropImageIds.size() <= 1) continue;
-
          auto backdrops = config.api->GetBackdrops(item.id);
          if (backdrops.size() <= 1) continue;
 
@@ -128,6 +126,17 @@ namespace loomis
                        warp::GetTag("index", removeIndex));
             }
          }
+      }
+   }
+
+   void EmbyTidyService::CleanNonLocalBackdrops(const ServerConfig& config)
+   {
+      for (const auto& library : config.libraries)
+      {
+         auto libId = config.api->GetLibraryId(library);
+         if (!libId) continue;
+
+         CleanLibNonLocalBackdrops(config, *libId);
       }
    }
 

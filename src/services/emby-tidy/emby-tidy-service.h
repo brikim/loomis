@@ -30,6 +30,7 @@ namespace loomis
 
       void Init(const EmbyTidyConfig& config);
 
+      void CleanLibNonLocalBackdrops(const ServerConfig& config, std::string_view libraryId);
       void CleanNonLocalBackdrops(const ServerConfig& config);
 
       bool dryRun_{false};
