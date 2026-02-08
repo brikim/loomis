@@ -114,7 +114,8 @@ namespace loomis
             {
                if (config.api->RemoveBackdropImage(item.id, removeIndex))
                {
-                  LogInfo("Removed backdrop from {} {}",
+                  LogInfo("Removed backdrop from {} {} {}",
+                          config.api->GetPrettyName(),
                           warp::GetTag("name", item.name),
                           warp::GetTag("index", removeIndex));
                }
