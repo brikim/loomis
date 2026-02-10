@@ -136,9 +136,20 @@ namespace loomis
 
       std::vector<std::string> ids;
       ids.reserve(historyItems.size());
-      for (const auto* item : historyItems) ids.push_back(item->id);
+      for (const auto* item : historyItems)
+      {
+         if (item->live) continue;
+         ids.push_back(item->id);
+      }
 
-      return plexApi->GetItemsPaths(ids);
+      if (ids.empty())
+      {
+         return {};
+      }
+      else
+      {
+         return plexApi->GetItemsPaths(ids);
+      }
    }
 
    void WatchStateUser::SyncPlexState(PlexUser& plexUser, std::string_view historyDate, int64_t epochHistoryTime)
