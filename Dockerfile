@@ -2,12 +2,12 @@
 FROM debian:trixie-slim AS build
 LABEL maintainer="BK"
 
-# 1. Install standard build tools
+# 1. Install build tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential cmake git ninja-build ca-certificates libssl-dev curl \
+    build-essential cmake git ninja-build ca-certificates libssl-dev curl tar \
     && rm -rf /var/lib/apt/lists/*
 
-# 2. Install 'chisel' (the tool that creates the tiny runtime)
+# 2. Install 'chisel' tool
 RUN curl -sSL https://github.com/canonical/chisel/releases/download/v1.0.0/chisel_v1.0.0_linux_amd64.tar.gz | tar -xz -C /usr/local/bin
 
 WORKDIR /app
@@ -17,9 +17,8 @@ COPY . .
 RUN cmake -G Ninja -B build -S . -DCMAKE_BUILD_TYPE=Release -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON && \
     cmake --build build --config Release --parallel 4
 
-# 4. Create a tiny root filesystem for the runtime
-# We take only the essential slices: base-files, libc, and libstdc++
-RUN mkdir /rootfs && \
+# 4. Create the tiny rootfs
+RUN mkdir -p /rootfs && \
     chisel cut --release ubuntu-24.04 --root /rootfs \
     base-files_base \
     base-files_release-info \
@@ -30,19 +29,20 @@ RUN mkdir /rootfs && \
     libssl3_libs \
     tzdata_zoneinfo
 
-# Copy the binary into our new rootfs
-COPY --from=build /app/build/loomis /rootfs/usr/local/bin/loomis
-RUN chmod +x /rootfs/usr/local/bin/loomis
+# 5. COPY FIX: Use 'cp' instead of 'COPY --from=build' 
+# This avoids the circular dependency error.
+RUN mkdir -p /rootfs/usr/local/bin && \
+    cp /app/build/loomis /rootfs/usr/local/bin/loomis && \
+    chmod +x /rootfs/usr/local/bin/loomis
 
 # --- Stage 2: Runtime Environment ---
-# We start from 'scratch' and copy in the sculpted rootfs
 FROM scratch AS runtime
 
 ENV TZ=America/Chicago
 ENV CONFIG_PATH='/config'
 ENV LOG_PATH='/logs'
 
-# Copy the entire sculpted filesystem
+# Copy the entire sculpted filesystem from the builder
 COPY --from=build /rootfs /
 
 ENTRYPOINT ["/usr/local/bin/loomis"]
