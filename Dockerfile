@@ -17,7 +17,8 @@ COPY . .
 RUN cmake -G Ninja -B build -S . -DCMAKE_BUILD_TYPE=Release -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON && \
     cmake --build build --config Release --parallel 4
 
-# 4. Create the tiny rootfs
+# 4. Create the tiny rootfs 
+# NOTE: libssl3 changed to libssl3t64 in Ubuntu 24.04
 RUN mkdir -p /rootfs && \
     chisel cut --release ubuntu-24.04 --root /rootfs \
     base-files_base \
@@ -26,11 +27,11 @@ RUN mkdir -p /rootfs && \
     libc6_libs \
     libgcc-s1_libs \
     libstdc++6_libs \
-    libssl3_libs \
+    libssl3t64_libs \
+    openssl_config \
     tzdata_zoneinfo
 
-# 5. COPY FIX: Use 'cp' instead of 'COPY --from=build' 
-# This avoids the circular dependency error.
+# 5. Copy the binary manually within the build stage
 RUN mkdir -p /rootfs/usr/local/bin && \
     cp /app/build/loomis /rootfs/usr/local/bin/loomis && \
     chmod +x /rootfs/usr/local/bin/loomis
