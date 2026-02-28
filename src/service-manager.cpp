@@ -23,36 +23,38 @@ namespace loomis
    ServiceManager::ServiceManager(std::shared_ptr<ConfigReader> configReader)
       : configReader_(configReader)
    {
+      warp::ApiManagerConfig apiManagerConfig;
+
       std::vector<warp::ServerConfig> plexConfigs;
       for (const auto& plexServer : configReader_->GetPlexServers())
       {
-         plexConfigs.emplace_back(warp::ServerConfig{
-                                  .serverName = plexServer.server_name,
-                                  .url = plexServer.url,
-                                  .apiKey = plexServer.api_key,
-                                  .trackerUrl = plexServer.tracker_url,
-                                  .trackerApiKey = plexServer.tracker_api_key,
-                                  .mediaPath = plexServer.media_path});
+         apiManagerConfig.plexConfig.servers.emplace_back(warp::ServerConfig{
+            .serverName = plexServer.server_name,
+            .url = plexServer.url,
+            .apiKey = plexServer.api_key,
+            .trackerUrl = plexServer.tracker_url,
+            .trackerApiKey = plexServer.tracker_api_key,
+            .mediaPath = plexServer.media_path});
       }
+      apiManagerConfig.plexConfig.options.enableUserTokens = true;
+      apiManagerConfig.plexConfig.options.enableCacheCollection = true;
 
       std::vector<warp::ServerConfig> embyConfigs;
       for (const auto& embyServer : configReader_->GetEmbyServers())
       {
-         embyConfigs.emplace_back(warp::ServerConfig{
-                                  .serverName = embyServer.server_name,
-                                  .url = embyServer.url,
-                                  .apiKey = embyServer.api_key,
-                                  .trackerUrl = embyServer.tracker_url,
-                                  .trackerApiKey = embyServer.tracker_api_key,
-                                  .mediaPath = embyServer.media_path});
+         apiManagerConfig.embyConfig.servers.emplace_back(warp::ServerConfig{
+            .serverName = embyServer.server_name,
+            .url = embyServer.url,
+            .apiKey = embyServer.api_key,
+            .trackerUrl = embyServer.tracker_url,
+            .trackerApiKey = embyServer.tracker_api_key,
+            .mediaPath = embyServer.media_path});
       }
+      apiManagerConfig.embyConfig.options.enableCachePaths = true;
+
       apiManager_ = std::make_shared<warp::ApiManager>(SERVICE_NAME,
                                                        LOOMIS_VERSION,
-                                                       plexConfigs,
-                                                       embyConfigs);
-
-      // Loomis requires the extra caching provided by the api manager
-      apiManager_->EnableExtraCaching();
+                                                       apiManagerConfig);
    }
 
    void ServiceManager::CreateServices()

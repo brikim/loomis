@@ -53,9 +53,6 @@ if(UNIX)
         -static-libstdc++ 
         -static-libgcc
     )
-    find_package(OpenSSL REQUIRED)
-    target_link_libraries(loomis PRIVATE OpenSSL::SSL OpenSSL::Crypto)
-    target_compile_definitions(loomis PRIVATE CPPHTTPLIB_OPENSSL_SUPPORT)
 else()
     # Apply MSVC Link-Time Code Generation (The Windows version of LTO)
     target_link_options(loomis PRIVATE $<$<CONFIG:Release>:/LTCG>)

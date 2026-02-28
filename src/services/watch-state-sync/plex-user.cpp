@@ -21,10 +21,10 @@ namespace loomis
       if (api_ && trackerApi_)
       {
          // Will get users from tautulli for plex. Do a small pre-check and warn the system.
-         if (trackerApi_->GetValid() && !trackerApi_->GetUserInfo(config_.user_name))
+         if (trackerApi_->GetValid() && !trackerApi_->GetUserInfo(config_.userName))
          {
             logger_.LogWarning("{} not found on {}. Is user name correct?",
-                               warp::GetTag("user", config_.user_name),
+                               warp::GetTag("user", config_.userName),
                                trackerApi_->GetPrettyName());
          }
 
@@ -36,14 +36,14 @@ namespace loomis
          {
             logger_.LogWarning("{} api not found for {}",
                                warp::GetServerName(warp::GetFormattedPlex(), config_.server),
-                               warp::GetTag("user", config_.user_name));
+                               warp::GetTag("user", config_.userName));
          }
 
          if (!trackerApi_)
          {
             logger_.LogWarning("{} tracker api not found for {}. Required for this service.",
                                warp::GetServerName(warp::GetFormattedTautulli(), config_.server),
-                               warp::GetTag("user", config_.user_name));
+                               warp::GetTag("user", config_.userName));
          }
       }
    }
@@ -55,7 +55,7 @@ namespace loomis
 
    std::string PlexUser::GetServerAndUserName() const
    {
-      return api_->GetPrettyName() + ":" + config_.user_name;
+      return api_->GetPrettyName() + ":" + config_.userName;
    }
 
    int32_t PlexUser::GetId() const
@@ -75,17 +75,17 @@ namespace loomis
 
    std::string_view PlexUser::GetUser() const
    {
-      return userInfo_.friendlyName.empty() ? config_.user_name : userInfo_.friendlyName;
+      return userInfo_.friendlyName.empty() ? config_.userName : userInfo_.friendlyName;
    }
 
    std::optional<warp::TautulliHistoryItems> PlexUser::GetWatchHistory(std::string_view historyDate, int64_t epochHistoryTime)
    {
-      return trackerApi_->GetWatchHistoryForUser(config_.user_name, historyDate, epochHistoryTime);
+      return trackerApi_->GetWatchHistoryForUser(config_.userName, historyDate, epochHistoryTime);
    }
 
    void PlexUser::Update()
    {
-      auto userInfo = trackerApi_->GetUserInfo(config_.user_name);
+      auto userInfo = trackerApi_->GetUserInfo(config_.userName);
       valid_ = userInfo.has_value();
       if (valid_) userInfo_ = *userInfo;
    }
@@ -97,7 +97,7 @@ namespace loomis
 
    std::optional<warp::PlexSearchResult> PlexUser::GetSyncStateItem(const EmbySyncState& syncState) const
    {
-      auto info = api_->GetItemInfo(syncState.name);
+      auto info = api_->GetItemInfo(config_.userName, syncState.name);
       if (!info) return std::nullopt;
 
       const auto targetPath = ReplaceMediaPath(
@@ -123,7 +123,7 @@ namespace loomis
       auto item = GetSyncStateItem(syncState);
       if (!item || item->watched) return false;
 
-      return api_->SetWatched(item->ratingKey);
+      return api_->SetWatched(config_.userName, item->ratingKey);
    }
 
    bool PlexUser::SyncEmbyPlayState(const EmbySyncState& syncState)
@@ -132,13 +132,11 @@ namespace loomis
       if (!item || item->playbackPercentage == syncState.playbackPercentage) return false;
 
       auto msLocation = (item->durationMs * static_cast<int64_t>(syncState.playbackPercentage)) / 100;
-      return api_->SetPlayed(item->ratingKey, msLocation);
+      return api_->SetPlayed(config_.userName, item->ratingKey, msLocation);
    }
 
    void PlexUser::SyncStateWithEmby(const EmbySyncState& syncState, std::string& syncResults)
    {
-      if (!config_.can_sync) return;
-
       if (syncState.watched ? SyncEmbyWatchedState(syncState) : SyncEmbyPlayState(syncState))
       {
          syncResults = warp::BuildSyncServerString(syncResults, warp::GetFormattedPlex(), config_.server);

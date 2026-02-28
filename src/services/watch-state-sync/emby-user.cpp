@@ -26,10 +26,10 @@ namespace loomis
       if (embyApi_ && jellystatApi_)
       {
          // Will get users from emby. Do a small pre-check and warn the system.
-         if (embyApi_->GetValid() && !embyApi_->GetUser(config_.user_name))
+         if (embyApi_->GetValid() && !embyApi_->GetUser(config_.userName))
          {
             logger_.LogWarning("{} not found on {}. Is user name correct?",
-                               warp::GetTag("user", config_.user_name),
+                               warp::GetTag("user", config_.userName),
                                embyApi_->GetPrettyName());
          }
 
@@ -41,14 +41,14 @@ namespace loomis
          {
             logger_.LogWarning("{} api not found for {}",
                                warp::GetServerName(warp::GetFormattedEmby(), config.server),
-                               warp::GetTag("user", config_.user_name));
+                               warp::GetTag("user", config_.userName));
          }
 
          if (!jellystatApi_)
          {
             logger_.LogWarning("{} tracker api not found for {}. Required for this service.",
                                warp::GetServerName(warp::GetFormattedJellystat(), config_.server),
-                               warp::GetTag("user", config_.user_name));
+                               warp::GetTag("user", config_.userName));
          }
       }
    }
@@ -60,7 +60,7 @@ namespace loomis
 
    std::string EmbyUser::GetServerAndUserName() const
    {
-      return embyApi_->GetPrettyName() + ":" + config_.user_name;
+      return embyApi_->GetPrettyName() + ":" + config_.userName;
    }
 
    std::string_view EmbyUser::GetServerName() const
@@ -75,7 +75,7 @@ namespace loomis
 
    std::string_view EmbyUser::GetUser() const
    {
-      return config_.user_name;
+      return config_.userName;
    }
 
    const std::filesystem::path& EmbyUser::GetMediaPath() const
@@ -90,7 +90,7 @@ namespace loomis
 
    void EmbyUser::Update()
    {
-      auto user = embyApi_->GetUser(config_.user_name);
+      auto user = embyApi_->GetUser(config_.userName);
       valid_ = user.has_value();
       if (valid_) userId_ = std::move(user->id);
    }

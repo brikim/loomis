@@ -59,8 +59,15 @@ namespace loomis
    struct ServerUser
    {
       std::string server;
-      std::string user_name;
-      bool can_sync{false};
+      std::string userName;
+
+      struct glaze
+      {
+         static constexpr auto value = glz::object(
+            "server", &ServerUser::server,
+            "user_name", &ServerUser::userName
+         );
+      };
    };
 
    struct UserSyncConfig
