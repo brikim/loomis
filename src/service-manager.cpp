@@ -38,6 +38,7 @@ namespace loomis
       }
       apiManagerConfig.plexConfig.options.enableUserTokens = true;
       apiManagerConfig.plexConfig.options.enableCacheCollection = true;
+      apiManagerConfig.plexConfig.options.enableCachePaths = true;
 
       std::vector<warp::ServerConfig> embyConfigs;
       for (const auto& embyServer : configReader_->GetEmbyServers())

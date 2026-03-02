@@ -50,7 +50,7 @@ target_compile_options(loomis PRIVATE
 if(UNIX)
     target_link_options(loomis PRIVATE 
         "$<$<CONFIG:Release>:-s>"
-        -static-libstdc++ 
+        -static-libstdc++
         -static-libgcc
     )
 else()

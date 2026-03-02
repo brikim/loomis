@@ -97,8 +97,8 @@ namespace loomis
 
    std::optional<warp::PlexSearchResult> PlexUser::GetSyncStateItem(const EmbySyncState& syncState) const
    {
-      auto info = api_->GetItemInfo(config_.userName, syncState.name);
-      if (!info) return std::nullopt;
+      auto info = api_->GetItemInfoByPath(config_.userName, syncState.path);
+      if (!info || info->items.empty()) return std::nullopt;
 
       const auto targetPath = ReplaceMediaPath(
           syncState.path,
