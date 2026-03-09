@@ -70,6 +70,15 @@ namespace loomis
       };
    };
 
+   struct ExtensionConfig
+   {
+      std::string extension;
+
+      static constexpr auto value = glz::object(
+            "extension", &ExtensionConfig::extension
+      );
+   };
+
    struct UserSyncConfig
    {
       std::vector<ServerUser> plex;
@@ -97,52 +106,94 @@ namespace loomis
       };
    };
 
-   struct FolderCleanupIgnoreItem
+   struct FscIgnoreItem
    {
       std::string item;
 
       struct glaze
       {
          static constexpr auto value = glz::object(
-            "ignore", &FolderCleanupIgnoreItem::item
+            "ignore", &FscIgnoreItem::item
          );
       };
    };
 
-   struct FolderCleanupPathToCheck
+   struct FscEmptyFolderPathConfig
    {
       std::filesystem::path path;
-      std::vector <ServerLibraryConfig> plex;
-      std::vector <ServerLibraryConfig> emby;
+      std::vector<ServerLibraryConfig> plex;
+      std::vector<ServerLibraryConfig> emby;
 
       struct glaze
       {
          static constexpr auto value = glz::object(
-            "path", &FolderCleanupPathToCheck::path,
-            "plex", &FolderCleanupPathToCheck::plex,
-            "emby", &FolderCleanupPathToCheck::emby
+            "path", &FscEmptyFolderPathConfig::path,
+            "plex", &FscEmptyFolderPathConfig::plex,
+            "emby", &FscEmptyFolderPathConfig::emby
          );
       };
    };
 
-   struct FolderCleanupConfig
+   struct FscEmptyFolderDeleteConfig
+   {
+      std::vector<FscEmptyFolderPathConfig> paths;
+      std::vector<FscIgnoreItem> ignoreFolders;
+      std::vector<FscIgnoreItem> ignoreFileEmptyCheck;
+
+      struct glaze
+      {
+         static constexpr auto value = glz::object(
+            "paths", &FscEmptyFolderDeleteConfig::paths,
+            "ignore_folder_in_empty_check", &FscEmptyFolderDeleteConfig::ignoreFolders,
+            "ignore_file_in_empty_check", &FscEmptyFolderDeleteConfig::ignoreFileEmptyCheck
+         );
+      };
+   };
+
+   struct FscDeleteFilePathConfig
+   {
+      std::filesystem::path path;
+      int64_t deleteAgeHours{std::numeric_limits<int64_t>::max()};
+      std::vector<ExtensionConfig> validExtensions;
+
+      struct glaze
+      {
+         static constexpr auto value = glz::object(
+            "path", &FscDeleteFilePathConfig::path,
+            "delete_age_hours", &FscDeleteFilePathConfig::deleteAgeHours,
+            "valid_extensions_to_delete", &FscDeleteFilePathConfig::validExtensions
+         );
+      };
+   };
+
+   struct FscDeleteFilesByAgeConfig
+   {
+      std::vector<FscDeleteFilePathConfig> paths;
+
+      struct glaze
+      {
+         static constexpr auto value = glz::object(
+            "paths", &FscDeleteFilesByAgeConfig::paths
+         );
+      };
+   };
+
+   struct FileSystemCleanupConfig
    {
       bool enabled{false};
       bool dryRun{false};
       std::string cron;
-      std::vector<FolderCleanupPathToCheck> pathsToCheck;
-      std::vector<FolderCleanupIgnoreItem> ignoreFolders;
-      std::vector<FolderCleanupIgnoreItem> ignoreFileEmptyCheck;
+      FscEmptyFolderDeleteConfig emptyFolderDeleteConfig;
+      FscDeleteFilesByAgeConfig deleteFilesByAgeConfig;
 
       struct glaze
       {
          static constexpr auto value = glz::object(
-            "enabled", &FolderCleanupConfig::enabled,
-            "dry_run", &FolderCleanupConfig::dryRun,
-            "cron", &FolderCleanupConfig::cron,
-            "paths_to_check", &FolderCleanupConfig::pathsToCheck,
-            "ignore_folder_in_empty_check", &FolderCleanupConfig::ignoreFolders,
-            "ignore_file_in_empty_check", &FolderCleanupConfig::ignoreFileEmptyCheck
+            "enabled", &FileSystemCleanupConfig::enabled,
+            "dry_run", &FileSystemCleanupConfig::dryRun,
+            "cron", &FileSystemCleanupConfig::cron,
+            "empty_folder_delete", &FileSystemCleanupConfig::emptyFolderDeleteConfig,
+            "delete_files_by_age", &FileSystemCleanupConfig::deleteFilesByAgeConfig
          );
       };
    };
@@ -153,22 +204,13 @@ namespace loomis
       std::string action;
    };
 
-   struct DvrMaintainerExtension
-   {
-      std::string extension;
-
-      static constexpr auto value = glz::object(
-            "extension", &DvrMaintainerExtension::extension
-      );
-   };
-
    struct DvrMaintainerLibrary
    {
       std::vector<ServerLibraryConfig> plex;
       std::vector<ServerLibraryConfig> emby;
       std::filesystem::path path;
       std::vector<DvrMaintainerLibraryActionInfo> actions;
-      std::vector<DvrMaintainerExtension> extensionsToDelete;
+      std::vector<ExtensionConfig> extensionsToDelete;
 
       struct glaze
       {
@@ -327,7 +369,7 @@ namespace loomis
       GotifyLoggingConfig gotifyLogging;
       PlaylistSyncConfig playlistSync;
       WatchStateSyncConfig watchStateSync;
-      FolderCleanupConfig folderCleanup;
+      FileSystemCleanupConfig fileSystemCleanup;
       DvrMaintainerConfig dvrMaintainer;
       DeleteWatchedConfig deleteWatched;
       EmbyTidyConfig embyTidy;
@@ -341,7 +383,7 @@ namespace loomis
             "gotify_logging", &ConfigData::gotifyLogging,
             "playlist_sync", &ConfigData::playlistSync,
             "watch_state_sync", &ConfigData::watchStateSync,
-            "folder_cleanup", &ConfigData::folderCleanup,
+            "filesystem_cleanup", &ConfigData::fileSystemCleanup,
             "dvr_maintainer", &ConfigData::dvrMaintainer,
             "delete_watched", &ConfigData::deleteWatched,
             "emby_tidy", &ConfigData::embyTidy

@@ -3,7 +3,7 @@
 #include "services/delete-watched/delete-watched-service.h"
 #include "services/dvr-maintainer/dvr-maintainer-service.h"
 #include "services/emby-tidy/emby-tidy-service.h"
-#include "services/folder-cleanup/folder-cleanup-service.h"
+#include "services/filesystem-cleanup/filesystem-cleanup-service.h"
 #include "services/playlist-sync/playlist-sync-service.h"
 #include "services/watch-state-sync/watch-state-sync-service.h"
 #include "version.h"
@@ -70,9 +70,9 @@ namespace loomis
          services_.emplace_back(std::make_unique<WatchStateSyncService>(configReader_->GetWatchStateSyncConfig(), apiManager_));
       }
 
-      if (configReader_->GetFolderCleanupConfig().enabled)
+      if (configReader_->GetFilesystemCleanupConfig().enabled)
       {
-         services_.emplace_back(std::make_unique<FolderCleanupService>(configReader_->GetFolderCleanupConfig(), apiManager_));
+         services_.emplace_back(std::make_unique<FilesystemCleanupService>(configReader_->GetFilesystemCleanupConfig(), apiManager_));
       }
 
       if (configReader_->GetDvrMaintainerConfig().enabled)

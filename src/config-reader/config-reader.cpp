@@ -85,9 +85,9 @@ namespace loomis
       return configData_.watchStateSync;
    }
 
-   const FolderCleanupConfig& ConfigReader::GetFolderCleanupConfig() const
+   const FileSystemCleanupConfig& ConfigReader::GetFilesystemCleanupConfig() const
    {
-      return configData_.folderCleanup;
+      return configData_.fileSystemCleanup;
    }
 
    const DvrMaintainerConfig& ConfigReader::GetDvrMaintainerConfig() const

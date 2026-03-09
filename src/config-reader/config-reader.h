@@ -21,7 +21,7 @@ namespace loomis
       [[nodiscard]] const GotifyLoggingConfig& GetGotifyLogging() const;
       [[nodiscard]] const PlaylistSyncConfig& GetPlaylistSyncConfig() const;
       [[nodiscard]] const WatchStateSyncConfig& GetWatchStateSyncConfig() const;
-      [[nodiscard]] const FolderCleanupConfig& GetFolderCleanupConfig() const;
+      [[nodiscard]] const FileSystemCleanupConfig& GetFilesystemCleanupConfig() const;
       [[nodiscard]] const DvrMaintainerConfig& GetDvrMaintainerConfig() const;
       [[nodiscard]] const DeleteWatchedConfig& GetDeleteWatchedConfig() const;
       [[nodiscard]] const EmbyTidyConfig& GetEmbyTidyConfig() const;
