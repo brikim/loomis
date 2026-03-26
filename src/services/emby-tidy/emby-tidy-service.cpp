@@ -77,7 +77,8 @@ namespace loomis
       for (const auto& item : items)
       {
          auto backdrops = config.api->GetBackdrops(item.id);
-         if (backdrops.size() <= 1) continue;
+         if (backdrops.size() <= 1)
+            continue;
 
          bool containsLocalBackdrop = false;
          std::vector<int32_t> removeBackdropIndices;
@@ -90,8 +91,8 @@ namespace loomis
                 current.begin(), current.end()
             );
 
-            bool isLocal = (it_prefix == config.pathPrefix.end());
-            if (isLocal)
+            if (bool isLocal = (it_prefix == config.pathPrefix.end());
+                isLocal)
             {
                containsLocalBackdrop = true;
             }
@@ -102,7 +103,8 @@ namespace loomis
          }
 
          // If this item doesn't contain a local backdrop skip
-         if (!containsLocalBackdrop || removeBackdropIndices.empty()) continue;
+         if (!containsLocalBackdrop || removeBackdropIndices.empty())
+            continue;
 
          // Sort the list so the largest indices are first. This guarentees the
          // images are deleted and no indices changes from emby
@@ -135,7 +137,8 @@ namespace loomis
       for (const auto& library : config.libraries)
       {
          auto libId = config.api->GetLibraryId(library);
-         if (!libId) continue;
+         if (!libId)
+            continue;
 
          CleanLibNonLocalBackdrops(config, *libId);
       }

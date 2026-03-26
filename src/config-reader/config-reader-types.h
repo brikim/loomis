@@ -70,6 +70,22 @@ namespace loomis
       };
    };
 
+   struct ServerPlexUser
+   {
+      std::string server;
+      std::string userName;
+      std::optional<std::string> token;
+
+      struct glaze
+      {
+         static constexpr auto value = glz::object(
+            "server", &ServerPlexUser::server,
+            "user_name", &ServerPlexUser::userName,
+            "token", &ServerPlexUser::token
+         );
+      };
+   };
+
    struct ExtensionConfig
    {
       std::string extension;
@@ -81,7 +97,7 @@ namespace loomis
 
    struct UserSyncConfig
    {
-      std::vector<ServerUser> plex;
+      std::vector<ServerPlexUser> plex;
       std::vector<ServerUser> emby;
    };
 

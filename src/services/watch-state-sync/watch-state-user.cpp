@@ -51,12 +51,14 @@ namespace loomis
       std::string names;
       for (const auto& plexUser : plexUsers_)
       {
-         if (!names.empty()) names += ", ";
+         if (!names.empty())
+            names += ", ";
          names += plexUser->GetServerAndUserName();
       }
       for (const auto& embyUser : embyUsers_)
       {
-         if (!names.empty()) names += ", ";
+         if (!names.empty())
+            names += ", ";
          names += embyUser->GetServerAndUserName();
       }
       return names;
@@ -80,12 +82,13 @@ namespace loomis
 
       std::vector<const T*> consolidated;
       consolidated.reserve(items.size());
-      for (const auto& item : items) consolidated.push_back(&item);
+      for (const auto& item : items)
+         consolidated.push_back(&item);
 
       // Sort by ID, then by Time (descending)
       std::ranges::sort(consolidated, [&](const auto* a, const auto* b) {
          if (a->id != b->id) return a->id < b->id;
-         return timeProj(a) > timeProj(b); // Use the projection here
+         return timeProj(a) > timeProj(b);
       });
 
       // Unique based on ID
@@ -131,8 +134,8 @@ namespace loomis
    {
       auto plexApi = apiManager_->GetPlexApi(server);
 
-      // Guard Clause: Exit early if API is unavailable
-      if (!plexApi || !plexApi->GetValid()) return {};
+      if (!plexApi || !plexApi->GetValid())
+         return {};
 
       std::vector<std::string> ids;
       ids.reserve(historyItems.size());
@@ -146,48 +149,50 @@ namespace loomis
       {
          return {};
       }
-      else
-      {
-         return plexApi->GetItemsPaths(ids);
-      }
+      return plexApi->GetItemsPaths(ids);
    }
 
    void WatchStateUser::SyncPlexState(PlexUser& plexUser, std::string_view historyDate, int64_t epochHistoryTime)
    {
       auto userHistory = plexUser.GetWatchHistory(historyDate, epochHistoryTime);
-      if (!userHistory || userHistory->items.empty()) return;
+      if (!userHistory || userHistory->items.empty())
+         return;
 
       auto consolidatedHistory = GetConsolidatedPlexHistory(*userHistory);
       auto historyWithPaths = GetPlexPathsForHistoryItems(plexUser.GetServerName(), consolidatedHistory);
 
       for (const auto* history : consolidatedHistory)
       {
-         if (auto iter = historyWithPaths.find(history->id); iter != historyWithPaths.end())
-         {
-            std::string syncServers;
+         auto iter = historyWithPaths.find(history->id);
+         if (iter == historyWithPaths.end())
+            return;
 
-            auto plexSyncState = EmbyUser::PlexSyncState{
-               .path = iter->second,
+         std::string syncServers;
+
+         auto plexSyncState = EmbyUser::PlexSyncState{
+            .path = iter->second,
+            .watched = history->watched,
+            .playbackPercentage = history->playbackPercentage,
+            .timeWatchedEpoch = history->timeWatchedEpoch};
+
+         for (auto& user : plexUsers_)
+            if (user->GetValid())
+               user->SyncStateWithPlex();
+
+         for (auto& user : embyUsers_)
+            if (user->GetValid())
+               user->SyncStateWithPlex(plexSyncState, syncServers);
+
+         if (!syncServers.empty())
+         {
+            LogSyncSummary({
+               .server = plexUser.GetTypeAndServerName(),
+               .user = plexUser.GetUser(),
+               .name = history->fullName,
                .watched = history->watched,
                .playbackPercentage = history->playbackPercentage,
-               .timeWatchedEpoch = history->timeWatchedEpoch};
-
-            for (auto& user : plexUsers_)
-               if (user->GetValid()) user->SyncStateWithPlex();
-            for (auto& user : embyUsers_)
-               if (user->GetValid()) user->SyncStateWithPlex(plexSyncState, syncServers);
-
-            if (!syncServers.empty())
-            {
-               LogSyncSummary({
-                  .server = plexUser.GetTypeAndServerName(),
-                  .user = plexUser.GetUser(),
-                  .name = history->fullName,
-                  .watched = history->watched,
-                  .playbackPercentage = history->playbackPercentage,
-                  .syncResults = syncServers
-               });
-            }
+               .syncResults = syncServers
+            });
          }
       }
    }
@@ -195,7 +200,8 @@ namespace loomis
    void WatchStateUser::SyncEmbyState(EmbyUser& embyUser)
    {
       auto userHistory = embyUser.GetWatchHistory();
-      if (!userHistory || userHistory->items.empty()) return;
+      if (!userHistory || userHistory->items.empty())
+         return;
 
       const auto cutoff = GetIsoTimeStr(std::chrono::system_clock::now() - std::chrono::days(1));
 
@@ -210,7 +216,8 @@ namespace loomis
          std::string syncServers;
          auto playState = embyUser.GetPlayState(item->episodeId.has_value() ? *item->episodeId : item->id);
 
-         if (!playState) continue;
+         if (!playState)
+            continue;
 
          auto plexSyncState = PlexUser::EmbySyncState{
             .name = item->name,
@@ -230,9 +237,12 @@ namespace loomis
          };
 
          for (auto& user : plexUsers_)
-            if (user->GetValid()) user->SyncStateWithEmby(plexSyncState, syncServers);
+            if (user->GetValid())
+               user->SyncStateWithEmby(plexSyncState, syncServers);
+
          for (auto& user : embyUsers_)
-            if (user->GetServerName() != embyUser.GetServerName() && user->GetValid()) user->SyncStateWithEmby(embySyncState, syncServers);
+            if (user->GetServerName() != embyUser.GetServerName() && user->GetValid())
+               user->SyncStateWithEmby(embySyncState, syncServers);
 
          if (!syncServers.empty())
          {
@@ -256,7 +266,10 @@ namespace loomis
       constexpr uint32_t daysOfHistory{1};
       auto plexHistoryTime = GetDatetimeForHistoryPlex(daysOfHistory);
       auto plexEpochHistoryTime = GetEpochTimeForPlexHistory(daysOfHistory);
-      for (auto& plexUser : plexUsers_) SyncPlexState(*plexUser, plexHistoryTime, plexEpochHistoryTime);
-      for (auto& embyUser : embyUsers_) SyncEmbyState(*embyUser);
+      for (auto& plexUser : plexUsers_)
+         SyncPlexState(*plexUser, plexHistoryTime, plexEpochHistoryTime);
+
+      for (auto& embyUser : embyUsers_)
+         SyncEmbyState(*embyUser);
    }
 }

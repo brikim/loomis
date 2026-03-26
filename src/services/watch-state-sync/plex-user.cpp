@@ -7,7 +7,7 @@
 
 namespace loomis
 {
-   PlexUser::PlexUser(const ServerUser& config,
+   PlexUser::PlexUser(const ServerPlexUser& config,
                       const std::shared_ptr<warp::ApiManager>& apiManager,
                       ServiceLogger logger)
       : logger_(logger)
@@ -87,7 +87,8 @@ namespace loomis
    {
       auto userInfo = trackerApi_->GetUserInfo(config_.userName);
       valid_ = userInfo.has_value();
-      if (valid_) userInfo_ = *userInfo;
+      if (valid_)
+         userInfo_ = *userInfo;
    }
 
    void PlexUser::SyncStateWithPlex()
@@ -97,8 +98,9 @@ namespace loomis
 
    std::optional<warp::PlexSearchResult> PlexUser::GetSyncStateItem(const EmbySyncState& syncState) const
    {
-      auto info = api_->GetItemInfoByPath(config_.userName, syncState.path);
-      if (!info || info->items.empty()) return std::nullopt;
+      auto info = api_->GetItemInfoByPath(*config_.token, syncState.path);
+      if (!info || info->items.empty())
+         return std::nullopt;
 
       const auto targetPath = ReplaceMediaPath(
           syncState.path,
@@ -113,7 +115,8 @@ namespace loomis
       });
 
       // If no matching item is found, we are done.
-      if (it == info->items.end()) return std::nullopt;
+      if (it == info->items.end())
+         return std::nullopt;
 
       return *it;
    }
@@ -121,22 +124,27 @@ namespace loomis
    bool PlexUser::SyncEmbyWatchedState(const EmbySyncState& syncState)
    {
       auto item = GetSyncStateItem(syncState);
-      if (!item || item->watched) return false;
+      if (!item || item->watched)
+         return false;
 
-      return api_->SetWatched(config_.userName, item->ratingKey);
+      return api_->SetWatched(*config_.token, item->ratingKey);
    }
 
    bool PlexUser::SyncEmbyPlayState(const EmbySyncState& syncState)
    {
       auto item = GetSyncStateItem(syncState);
-      if (!item || item->playbackPercentage == syncState.playbackPercentage) return false;
+      if (!item || item->playbackPercentage == syncState.playbackPercentage)
+         return false;
 
       auto msLocation = (item->durationMs * static_cast<int64_t>(syncState.playbackPercentage)) / 100;
-      return api_->SetPlayed(config_.userName, item->ratingKey, msLocation);
+      return api_->SetPlayed(*config_.token, item->ratingKey, msLocation);
    }
 
    void PlexUser::SyncStateWithEmby(const EmbySyncState& syncState, std::string& syncResults)
    {
+      if (!config_.token)
+         return;
+
       if (syncState.watched ? SyncEmbyWatchedState(syncState) : SyncEmbyPlayState(syncState))
       {
          syncResults = warp::BuildSyncServerString(syncResults, warp::GetFormattedPlex(), config_.server);

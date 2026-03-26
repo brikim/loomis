@@ -36,7 +36,6 @@ namespace loomis
             .trackerApiKey = plexServer.tracker_api_key,
             .mediaPath = plexServer.media_path});
       }
-      apiManagerConfig.plexConfig.options.enableUserTokens = true;
       apiManagerConfig.plexConfig.options.enableCacheCollection = true;
       apiManagerConfig.plexConfig.options.enableCachePaths = true;
 
@@ -61,34 +60,22 @@ namespace loomis
    void ServiceManager::CreateServices()
    {
       if (configReader_->GetPlaylistSyncConfig().enabled)
-      {
          services_.emplace_back(std::make_unique<PlaylistSyncService>(configReader_->GetPlaylistSyncConfig(), apiManager_));
-      }
 
       if (configReader_->GetWatchStateSyncConfig().enabled)
-      {
          services_.emplace_back(std::make_unique<WatchStateSyncService>(configReader_->GetWatchStateSyncConfig(), apiManager_));
-      }
 
       if (configReader_->GetFilesystemCleanupConfig().enabled)
-      {
          services_.emplace_back(std::make_unique<FilesystemCleanupService>(configReader_->GetFilesystemCleanupConfig(), apiManager_));
-      }
 
       if (configReader_->GetDvrMaintainerConfig().enabled)
-      {
          services_.emplace_back(std::make_unique<DvrMaintainerService>(configReader_->GetDvrMaintainerConfig(), apiManager_));
-      }
 
       if (configReader_->GetDeleteWatchedConfig().enabled)
-      {
          services_.emplace_back(std::make_unique<DeleteWatchedService>(configReader_->GetDeleteWatchedConfig(), apiManager_));
-      }
 
       if (configReader_->GetEmbyTidyConfig().enabled)
-      {
          services_.emplace_back(std::make_unique<EmbyTidyService>(configReader_->GetEmbyTidyConfig(), apiManager_));
-      }
    }
 
    void ServiceManager::Run()

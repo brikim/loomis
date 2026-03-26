@@ -33,13 +33,15 @@ namespace loomis
 
       // Helper lambda to reduce duplication between Plex and Emby logic
       auto processMediaServer = [&](auto& serverConfig, auto getApiFunc, auto& targetContainer, const auto& formatName) {
-         if (auto api = getApiFunc(serverConfig.server); api)
+         if (auto api = getApiFunc(serverConfig.server);
+             api)
          {
             std::string libraryId;
             if (api->GetValid())
             {
-               auto libId = api->GetLibraryId(serverConfig.library);
-               if (libId) libraryId = *libId;
+               if (auto libId = api->GetLibraryId(serverConfig.library);
+                   libId)
+                  libraryId = *libId;
             }
             targetContainer.emplace_back(api, serverConfig.library, libraryId);
          }
@@ -89,33 +91,32 @@ namespace loomis
             prefix = KEEP_LENGTH_DAYS_VALUE;
          }
 
-         if (type)
-         {
-            auto valuePart = std::string_view(action.action).substr(prefix.size());
-
-            int value = 0;
-            auto [ptr, ec] = std::from_chars(valuePart.data(), valuePart.data() + valuePart.size(), value);
-
-            if (ec == std::errc())
-            {
-               actions_.emplace_back(DvrAction{
-                   .name = action.name,
-                   .type = *type,
-                   .value = value
-               });
-            }
-            else if (ec == std::errc::invalid_argument)
-            {
-               serviceLogger_.LogError("Action '{}' does not contain a valid number", action.action);
-            }
-            else if (ec == std::errc::result_out_of_range)
-            {
-               serviceLogger_.LogError("Number in action '{}' is too large for an integer", action.action);
-            }
-         }
-         else
+         if (!type)
          {
             serviceLogger_.LogWarning("Unknown action {}", action.action);
+            continue;
+         }
+
+         auto valuePart = std::string_view(action.action).substr(prefix.size());
+
+         int value = 0;
+         auto [ptr, ec] = std::from_chars(valuePart.data(), valuePart.data() + valuePart.size(), value);
+
+         if (ec == std::errc())
+         {
+            actions_.emplace_back(DvrAction{
+                .name = action.name,
+                .type = *type,
+                .value = value
+            });
+         }
+         else if (ec == std::errc::invalid_argument)
+         {
+            serviceLogger_.LogError("Action '{}' does not contain a valid number", action.action);
+         }
+         else if (ec == std::errc::result_out_of_range)
+         {
+            serviceLogger_.LogError("Number in action '{}' is too large for an integer", action.action);
          }
       }
 
@@ -144,7 +145,8 @@ namespace loomis
       std::vector<FileInfo> files;
       std::error_code ec;
 
-      if (!std::filesystem::exists(path, ec)) return files;
+      if (!std::filesystem::exists(path, ec))
+         return files;
 
       auto iterOpts = std::filesystem::directory_options::skip_permission_denied;
 
@@ -155,7 +157,8 @@ namespace loomis
          for (const auto& entry : std::filesystem::recursive_directory_iterator(path, iterOpts))
          {
             const auto& p = entry.path();
-            if (!entry.is_regular_file()) continue;
+            if (!entry.is_regular_file())
+               continue;
 
             if (extensionsToDelete_.count(warp::ToLower(p.extension().string())))
             {
@@ -200,37 +203,35 @@ namespace loomis
 
    bool DvrLibrary::KeepLastDelete(const std::filesystem::path& path, int32_t value)
    {
-      bool showsDeleted = false;
       auto fileInfo = GetFilesInPath(path);
+      if (fileInfo.size() <= static_cast<size_t>(value))
+         return false;
 
-      if (fileInfo.size() > static_cast<size_t>(value))
+      serviceLogger_.LogInfo("KEEP_LAST_{} {} {}",
+                             value,
+                             warp::GetTag("num_items", fileInfo.size()),
+                             warp::GetTag("path", warp::GetStandoutText(warp::GetDisplayFolder(path).generic_string())));
+
+      std::sort(fileInfo.begin(), fileInfo.end(), [](const FileInfo& a, const FileInfo& b) {
+         return a.ageDays > b.ageDays;
+      });
+
+      size_t showsToDelete = fileInfo.size() - value;
+      size_t deletedCount = 0;
+      bool showsDeleted = false;
+      for (const auto& file : fileInfo)
       {
-         serviceLogger_.LogInfo("KEEP_LAST_{} {} {}",
+         serviceLogger_.LogInfo("KEEP_LAST_{} deleting oldest {} {}",
                                 value,
-                                warp::GetTag("num_items", fileInfo.size()),
-                                warp::GetTag("path", warp::GetStandoutText(warp::GetDisplayFolder(path).generic_string())));
-
-         std::sort(fileInfo.begin(), fileInfo.end(), [](const FileInfo& a, const FileInfo& b) {
-            return a.ageDays > b.ageDays;
-         });
-
-         size_t showsToDelete = fileInfo.size() - value;
-         size_t deletedCount = 0;
-
-         for (const auto& file : fileInfo)
-         {
-            serviceLogger_.LogInfo("KEEP_LAST_{} deleting oldest {} {}",
-                                   value,
-                                   warp::GetTag("age days", file.ageDays, ".1f"),
-                                   warp::GetTag("file", warp::GetStandoutText(warp::GetDisplayFolder(file.path).generic_string())));
+                                warp::GetTag("age days", file.ageDays, ".1f"),
+                                warp::GetTag("file", warp::GetStandoutText(warp::GetDisplayFolder(file.path).generic_string())));
 
 
-            DeleteItem(file.path);
-            showsDeleted = true;
+         DeleteItem(file.path);
+         showsDeleted = true;
 
-            ++deletedCount;
-            if (deletedCount >= showsToDelete) break;
-         }
+         ++deletedCount;
+         if (deletedCount >= showsToDelete) break;
       }
       return showsDeleted;
    }
@@ -242,16 +243,16 @@ namespace loomis
 
       for (const auto& file : fileInfo)
       {
-         if (file.ageDays >= static_cast<double>(value))
-         {
-            serviceLogger_.LogInfo("KEEP_DAYS_{} deleting {} {}",
-                                   value,
-                                   warp::GetTag("age days", file.ageDays, ".1f"),
-                                   warp::GetTag("file", warp::GetStandoutText(warp::GetDisplayFolder(file.path).generic_string())));
+         if (file.ageDays < static_cast<double>(value))
+            continue;
 
-            DeleteItem(file.path);
-            showsDeleted = true;
-         }
+         serviceLogger_.LogInfo("KEEP_DAYS_{} deleting {} {}",
+                                value,
+                                warp::GetTag("age days", file.ageDays, ".1f"),
+                                warp::GetTag("file", warp::GetStandoutText(warp::GetDisplayFolder(file.path).generic_string())));
+
+         DeleteItem(file.path);
+         showsDeleted = true;
       }
       return showsDeleted;
    }
@@ -259,7 +260,8 @@ namespace loomis
    bool DvrLibrary::CheckDelete(DvrAction& action)
    {
       auto libraryFilePath = path_ / action.name;
-      if (!std::filesystem::exists(libraryFilePath)) return false;
+      if (!std::filesystem::exists(libraryFilePath))
+         return false;
 
       switch (action.type)
       {
@@ -279,7 +281,8 @@ namespace loomis
       // Notify Plex Servers
       for (auto& plexData : plexDatas_)
       {
-         if (!dryRun_) plexData.api->SetLibraryScan(plexData.libraryId);
+         if (!dryRun_)
+            plexData.api->SetLibraryScan(plexData.libraryId);
 
          syncServerNames = warp::BuildSyncServerString(syncServerNames, plexData.api->GetPrettyName(), "") + ":" + plexData.libraryName;
       }
@@ -287,7 +290,8 @@ namespace loomis
       // Notify Emby Servers
       for (auto& embyData : embyDatas_)
       {
-         if (!dryRun_) embyData.api->SetLibraryScan(embyData.libraryId);
+         if (!dryRun_)
+            embyData.api->SetLibraryScan(embyData.libraryId);
 
          syncServerNames = warp::BuildSyncServerString(syncServerNames, embyData.api->GetPrettyName(), "") + ":" + embyData.libraryName;
       }
@@ -326,8 +330,11 @@ namespace loomis
          return true;
       };
 
-      if (!validateGroup(plexDatas_)) return false;
-      if (!validateGroup(embyDatas_)) return false;
+      if (!validateGroup(plexDatas_))
+         return false;
+
+      if (!validateGroup(embyDatas_))
+         return false;
 
       return true;
    }
@@ -346,6 +353,7 @@ namespace loomis
          itemsDeleted |= CheckDelete(action);
       }
 
-      if (itemsDeleted) NotifyServers();
+      if (itemsDeleted)
+         NotifyServers();
    }
 }

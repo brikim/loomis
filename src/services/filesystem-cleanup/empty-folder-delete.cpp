@@ -88,7 +88,8 @@ namespace loomis
          {
             const auto& path = entry.path();
             auto name = path.filename().native();
-            if (!name.empty() && name[0] == '.') continue;
+            if (!name.empty() && name[0] == '.')
+               continue;
 
             if (auto lowerName = warp::ToLower(name);
                 ignoreFiles_.contains(lowerName) || ignoreFolders_.contains(lowerName))
@@ -117,7 +118,8 @@ namespace loomis
              plexApi && plexApi->GetValid())
          {
             auto libraryId = plexApi->GetLibraryId(plexConfig.library);
-            if (!libraryId) continue;
+            if (!libraryId)
+               continue;
 
             // Assuming Library Refresh is the intended notification
             plexApi->SetLibraryScan(*libraryId);
@@ -133,7 +135,8 @@ namespace loomis
              embyApi && embyApi->GetValid())
          {
             auto libraryId = embyApi->GetLibraryId(embyConfig.library);
-            if (!libraryId) continue;
+            if (!libraryId)
+               continue;
 
             embyApi->SetLibraryScan(*libraryId);
 
@@ -152,13 +155,15 @@ namespace loomis
    {
       for (const auto& p : plex)
       {
-         auto* api = apiManager_->GetPlexApi(p.server);
-         if (!api || !api->GetValid()) return false;
+         if (auto* api = apiManager_->GetPlexApi(p.server);
+             !api || !api->GetValid())
+            return false;
       }
       for (const auto& e : emby)
       {
-         auto* api = apiManager_->GetEmbyApi(e.server);
-         if (!api || !api->GetValid()) return false;
+         if (auto* api = apiManager_->GetEmbyApi(e.server);
+             !api || !api->GetValid())
+            return false;
       }
       return true;
    }
@@ -173,7 +178,8 @@ namespace loomis
 
       namespace fs = std::filesystem;
       fs::path rootPath(pathConfig.path);
-      if (!fs::exists(rootPath)) return;
+      if (!fs::exists(rootPath))
+         return;
 
       struct PathEntry
       {
@@ -193,7 +199,8 @@ namespace loomis
             ec.clear();
             continue;
          }
-         if (it->is_directory()) subdirs.push_back({it->path(), static_cast<size_t>(it.depth())});
+         if (it->is_directory())
+            subdirs.push_back({it->path(), static_cast<size_t>(it.depth())});
       }
 
       // Robust depth sort: Deepest paths (most components) first
@@ -204,26 +211,25 @@ namespace loomis
       for (const auto& dir : subdirs)
       {
          // Safety: Never delete the top-level path itself
-         if (dir.path == rootPath) continue;
+         if (dir.path == rootPath ||
+             !IsFolderEmpty(dir.path))
+            continue;
 
-         if (IsFolderEmpty(dir.path))
+         if (dryRun_)
          {
-            if (dryRun_)
+            logger_.LogInfo("[Dry Run] Would remove empty folder: {}",
+                            warp::GetTag("path", warp::GetStandoutText(dir.path.string())));
+         }
+         else
+         {
+            if (std::error_code ec; fs::remove_all(dir.path, ec))
             {
-               logger_.LogInfo("[Dry Run] Would remove empty folder: {}",
-                               warp::GetTag("path", warp::GetStandoutText(dir.path.string())));
+               logger_.LogInfo("Removed empty folder: {}", warp::GetTag("path", warp::GetStandoutText(dir.path.string())));
+               directoryDeleted = true;
             }
-            else
+            else if (ec)
             {
-               if (std::error_code ec; fs::remove_all(dir.path, ec))
-               {
-                  logger_.LogInfo("Removed empty folder: {}", warp::GetTag("path", warp::GetStandoutText(dir.path.string())));
-                  directoryDeleted = true;
-               }
-               else if (ec)
-               {
-                  logger_.LogWarning("Failed to remove {}: {}", warp::GetTag("path", dir.path.string()), ec.message());
-               }
+               logger_.LogWarning("Failed to remove {}: {}", warp::GetTag("path", dir.path.string()), ec.message());
             }
          }
       }

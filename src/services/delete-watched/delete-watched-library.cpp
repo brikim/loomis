@@ -56,7 +56,8 @@ namespace loomis
          }
 
          // One of the required api's was not found
-         if (!api || !trackerApi) continue;
+         if (!api || !trackerApi)
+            continue;
 
          bool libraryValid = true;
          if (api->GetValid())
@@ -129,7 +130,8 @@ namespace loomis
          }
 
          // One of the required api's was not found
-         if (!api || !trackerApi) continue;
+         if (!api || !trackerApi)
+            continue;
 
          bool libraryValid = true;
          std::vector<std::string> validUsers;
@@ -195,7 +197,8 @@ namespace loomis
       std::vector<DeleteFileInfo> returnDeletes;
 
       auto libraryId = data.api->GetLibraryId(data.libraryName);
-      if (!libraryId) return {};
+      if (!libraryId)
+         return {};
 
       for (const auto& user : data.users)
       {
@@ -203,15 +206,18 @@ namespace loomis
                                                                               *libraryId,
                                                                               dataTimeForHistory,
                                                                               epochDateTimeForHistory);
-         if (!userHistory) continue;
+         if (!userHistory)
+            continue;
 
          for (auto& item : userHistory->items)
          {
-            if (!item.watched) continue;
+            if (!item.watched)
+               continue;
 
             auto itemPath = data.api->GetItemPath(item.id);
 
-            if (!itemPath) continue;
+            if (!itemPath)
+               continue;
 
             std::chrono::system_clock::time_point lastWatched{std::chrono::seconds{item.timeWatchedEpoch}};
 
@@ -231,10 +237,12 @@ namespace loomis
    std::vector<DeleteFileInfo> DeleteWatchedLibrary::FindEmbyWatched(const DeleteWatchedEmbyData& data)
    {
       auto libraryId = data.api->GetLibraryId(data.libraryName);
-      if (!libraryId) return {};
+      if (!libraryId)
+         return {};
 
       auto libraryHistory = data.trackerApi->GetWatchHistoryForLibrary(*libraryId);
-      if (!libraryHistory) return {};
+      if (!libraryHistory)
+         return {};
 
       std::vector<DeleteFileInfo> returnDeletes;
       for (const auto& item : libraryHistory->items)
@@ -244,17 +252,21 @@ namespace loomis
          });
 
          // User is not in the list to be considered watch ... continue
-         if (userIter == data.users.end()) continue;
+         if (userIter == data.users.end())
+            continue;
 
          auto userData = data.api->GetUser(*userIter);
-         if (!userData) continue;
+         if (!userData)
+            continue;
 
          auto playState = data.api->GetPlayState(userData->id, item.episodeId ? *item.episodeId : item.id);
-         if (!playState || !playState->watched) continue;
+         if (!playState || !playState->watched)
+            continue;
 
          // Check if the show if the amount of time has elapsed before delete
          auto watchTime = warp::ConvertIsoToTimePoint(item.watchTime);
-         if (!watchTime || (std::chrono::system_clock::now() - *watchTime) <= deleteTimeHours_) continue;
+         if (!watchTime || (std::chrono::system_clock::now() - *watchTime) <= deleteTimeHours_)
+            continue;
 
          returnDeletes.emplace_back(DeleteFileInfo{
                .path = ReplaceMediaPath(playState->path, data.mediaPath, containerPath_),
@@ -312,13 +324,16 @@ namespace loomis
       // Notify Plex Servers
       for (const auto& plex : plexDatas_)
       {
-         if (!plex.api->GetValid()) continue;
+         if (!plex.api->GetValid())
+            continue;
 
          auto libraryId = plex.api->GetLibraryId(plex.libraryName);
-         if (!libraryId) continue;
+         if (!libraryId)
+            continue;
 
          // Assuming Library Refresh is the intended notification
-         if (!dryRun_) plex.api->SetLibraryScan(*libraryId);
+         if (!dryRun_)
+            plex.api->SetLibraryScan(*libraryId);
 
          syncServerNames = warp::BuildSyncServerString(syncServerNames, plex.api->GetPrettyName(), "") + ":" + plex.libraryName;
       }
@@ -326,12 +341,15 @@ namespace loomis
       // Notify Emby Servers
       for (const auto& emby : embyDatas_)
       {
-         if (!emby.api->GetValid()) continue;
+         if (!emby.api->GetValid())
+            continue;
 
          auto libraryId = emby.api->GetLibraryId(emby.libraryName);
-         if (!libraryId) continue;
+         if (!libraryId)
+            continue;
 
-         if (!dryRun_) emby.api->SetLibraryScan(*libraryId);
+         if (!dryRun_)
+            emby.api->SetLibraryScan(*libraryId);
 
          syncServerNames = warp::BuildSyncServerString(syncServerNames, emby.api->GetPrettyName(), "") + ":" + emby.libraryName;
       }
@@ -364,6 +382,7 @@ namespace loomis
          deleteInfo.insert(deleteInfo.end(), std::make_move_iterator(embyDeleteInfo.begin()), std::make_move_iterator(embyDeleteInfo.end()));
       }
 
-      if (DeleteFiles(deleteInfo)) NotifyServers();
+      if (DeleteFiles(deleteInfo))
+         NotifyServers();
    }
 }

@@ -187,7 +187,8 @@ namespace loomis
       };
       std::vector<MoveTracker> virtualItems;
       virtualItems.reserve(currentPlaylist.items.size());
-      for (const auto& item : currentPlaylist.items) virtualItems.push_back({item.id, item.playlistId});
+      for (const auto& item : currentPlaylist.items)
+         virtualItems.push_back({item.id, item.playlistId});
 
       bool orderChanged = false;
       for (uint32_t i = 0; i < correctIds.size(); ++i)
@@ -198,18 +199,19 @@ namespace loomis
          auto it = std::find_if(virtualItems.begin() + i, virtualItems.end(),
                                 [&](const auto& vt) { return vt.id == correctIds[i]; });
 
-         if (it != virtualItems.end())
-         {
-            if (embyApi->MovePlaylistItem(currentPlaylist.id, it->pId, i))
-            {
-               auto itemToMove = *it;
-               virtualItems.erase(it);
-               virtualItems.insert(virtualItems.begin() + i, itemToMove);
-               orderChanged = true;
+         if (it == virtualItems.end())
+            continue;
 
-               std::this_thread::sleep_for(PLAYLIST_UPDATE_WAIT_TIME);
-            }
+         if (embyApi->MovePlaylistItem(currentPlaylist.id, it->pId, i))
+         {
+            auto itemToMove = *it;
+            virtualItems.erase(it);
+            virtualItems.insert(virtualItems.begin() + i, itemToMove);
+            orderChanged = true;
+
+            std::this_thread::sleep_for(PLAYLIST_UPDATE_WAIT_TIME);
          }
+
       }
 
       if (orderChanged || added > 0 || removed > 0)
@@ -276,8 +278,8 @@ namespace loomis
 
    void PlaylistSyncService::SyncPlexCollection(warp::PlexApi* plexApi, warp::EmbyApi* embyApi, const PlaylistPlexCollection& collection)
    {
-      auto plexCollection = plexApi->GetCollection(collection.library, collection.collection_name);
-      if (plexCollection)
+      if (auto plexCollection = plexApi->GetCollection(collection.library, collection.collection_name);
+          plexCollection)
       {
          SyncEmbyPlaylist(plexApi, embyApi, *plexCollection);
       }

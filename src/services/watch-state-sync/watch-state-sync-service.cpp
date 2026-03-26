@@ -26,8 +26,8 @@ namespace loomis
    {
       for (const auto& user : config.users)
       {
-         auto watchStateUser{std::make_unique<WatchStateUser>(user, GetApiManager(), ServiceLogger(*this))};
-         if (watchStateUser->GetValid())
+         if (auto watchStateUser{std::make_unique<WatchStateUser>(user, GetApiManager(), ServiceLogger(*this))};
+             watchStateUser->GetValid())
          {
             users_.emplace_back(std::move(watchStateUser));
          }
@@ -36,7 +36,8 @@ namespace loomis
 
    void WatchStateSyncService::Run()
    {
-      std::ranges::for_each(users_, [&](auto& user) {
+      for (auto& user : users_)
+      {
          try
          {
             user->Sync();
@@ -47,6 +48,6 @@ namespace loomis
                        user->GetServerAndUserName(),
                        e.what());
          }
-      });
+      };
    }
 }

@@ -19,7 +19,7 @@ namespace loomis
    class PlexUser
    {
    public:
-      PlexUser(const ServerUser& config,
+      PlexUser(const ServerPlexUser& config,
                const std::shared_ptr<warp::ApiManager>& apiManager,
                ServiceLogger logger);
       ~PlexUser() = default;
@@ -54,7 +54,7 @@ namespace loomis
 
       bool valid_{false};
       ServiceLogger logger_;
-      ServerUser config_;
+      ServerPlexUser config_;
 
       warp::PlexApi* api_{nullptr};
       warp::TautulliApi* trackerApi_{nullptr};
