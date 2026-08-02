@@ -108,6 +108,20 @@ namespace loomis
       std::vector<UserSyncConfig> users;
    };
 
+   struct StateSyncTracearrConfig
+   {
+      bool enabled{false};
+      std::string cron;
+
+      struct glaze
+      {
+         static constexpr auto value = glz::object(
+            "enabled", &StateSyncTracearrConfig::enabled,
+            "cron", &StateSyncTracearrConfig::cron
+         );
+      };
+   };
+
    struct ServerLibraryConfig
    {
       std::string server;
@@ -377,10 +391,27 @@ namespace loomis
       std::vector<ServerConfig> servers;
    };
 
+   struct TracearrServer
+   {
+      std::optional<std::string> server_name;
+      std::optional<std::string> url;
+      std::optional<std::string> api_key;
+
+      struct glaze
+      {
+         static constexpr auto value = glz::object(
+            "server_name", &TracearrServer::server_name,
+            "url", &TracearrServer::url,
+            "api_key", &TracearrServer::api_key
+         );
+      };
+   };
+
    struct ConfigData
    {
       ConfigServers plex;
       ConfigServers emby;
+      TracearrServer tracearr;
       AppriseLoggingConfig appriseLogging;
       GotifyLoggingConfig gotifyLogging;
       PlaylistSyncConfig playlistSync;
@@ -389,12 +420,14 @@ namespace loomis
       DvrMaintainerConfig dvrMaintainer;
       DeleteWatchedConfig deleteWatched;
       EmbyTidyConfig embyTidy;
+      StateSyncTracearrConfig stateSyncTracearr;
 
       struct glaze
       {
          static constexpr auto value = glz::object(
             "plex", &ConfigData::plex,
             "emby", &ConfigData::emby,
+            "tracearr", &ConfigData::tracearr,
             "apprise_logging", &ConfigData::appriseLogging,
             "gotify_logging", &ConfigData::gotifyLogging,
             "playlist_sync", &ConfigData::playlistSync,
@@ -402,7 +435,8 @@ namespace loomis
             "filesystem_cleanup", &ConfigData::fileSystemCleanup,
             "dvr_maintainer", &ConfigData::dvrMaintainer,
             "delete_watched", &ConfigData::deleteWatched,
-            "emby_tidy", &ConfigData::embyTidy
+            "emby_tidy", &ConfigData::embyTidy,
+            "state_sync_tracearr", &ConfigData::stateSyncTracearr
          );
       };
    };

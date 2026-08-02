@@ -65,6 +65,11 @@ namespace loomis
       return configData_.emby.servers;
    }
 
+   const TracearrServer& ConfigReader::GetTracearrServer() const
+   {
+      return configData_.tracearr;
+   }
+
    const AppriseLoggingConfig& ConfigReader::GetAppriseLogging() const
    {
       return configData_.appriseLogging;
@@ -103,5 +108,10 @@ namespace loomis
    const EmbyTidyConfig& ConfigReader::GetEmbyTidyConfig() const
    {
       return configData_.embyTidy;
+   }
+
+   const StateSyncTracearrConfig& ConfigReader::GetStateSyncTracearrConfig() const
+   {
+      return configData_.stateSyncTracearr;
    }
 }

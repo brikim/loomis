@@ -17,6 +17,7 @@ namespace loomis
 
       [[nodiscard]] const std::vector<ServerConfig>& GetPlexServers() const;
       [[nodiscard]] const std::vector<ServerConfig>& GetEmbyServers() const;
+      [[nodiscard]] const TracearrServer& GetTracearrServer() const;
       [[nodiscard]] const AppriseLoggingConfig& GetAppriseLogging() const;
       [[nodiscard]] const GotifyLoggingConfig& GetGotifyLogging() const;
       [[nodiscard]] const PlaylistSyncConfig& GetPlaylistSyncConfig() const;
@@ -25,6 +26,7 @@ namespace loomis
       [[nodiscard]] const DvrMaintainerConfig& GetDvrMaintainerConfig() const;
       [[nodiscard]] const DeleteWatchedConfig& GetDeleteWatchedConfig() const;
       [[nodiscard]] const EmbyTidyConfig& GetEmbyTidyConfig() const;
+      [[nodiscard]] const StateSyncTracearrConfig& GetStateSyncTracearrConfig() const;
 
    private:
       void ReadConfigFile(const char* path);

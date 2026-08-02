@@ -5,6 +5,7 @@
 #include "services/emby-tidy/emby-tidy-service.h"
 #include "services/filesystem-cleanup/filesystem-cleanup-service.h"
 #include "services/playlist-sync/playlist-sync-service.h"
+#include "services/state-sync-tracearr/state-sync-tracearr-service.h"
 #include "services/watch-state-sync/watch-state-sync-service.h"
 #include "version.h"
 
@@ -53,6 +54,21 @@ namespace loomis
       }
       apiManagerConfig.embyConfig.options.enableCachePaths = true;
 
+      const auto& tracearrConfig = configReader_->GetTracearrServer();
+      if (tracearrConfig.server_name.has_value() &&
+          tracearrConfig.url.has_value() &&
+          tracearrConfig.api_key.has_value())
+      {
+         apiManagerConfig.tracearrConfig.enabled = true;
+         apiManagerConfig.tracearrConfig.serverName = tracearrConfig.server_name.value();
+         apiManagerConfig.tracearrConfig.url = tracearrConfig.url.value();
+         apiManagerConfig.tracearrConfig.apiKey = tracearrConfig.api_key.value();
+      }
+      else
+      {
+         apiManagerConfig.tracearrConfig.enabled = false;
+      }
+
       apiManager_ = std::make_shared<warp::ApiManager>(SERVICE_NAME,
                                                        LOOMIS_VERSION,
                                                        apiManagerConfig);
@@ -77,6 +93,9 @@ namespace loomis
 
       if (configReader_->GetEmbyTidyConfig().enabled)
          services_.emplace_back(std::make_unique<EmbyTidyService>(configReader_->GetEmbyTidyConfig(), apiManager_));
+
+      if (configReader_->GetStateSyncTracearrConfig().enabled)
+         services_.emplace_back(std::make_unique<StateSyncTracearrService>(configReader_->GetStateSyncTracearrConfig(), apiManager_));
    }
 
    void ServiceManager::Run()
