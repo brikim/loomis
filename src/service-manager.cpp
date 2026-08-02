@@ -63,6 +63,13 @@ namespace loomis
          apiManagerConfig.tracearrConfig.serverName = tracearrConfig.server_name.value();
          apiManagerConfig.tracearrConfig.url = tracearrConfig.url.value();
          apiManagerConfig.tracearrConfig.apiKey = tracearrConfig.api_key.value();
+         for (const auto& serverConfig : tracearrConfig.servers)
+         {
+            apiManagerConfig.tracearrConfig.servers.emplace_back(warp::TracearrServerData{
+               .tracearrServerName = serverConfig.tracearrServerName,
+               .serverName = serverConfig.serverName
+            });
+         }
       }
       else
       {
