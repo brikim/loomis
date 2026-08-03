@@ -1,0 +1,179 @@
+﻿#include "emby-user.h"
+
+#include "services/service-utils.h"
+
+#include <warp/log/log-utils.h>
+#include <warp/utils.h>
+
+namespace loomis
+{
+   namespace
+   {
+      constexpr int32_t playbackPercentageThreshold{99};
+   }
+
+   StateSyncEmbyUser::StateSyncEmbyUser(const ServerUser& config,
+                      const std::shared_ptr<warp::ApiManager>& apiManager,
+                      ServiceLogger logger)
+      : logger_(logger)
+      , config_(config)
+   {
+      // Do some quick checking on the users and make sure the api in the config exists.
+      // Don't want to check if the user is valid on the api yet since it might be offline.
+      // This will be checked every run frame.
+      embyApi_ = apiManager->GetEmbyApi(config_.server);
+      jellystatApi_ = apiManager->GetJellystatApi(config_.server);
+      if (embyApi_ && jellystatApi_)
+      {
+         // Will get users from emby. Do a small pre-check and warn the system.
+         if (embyApi_->GetValid() && !embyApi_->GetUser(config_.userName))
+         {
+            logger_.LogWarning("{} not found on {}. Is user name correct?",
+                               warp::GetTag("user", config_.userName),
+                               embyApi_->GetPrettyName());
+         }
+
+         valid_ = true;
+      }
+      else
+      {
+         if (!embyApi_)
+         {
+            logger_.LogWarning("{} api not found for {}",
+                               warp::GetServerName(warp::GetFormattedEmby(), config.server),
+                               warp::GetTag("user", config_.userName));
+         }
+
+         if (!jellystatApi_)
+         {
+            logger_.LogWarning("{} tracker api not found for {}. Required for this service.",
+                               warp::GetServerName(warp::GetFormattedJellystat(), config_.server),
+                               warp::GetTag("user", config_.userName));
+         }
+      }
+   }
+
+   bool StateSyncEmbyUser::GetValid() const
+   {
+      return valid_;
+   }
+
+   std::string StateSyncEmbyUser::GetServerAndUserName() const
+   {
+      return embyApi_->GetPrettyName() + ":" + config_.userName;
+   }
+
+   std::string_view StateSyncEmbyUser::GetServerName() const
+   {
+      return config_.server;
+   }
+
+   std::string_view StateSyncEmbyUser::GetTypeAndServerName() const
+   {
+      return embyApi_->GetPrettyName();
+   }
+
+   std::string_view StateSyncEmbyUser::GetUser() const
+   {
+      return config_.userName;
+   }
+
+   const std::filesystem::path& StateSyncEmbyUser::GetMediaPath() const
+   {
+      return embyApi_->GetMediaPath();
+   }
+
+   std::optional<warp::EmbyPlayState> StateSyncEmbyUser::GetPlayState(std::string_view id)
+   {
+      return embyApi_->GetPlayState(userId_, id);
+   }
+
+   void StateSyncEmbyUser::Update()
+   {
+      auto user = embyApi_->GetUser(config_.userName);
+      valid_ = user.has_value();
+      if (valid_)
+         userId_ = std::move(user->id);
+   }
+
+   std::optional<warp::JellystatHistoryItems> StateSyncEmbyUser::GetWatchHistory()
+   {
+      return jellystatApi_->GetWatchHistoryForUser(userId_);
+   }
+
+   bool StateSyncEmbyUser::SyncPlexWatchedState(const std::filesystem::path& plexPath)
+   {
+      auto id = embyApi_->GetIdFromPath(plexPath);
+      if (!id)
+         return false;
+
+      // If this item is already watched just return
+      if (embyApi_->GetWatchedStatus(userId_, *id))
+         return false;
+
+      embyApi_->SetWatchedStatus(userId_, *id);
+
+      return true;
+   }
+
+   bool StateSyncEmbyUser::SyncPlexPlayState(const PlexSyncState& syncState)
+   {
+      auto id = embyApi_->GetIdFromPath(syncState.path);
+      if (!id)
+         return false;
+
+      auto playState = embyApi_->GetPlayState(userId_, *id);
+      if (!playState || syncState.playbackPercentage == std::lround(playState->percentage))
+         return false;
+
+      int64_t tickLocation = std::llround(static_cast<double>(playState->runTimeTicks) * (static_cast<double>(syncState.playbackPercentage) / 100.0));
+      if (tickLocation == playState->runTimeTicks)
+      {
+         return SyncPlexWatchedState(syncState.path);
+      }
+
+      auto timeString = GetIsoTimeStr(std::chrono::sys_time<std::chrono::seconds>{std::chrono::seconds{syncState.timeWatchedEpoch}});
+      return embyApi_->SetPlayState(userId_, *id, tickLocation, timeString);
+   }
+
+   void StateSyncEmbyUser::SyncStateWithPlex(const PlexSyncState& syncState, std::string& syncResults)
+   {
+      bool forceWatched = syncState.watched || syncState.playbackPercentage >= playbackPercentageThreshold;
+      bool success = forceWatched ? SyncPlexWatchedState(syncState.path) : SyncPlexPlayState(syncState);
+      if (success)
+      {
+         syncResults = warp::BuildSyncServerString(syncResults, warp::GetFormattedEmby(), config_.server);
+      }
+   }
+
+   bool StateSyncEmbyUser::SyncEmbyWatchedState(std::string_view id)
+   {
+      if (embyApi_->GetWatchedStatus(userId_, id))
+         return false;
+      return embyApi_->SetWatchedStatus(userId_, id);
+   }
+
+   bool StateSyncEmbyUser::SyncEmbyPlayState(const EmbySyncState& syncState, std::string_view id)
+   {
+      auto playState = embyApi_->GetPlayState(userId_, id);
+      if (!playState || syncState.playbackPercentage == std::lround(playState->percentage))
+         return false;
+
+      int64_t tickLocation = std::llround(static_cast<double>(playState->runTimeTicks) * (static_cast<double>(syncState.playbackPercentage) / 100.0));
+      return embyApi_->SetPlayState(userId_, id, tickLocation, syncState.timeWatched);
+   }
+
+   void StateSyncEmbyUser::SyncStateWithEmby(const EmbySyncState& syncState, std::string& syncResults)
+   {
+      auto id = embyApi_->GetIdFromPath(ReplaceMediaPath(syncState.path, syncState.mediaPath, GetMediaPath()));
+      if (!id)
+         return;
+
+      bool forceWatched = syncState.watched || syncState.playbackPercentage >= playbackPercentageThreshold;
+      bool success = forceWatched ? SyncEmbyWatchedState(*id) : SyncEmbyPlayState(syncState, *id);
+      if (success)
+      {
+         syncResults = warp::BuildSyncServerString(syncResults, warp::GetFormattedEmby(), config_.server);
+      }
+   }
+}

@@ -2,8 +2,10 @@
 
 #include "config-reader/config-reader-types.h"
 #include "services/service-base.h"
+#include "services/state-sync-tracearr/state-sync-user.h"
 
-#include <warp/api//api-manager.h>
+#include <warp/api/api-manager.h>
+#include <warp/api/api-tracearr.h>
 
 #include <memory>
 #include <vector>
@@ -21,5 +23,10 @@ namespace loomis
 
    private:
       void Init(const StateSyncTracearrConfig& config);
+
+      std::vector<const warp::TracearrHistoryItem*> GetConsolidatedHistory(const warp::TracearrHistoryItems& historyItems);
+
+      warp::TracearrApi* tracearrApi_{nullptr};
+      std::vector<std::unique_ptr<StateSyncUser>> users_;
    };
 }

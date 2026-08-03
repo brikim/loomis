@@ -108,16 +108,46 @@ namespace loomis
       std::vector<UserSyncConfig> users;
    };
 
+   struct ServerTracearrUser
+   {
+      std::string userName;
+
+      struct glaze
+      {
+         static constexpr auto value = glz::object(
+            "user_name", &ServerTracearrUser::userName
+         );
+      };
+   };
+
+   struct UserSyncTracearrConfig
+   {
+      ServerTracearrUser tracearr;
+      std::vector<ServerPlexUser> plex;
+      std::vector<ServerUser> emby;
+
+      struct glaze
+      {
+         static constexpr auto value = glz::object(
+            "tracearr", &UserSyncTracearrConfig::tracearr,
+            "plex", &UserSyncTracearrConfig::plex,
+            "emby", &UserSyncTracearrConfig::emby
+         );
+      };
+   };
+
    struct StateSyncTracearrConfig
    {
       bool enabled{false};
       std::string cron;
+      std::vector<UserSyncTracearrConfig> users;
 
       struct glaze
       {
          static constexpr auto value = glz::object(
             "enabled", &StateSyncTracearrConfig::enabled,
-            "cron", &StateSyncTracearrConfig::cron
+            "cron", &StateSyncTracearrConfig::cron,
+            "users", &StateSyncTracearrConfig::users
          );
       };
    };
