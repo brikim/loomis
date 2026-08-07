@@ -2,6 +2,9 @@
 
 #include "services/service-utils.h"
 
+#include <warp/api/api-emby.h>
+#include <warp/api/api-plex.h>
+#include <warp/api/api-tracearr.h>
 #include <warp/log/log-utils.h>
 
 #include <algorithm>
@@ -10,26 +13,30 @@
 namespace loomis
 {
    StateSyncUser::StateSyncUser(const UserSyncTracearrConfig& config,
-                                  std::shared_ptr<warp::ApiManager> apiManager,
-                                  ServiceLogger logger)
+                                bool dryRun,
+                                std::shared_ptr<warp::ApiManager> apiManager,
+                                ServiceLogger logger)
       : apiManager_(std::move(apiManager))
       , logger_(logger)
+      , dryRunText_(dryRun ? "[DRY RUN] " : "")
       , tracearrUserName_(config.tracearr.userName)
    {
-      std::ranges::for_each(config.plex, [this](const auto& configPlexUser) {
-         auto plexUser{std::make_unique<PlexUser>(configPlexUser,
-                                                  apiManager_,
-                                                  logger_)};
+      std::ranges::for_each(config.plex, [this, dryRun](const auto& configPlexUser) {
+         auto plexUser{std::make_unique<StateSyncPlexUser>(configPlexUser,
+                                                           dryRun,
+                                                           apiManager_,
+                                                           logger_)};
          if (plexUser->GetValid())
          {
             this->plexUsers_.emplace_back(std::move(plexUser));
          }
       });
 
-      std::ranges::for_each(config.emby, [this](const auto& configEmbyUser) {
-         auto embyUser{std::make_unique<EmbyUser>(configEmbyUser,
-                                                  apiManager_,
-                                                  logger_)};
+      std::ranges::for_each(config.emby, [this, dryRun](const auto& configEmbyUser) {
+         auto embyUser{std::make_unique<StateSyncEmbyUser>(configEmbyUser,
+                                                           dryRun,
+                                                           apiManager_,
+                                                           logger_)};
          if (embyUser->GetValid())
          {
             this->embyUsers_.emplace_back(std::move(embyUser));
@@ -113,7 +120,8 @@ namespace loomis
    {
       if (syncSummary.watched)
       {
-         logger_.LogInfo("{}:{} watched {} sync {} watch state",
+         logger_.LogInfo("{}{}:{} watched {} sync {} watch state",
+                         dryRunText_,
                          syncSummary.server,
                          syncSummary.user,
                          warp::GetStandoutText(syncSummary.name),
@@ -121,7 +129,8 @@ namespace loomis
       }
       else
       {
-         logger_.LogInfo("{}:{} played {}% of {} sync {} play state",
+         logger_.LogInfo("{}{}:{} played {}% of {} sync {} play state",
+                         dryRunText_,
                          syncSummary.server,
                          syncSummary.user,
                          syncSummary.playbackPercentage,
@@ -130,147 +139,117 @@ namespace loomis
       }
    }
 
-   std::unordered_map<std::string, std::filesystem::path> StateSyncUser::GetPlexPathsForHistoryItems(std::string_view server,
-                                                                                                      const std::vector<const warp::TautulliHistoryItem*> historyItems)
+   void StateSyncUser::SyncPlexState(const warp::TracearrHistoryItem* historyItem, StateSyncPlexUser& plexUser)
    {
-      auto plexApi = apiManager_->GetPlexApi(server);
-
+      auto plexApi = apiManager_->GetPlexApi(plexUser.GetServerName());
       if (!plexApi || !plexApi->GetValid())
-         return {};
-
-      std::vector<std::string> ids;
-      ids.reserve(historyItems.size());
-      for (const auto* item : historyItems)
-      {
-         if (item->live) continue;
-         ids.push_back(item->id);
-      }
-
-      if (ids.empty())
-      {
-         return {};
-      }
-      return plexApi->GetItemsPaths(ids);
-   }
-
-   void StateSyncUser::SyncPlexState(PlexUser& plexUser, std::string_view historyDate, int64_t epochHistoryTime)
-   {
-      auto userHistory = plexUser.GetWatchHistory(historyDate, epochHistoryTime);
-      if (!userHistory || userHistory->items.empty())
          return;
 
-      auto consolidatedHistory = GetConsolidatedPlexHistory(*userHistory);
-      auto historyWithPaths = GetPlexPathsForHistoryItems(plexUser.GetServerName(), consolidatedHistory);
+      auto itemPath = plexApi->GetItemPath(historyItem->serverRatingKey);
+      if (!itemPath)
+         return;
 
-      for (const auto* history : consolidatedHistory)
+      std::string syncServers;
+
+      for (auto& user : plexUsers_)
+         if (user->GetValid())
+            user->SyncStateWithPlex();
+
+      for (auto& user : embyUsers_)
+         if (user->GetValid())
+            user->SyncStateWithPlex(historyItem, itemPath.value(), syncServers);
+
+      if (!syncServers.empty())
       {
-         auto iter = historyWithPaths.find(history->id);
-         if (iter == historyWithPaths.end())
-            return;
-
-         std::string syncServers;
-
-         auto plexSyncState = EmbyUser::PlexSyncState{
-            .path = iter->second,
-            .watched = history->watched,
-            .playbackPercentage = history->playbackPercentage,
-            .timeWatchedEpoch = history->timeWatchedEpoch};
-
-         for (auto& user : plexUsers_)
-            if (user->GetValid())
-               user->SyncStateWithPlex();
-
-         for (auto& user : embyUsers_)
-            if (user->GetValid())
-               user->SyncStateWithPlex(plexSyncState, syncServers);
-
-         if (!syncServers.empty())
-         {
-            LogSyncSummary({
-               .server = plexUser.GetTypeAndServerName(),
-               .user = plexUser.GetUser(),
-               .name = history->fullName,
-               .watched = history->watched,
-               .playbackPercentage = history->playbackPercentage,
-               .syncResults = syncServers
-            });
-         }
+         LogSyncSummary({
+            .server = plexUser.GetTypeAndServerName(),
+            .user = plexUser.GetUser(),
+            .name = historyItem->fullName,
+            .watched = historyItem->watched,
+            .playbackPercentage = historyItem->playbackPercentage,
+            .syncResults = syncServers
+         });
       }
    }
 
-   void StateSyncUser::SyncEmbyState(EmbyUser& embyUser)
+   void StateSyncUser::SyncEmbyState(const warp::TracearrHistoryItem* historyItem, StateSyncEmbyUser& embyUser)
    {
-      auto userHistory = embyUser.GetWatchHistory();
-      if (!userHistory || userHistory->items.empty())
+      auto embyApi = apiManager_->GetEmbyApi(embyUser.GetServerName());
+      if (!embyApi || !embyApi->GetValid())
          return;
 
-      const auto cutoff = GetIsoTimeStr(std::chrono::system_clock::now() - std::chrono::days(1));
+      auto itemPath = embyApi->GetItemPath(historyItem->serverRatingKey);
+      if (!itemPath)
+         return;
 
-      // Remove all items older than 24 hours
-      std::erase_if(userHistory->items, [&cutoff](const auto& item) {
-         return item.watchTime < cutoff;
-      });
+      auto plexSyncState = StateSyncPlexUser::EmbySyncState{
+         .item = historyItem,
+         .mediaPath = embyUser.GetMediaPath(),
+         .path = itemPath.value(),
+      };
 
-      auto consolidatedHistory = GetConsolidatedEmbyHistory(*userHistory);
-      for (auto& item : consolidatedHistory)
+      auto embySyncState = StateSyncEmbyUser::EmbySyncState{
+         .item = historyItem,
+         .mediaPath = embyUser.GetMediaPath(),
+         .path = itemPath.value()
+      };
+
+      std::string syncServers;
+
+      for (auto& user : plexUsers_)
+         if (user->GetValid())
+            user->SyncStateWithEmby(plexSyncState, syncServers);
+
+      for (auto& user : embyUsers_)
+         if (user->GetServerName() != embyUser.GetServerName() && user->GetValid())
+            user->SyncStateWithEmby(embySyncState, syncServers);
+
+      if (!syncServers.empty())
       {
-         std::string syncServers;
-         auto playState = embyUser.GetPlayState(item->episodeId.has_value() ? *item->episodeId : item->id);
-
-         if (!playState)
-            continue;
-
-         auto plexSyncState = PlexUser::EmbySyncState{
-            .name = item->name,
-            .mediaPath = embyUser.GetMediaPath(),
-            .path = playState->path,
-            .watched = playState->watched,
-            .playbackPercentage = static_cast<int32_t>(std::lround(playState->percentage)),
-            .timeWatched = item->watchTime
-         };
-
-         auto embySyncState = EmbyUser::EmbySyncState{
-            .mediaPath = embyUser.GetMediaPath(),
-            .path = playState->path,
-            .watched = playState->watched,
-            .playbackPercentage = static_cast<int32_t>(std::lround(playState->percentage)),
-            .timeWatched = item->watchTime
-         };
-
-         for (auto& user : plexUsers_)
-            if (user->GetValid())
-               user->SyncStateWithEmby(plexSyncState, syncServers);
-
-         for (auto& user : embyUsers_)
-            if (user->GetServerName() != embyUser.GetServerName() && user->GetValid())
-               user->SyncStateWithEmby(embySyncState, syncServers);
-
-         if (!syncServers.empty())
-         {
-            LogSyncSummary({
-               .server = embyUser.GetTypeAndServerName(),
-               .user = embyUser.GetUser(),
-               .name = item->seriesName ? std::format("{} - {}", *item->seriesName, item->name) : item->name,
-               .watched = playState->watched,
-               .playbackPercentage = static_cast<int32_t>(std::lround(playState->percentage)),
-               .syncResults = syncServers
-            });
-         }
+         LogSyncSummary({
+            .server = embyUser.GetTypeAndServerName(),
+            .user = embyUser.GetUser(),
+            .name = historyItem->fullName,
+            .watched = historyItem->watched,
+            .playbackPercentage = static_cast<int32_t>(std::lround(historyItem->playbackPercentage)),
+            .syncResults = syncServers
+         });
       }
    }
 
    void StateSyncUser::Sync(const std::vector<const warp::TracearrHistoryItem*>& historyItems)
    {
+      auto tracearrApi = apiManager_->GetTracearrApi();
+
       // Have all users update to the latest data
       UpdateAllUsers();
 
-      constexpr uint32_t daysOfHistory{1};
-      auto plexHistoryTime = GetDatetimeForHistoryPlex(daysOfHistory);
-      auto plexEpochHistoryTime = GetEpochTimeForPlexHistory(daysOfHistory);
-      for (auto& plexUser : plexUsers_)
-         SyncPlexState(*plexUser, plexHistoryTime, plexEpochHistoryTime);
-
-      for (auto& embyUser : embyUsers_)
-         SyncEmbyState(*embyUser);
+      auto isUser = [this](auto* item) { return tracearrUserName_ == item->user; };
+      auto userViewItems = historyItems | std::views::filter(isUser);
+      for (const auto* item : userViewItems)
+      {
+         if (item->serverType == warp::TracearrServerType::PLEX)
+         {
+            for (auto& plexUser : plexUsers_)
+            {
+               if (plexUser->GetTracearrServerName() == item->serverName)
+               {
+                  SyncPlexState(item, *plexUser);
+                  break;
+               }
+            }
+         }
+         else if (item->serverType == warp::TracearrServerType::EMBY)
+         {
+            for (auto& embyUser : embyUsers_)
+            {
+               if (embyUser->GetTracearrServerName() == item->serverName)
+               {
+                  SyncEmbyState(item, *embyUser);
+                  break;
+               }
+            }
+         }
+      }
    }
 }

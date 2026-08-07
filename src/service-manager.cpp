@@ -31,6 +31,7 @@ namespace loomis
       {
          apiManagerConfig.plexConfig.servers.emplace_back(warp::ServerConfig{
             .serverName = plexServer.server_name,
+            .tracearrServerName = plexServer.tracearr_server_name,
             .url = plexServer.url,
             .apiKey = plexServer.api_key,
             .trackerUrl = plexServer.tracker_url,
@@ -46,6 +47,7 @@ namespace loomis
       {
          apiManagerConfig.embyConfig.servers.emplace_back(warp::ServerConfig{
             .serverName = embyServer.server_name,
+            .tracearrServerName = embyServer.tracearr_server_name,
             .url = embyServer.url,
             .apiKey = embyServer.api_key,
             .trackerUrl = embyServer.tracker_url,
@@ -63,13 +65,6 @@ namespace loomis
          apiManagerConfig.tracearrConfig.serverName = tracearrConfig.server_name.value();
          apiManagerConfig.tracearrConfig.url = tracearrConfig.url.value();
          apiManagerConfig.tracearrConfig.apiKey = tracearrConfig.api_key.value();
-         for (const auto& serverConfig : tracearrConfig.servers)
-         {
-            apiManagerConfig.tracearrConfig.servers.emplace_back(warp::TracearrServerData{
-               .tracearrServerName = serverConfig.tracearrServerName,
-               .serverName = serverConfig.serverName
-            });
-         }
       }
       else
       {

@@ -24,8 +24,6 @@ namespace loomis
    private:
       void Init(const StateSyncTracearrConfig& config);
 
-      std::vector<const warp::TracearrHistoryItem*> GetConsolidatedHistory(const warp::TracearrHistoryItems& historyItems);
-
       warp::TracearrApi* tracearrApi_{nullptr};
       std::vector<std::unique_ptr<StateSyncUser>> users_;
    };

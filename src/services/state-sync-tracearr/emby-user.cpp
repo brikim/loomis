@@ -13,17 +13,18 @@ namespace loomis
    }
 
    StateSyncEmbyUser::StateSyncEmbyUser(const ServerUser& config,
-                      const std::shared_ptr<warp::ApiManager>& apiManager,
-                      ServiceLogger logger)
+                                        bool dryRun,
+                                        const std::shared_ptr<warp::ApiManager>& apiManager,
+                                        ServiceLogger logger)
       : logger_(logger)
+      , dryRun_(dryRun)
       , config_(config)
    {
       // Do some quick checking on the users and make sure the api in the config exists.
       // Don't want to check if the user is valid on the api yet since it might be offline.
       // This will be checked every run frame.
       embyApi_ = apiManager->GetEmbyApi(config_.server);
-      jellystatApi_ = apiManager->GetJellystatApi(config_.server);
-      if (embyApi_ && jellystatApi_)
+      if (embyApi_)
       {
          // Will get users from emby. Do a small pre-check and warn the system.
          if (embyApi_->GetValid() && !embyApi_->GetUser(config_.userName))
@@ -43,13 +44,6 @@ namespace loomis
                                warp::GetServerName(warp::GetFormattedEmby(), config.server),
                                warp::GetTag("user", config_.userName));
          }
-
-         if (!jellystatApi_)
-         {
-            logger_.LogWarning("{} tracker api not found for {}. Required for this service.",
-                               warp::GetServerName(warp::GetFormattedJellystat(), config_.server),
-                               warp::GetTag("user", config_.userName));
-         }
       }
    }
 
@@ -66,6 +60,11 @@ namespace loomis
    std::string_view StateSyncEmbyUser::GetServerName() const
    {
       return config_.server;
+   }
+
+   std::optional<std::string> StateSyncEmbyUser::GetTracearrServerName() const
+   {
+      return embyApi_->GetTracearrServerName();
    }
 
    std::string_view StateSyncEmbyUser::GetTypeAndServerName() const
@@ -96,50 +95,46 @@ namespace loomis
          userId_ = std::move(user->id);
    }
 
-   std::optional<warp::JellystatHistoryItems> StateSyncEmbyUser::GetWatchHistory()
+   bool StateSyncEmbyUser::SyncPlexWatchedState(std::string_view embyId, const warp::TracearrHistoryItem* historyItem)
    {
-      return jellystatApi_->GetWatchHistoryForUser(userId_);
-   }
-
-   bool StateSyncEmbyUser::SyncPlexWatchedState(const std::filesystem::path& plexPath)
-   {
-      auto id = embyApi_->GetIdFromPath(plexPath);
-      if (!id)
-         return false;
-
       // If this item is already watched just return
-      if (embyApi_->GetWatchedStatus(userId_, *id))
+      if (embyApi_->GetWatchedStatus(userId_, embyId))
          return false;
 
-      embyApi_->SetWatchedStatus(userId_, *id);
+      if (!dryRun_)
+         embyApi_->SetWatchedStatus(userId_, embyId);
 
       return true;
    }
 
-   bool StateSyncEmbyUser::SyncPlexPlayState(const PlexSyncState& syncState)
+   bool StateSyncEmbyUser::SyncPlexPlayState(std::string_view embyId, const warp::TracearrHistoryItem* historyItem)
    {
-      auto id = embyApi_->GetIdFromPath(syncState.path);
-      if (!id)
+      auto playState = embyApi_->GetPlayState(userId_, embyId);
+      if (!playState || historyItem->playbackPercentage == std::lround(playState->percentage))
          return false;
 
-      auto playState = embyApi_->GetPlayState(userId_, *id);
-      if (!playState || syncState.playbackPercentage == std::lround(playState->percentage))
-         return false;
-
-      int64_t tickLocation = std::llround(static_cast<double>(playState->runTimeTicks) * (static_cast<double>(syncState.playbackPercentage) / 100.0));
+      int64_t tickLocation = std::llround(static_cast<double>(playState->runTimeTicks) * (static_cast<double>(historyItem->playbackPercentage) / 100.0));
       if (tickLocation == playState->runTimeTicks)
       {
-         return SyncPlexWatchedState(syncState.path);
+         return SyncPlexWatchedState(embyId, historyItem);
       }
 
-      auto timeString = GetIsoTimeStr(std::chrono::sys_time<std::chrono::seconds>{std::chrono::seconds{syncState.timeWatchedEpoch}});
-      return embyApi_->SetPlayState(userId_, *id, tickLocation, timeString);
+      if (!dryRun_)
+         return embyApi_->SetPlayState(userId_, embyId, tickLocation, historyItem->watchTime);
+      else
+         return true;
    }
 
-   void StateSyncEmbyUser::SyncStateWithPlex(const PlexSyncState& syncState, std::string& syncResults)
+   void StateSyncEmbyUser::SyncStateWithPlex(const warp::TracearrHistoryItem* item,
+                                             const std::filesystem::path& itemPath,
+                                             std::string& syncResults)
    {
-      bool forceWatched = syncState.watched || syncState.playbackPercentage >= playbackPercentageThreshold;
-      bool success = forceWatched ? SyncPlexWatchedState(syncState.path) : SyncPlexPlayState(syncState);
+      auto id = embyApi_->GetIdFromPath(itemPath);
+      if (!id)
+         return;
+
+      bool forceWatched = item->watched || item->playbackPercentage >= playbackPercentageThreshold;
+      bool success = forceWatched ? SyncPlexWatchedState(id.value(), item) : SyncPlexPlayState(id.value(), item);
       if (success)
       {
          syncResults = warp::BuildSyncServerString(syncResults, warp::GetFormattedEmby(), config_.server);
@@ -150,17 +145,26 @@ namespace loomis
    {
       if (embyApi_->GetWatchedStatus(userId_, id))
          return false;
-      return embyApi_->SetWatchedStatus(userId_, id);
+
+      if (!dryRun_)
+         return embyApi_->SetWatchedStatus(userId_, id);
+      else
+         return true;
    }
 
    bool StateSyncEmbyUser::SyncEmbyPlayState(const EmbySyncState& syncState, std::string_view id)
    {
       auto playState = embyApi_->GetPlayState(userId_, id);
-      if (!playState || syncState.playbackPercentage == std::lround(playState->percentage))
+      if (!playState || syncState.item->playbackPercentage == std::lround(playState->percentage))
          return false;
 
-      int64_t tickLocation = std::llround(static_cast<double>(playState->runTimeTicks) * (static_cast<double>(syncState.playbackPercentage) / 100.0));
-      return embyApi_->SetPlayState(userId_, id, tickLocation, syncState.timeWatched);
+      if (!dryRun_)
+      {
+         int64_t tickLocation = std::llround(static_cast<double>(playState->runTimeTicks) * (static_cast<double>(syncState.item->playbackPercentage) / 100.0));
+         return embyApi_->SetPlayState(userId_, id, tickLocation, syncState.item->watchTime);
+      }
+      else
+         return true;
    }
 
    void StateSyncEmbyUser::SyncStateWithEmby(const EmbySyncState& syncState, std::string& syncResults)
@@ -169,7 +173,7 @@ namespace loomis
       if (!id)
          return;
 
-      bool forceWatched = syncState.watched || syncState.playbackPercentage >= playbackPercentageThreshold;
+      bool forceWatched = syncState.item->watched || syncState.item->playbackPercentage >= playbackPercentageThreshold;
       bool success = forceWatched ? SyncEmbyWatchedState(*id) : SyncEmbyPlayState(syncState, *id);
       if (success)
       {

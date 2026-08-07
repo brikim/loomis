@@ -20,14 +20,16 @@ namespace loomis
    {
    public:
       StateSyncPlexUser(const ServerPlexUser& config,
-               const std::shared_ptr<warp::ApiManager>& apiManager,
-               ServiceLogger logger);
+                        bool dryRun,
+                        const std::shared_ptr<warp::ApiManager>& apiManager,
+                        ServiceLogger logger);
       ~StateSyncPlexUser() = default;
 
       [[nodiscard]] bool GetValid() const;
       [[nodiscard]] std::string GetServerAndUserName() const;
       [[nodiscard]] int32_t GetId() const;
       [[nodiscard]] std::string_view GetServerName() const;
+      [[nodiscard]] std::optional<std::string> GetTracearrServerName() const;
       [[nodiscard]] std::string_view GetTypeAndServerName() const;
       [[nodiscard]] std::string_view GetUser() const;
       [[nodiscard]] std::optional<warp::TautulliHistoryItems> GetWatchHistory(std::string_view historyDate, int64_t epochHistoryTime);
@@ -38,12 +40,9 @@ namespace loomis
 
       struct EmbySyncState
       {
-         std::string_view name;
+         const warp::TracearrHistoryItem* item{nullptr};
          const std::filesystem::path& mediaPath;
          const std::filesystem::path& path;
-         bool watched{false};
-         int32_t playbackPercentage{0};
-         std::string_view timeWatched;
       };
       void SyncStateWithEmby(const EmbySyncState& syncState, std::string& syncResults);
 
@@ -53,6 +52,7 @@ namespace loomis
       bool SyncEmbyPlayState(const EmbySyncState& syncState);
 
       bool valid_{false};
+      bool dryRun_{false};
       ServiceLogger logger_;
       ServerPlexUser config_;
 

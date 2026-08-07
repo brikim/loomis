@@ -31,7 +31,7 @@ namespace loomis
    {
       for (const auto& user : config.users)
       {
-         if (auto stateSyncUser{std::make_unique<StateSyncUser>(user, GetApiManager(), ServiceLogger(*this))};
+         if (auto stateSyncUser{std::make_unique<StateSyncUser>(user, config.dryRun, GetApiManager(), ServiceLogger(*this))};
              stateSyncUser->GetValid())
          {
             users_.emplace_back(std::move(stateSyncUser));
@@ -62,27 +62,17 @@ namespace loomis
       return consolidated;
    }
 
-   std::vector<const warp::TracearrHistoryItem*> StateSyncTracearrService::GetConsolidatedHistory(const warp::TracearrHistoryItems& historyItems)
-   {
-      return ConsolidateHistory(historyItems.items, [](const auto* i) { return i->startedAt; });
-   }
-
    void StateSyncTracearrService::Run()
    {
-      auto history = tracearrApi_->GetWatchHistory();
+      constexpr uint32_t daysOfHistory{1};
+      auto historyTime = GetIsoTimeStr(std::chrono::system_clock::now() - std::chrono::days(daysOfHistory));
+      auto history = tracearrApi_->GetWatchHistory(historyTime);
       if (!history)
       {
          return;
       }
 
-      const auto cutoff = GetIsoTimeStr(std::chrono::system_clock::now() - std::chrono::days(1));
-
-      // Remove all items older than 24 hours
-      std::erase_if(history->items, [&cutoff](const auto& item) {
-         return item.startedAt < cutoff;
-      });
-
-      auto consolidatedHistory = GetConsolidatedHistory(*history);
+      auto consolidatedHistory = ConsolidateHistory(history->items, [](const auto* i) { return i->watchTime; });
 
       for (auto& user : users_)
       {

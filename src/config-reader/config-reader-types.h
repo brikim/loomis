@@ -10,6 +10,7 @@ namespace loomis
    struct ServerConfig
    {
       std::string server_name;
+      std::optional<std::string> tracearr_server_name;
       std::string url;
       std::string api_key;
       std::string tracker_url;
@@ -139,6 +140,7 @@ namespace loomis
    struct StateSyncTracearrConfig
    {
       bool enabled{false};
+      bool dryRun{false};
       std::string cron;
       std::vector<UserSyncTracearrConfig> users;
 
@@ -146,6 +148,7 @@ namespace loomis
       {
          static constexpr auto value = glz::object(
             "enabled", &StateSyncTracearrConfig::enabled,
+            "dry_run", &StateSyncTracearrConfig::dryRun,
             "cron", &StateSyncTracearrConfig::cron,
             "users", &StateSyncTracearrConfig::users
          );
@@ -421,34 +424,18 @@ namespace loomis
       std::vector<ServerConfig> servers;
    };
 
-   struct TracearrServersData
-   {
-      std::string tracearrServerName;
-      std::string serverName;
-
-      struct glaze
-      {
-         static constexpr auto value = glz::object(
-            "tracearr_server_name", &TracearrServersData::tracearrServerName,
-            "server_name", &TracearrServersData::serverName
-         );
-      };
-   };
-
    struct TracearrServer
    {
       std::optional<std::string> server_name;
       std::optional<std::string> url;
       std::optional<std::string> api_key;
-      std::vector<TracearrServersData> servers;
 
       struct glaze
       {
          static constexpr auto value = glz::object(
             "server_name", &TracearrServer::server_name,
             "url", &TracearrServer::url,
-            "api_key", &TracearrServer::api_key,
-            "servers", &TracearrServer::servers
+            "api_key", &TracearrServer::api_key
          );
       };
    };

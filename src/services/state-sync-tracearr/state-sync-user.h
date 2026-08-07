@@ -2,12 +2,10 @@
 
 #include "config-reader/config-reader-types.h"
 #include "services/service-logger.h"
-#include "services/watch-state-sync/emby-user.h"
-#include "services/watch-state-sync/plex-user.h"
+#include "services/state-sync-tracearr/emby-user.h"
+#include "services/state-sync-tracearr/plex-user.h"
 
-#include <warp/api/api-jellystat-types.h>
 #include <warp/api/api-manager.h>
-#include <warp/api/api-tautulli-types.h>
 #include <warp/api/api-tracearr-types.h>
 #include <warp/types.h>
 
@@ -22,8 +20,9 @@ namespace loomis
    {
    public:
       StateSyncUser(const UserSyncTracearrConfig& config,
-                     std::shared_ptr<warp::ApiManager> apiManager,
-                     ServiceLogger logger);
+                    bool dryRun,
+                    std::shared_ptr<warp::ApiManager> apiManager,
+                    ServiceLogger logger);
       ~StateSyncUser() = default;
 
       [[nodiscard]] bool GetValid() const;
@@ -34,8 +33,8 @@ namespace loomis
    private:
       void UpdateAllUsers();
 
-      void SyncPlexState(PlexUser& plexUser, std::string_view historyDate, int64_t epochHistoryTime);
-      void SyncEmbyState(EmbyUser& embyUser);
+      void SyncPlexState(const warp::TracearrHistoryItem* historyItem, StateSyncPlexUser& plexUser);
+      void SyncEmbyState(const warp::TracearrHistoryItem* historyItem, StateSyncEmbyUser& embyUser);
 
       struct LogSyncData
       {
@@ -52,15 +51,13 @@ namespace loomis
       std::vector<const warp::TautulliHistoryItem*> GetConsolidatedPlexHistory(const warp::TautulliHistoryItems& historyItems);
       std::vector<const warp::JellystatHistoryItem*> GetConsolidatedEmbyHistory(const warp::JellystatHistoryItems& historyItems);
 
-      std::unordered_map<std::string, std::filesystem::path> GetPlexPathsForHistoryItems(std::string_view server,
-                                                                                         const std::vector<const warp::TautulliHistoryItem*> historyItems);
-
       bool valid_{false};
       std::shared_ptr<warp::ApiManager> apiManager_;
       ServiceLogger logger_;
+      std::string dryRunText_;
 
       std::string tracearrUserName_;
-      std::vector<std::unique_ptr<PlexUser>> plexUsers_;
-      std::vector<std::unique_ptr<EmbyUser>> embyUsers_;
+      std::vector<std::unique_ptr<StateSyncPlexUser>> plexUsers_;
+      std::vector<std::unique_ptr<StateSyncEmbyUser>> embyUsers_;
    };
 }

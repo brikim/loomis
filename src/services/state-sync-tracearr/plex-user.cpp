@@ -8,9 +8,11 @@
 namespace loomis
 {
    StateSyncPlexUser::StateSyncPlexUser(const ServerPlexUser& config,
-                      const std::shared_ptr<warp::ApiManager>& apiManager,
-                      ServiceLogger logger)
+                                        bool dryRun,
+                                        const std::shared_ptr<warp::ApiManager>& apiManager,
+                                        ServiceLogger logger)
       : logger_(logger)
+      , dryRun_(dryRun)
       , config_(config)
    {
       // Do some quick checking on the users and make sure the api in the config exists.
@@ -66,6 +68,11 @@ namespace loomis
    std::string_view StateSyncPlexUser::GetServerName() const
    {
       return config_.server;
+   }
+
+   std::optional<std::string> StateSyncPlexUser::GetTracearrServerName() const
+   {
+      return api_->GetTracearrServerName();
    }
 
    std::string_view StateSyncPlexUser::GetTypeAndServerName() const
@@ -132,24 +139,34 @@ namespace loomis
       if (!item || item->watched)
          return false;
 
-      if (config_.token)
-         return api_->SetWatchedByUserToken(*config_.token, item->ratingKey);
+      if (!dryRun_)
+      {
+         if (config_.token)
+            return api_->SetWatchedByUserToken(*config_.token, item->ratingKey);
+         else
+            return api_->SetWatchedByUserName(config_.userName, item->ratingKey);
+      }
       else
-         return api_->SetWatchedByUserName(config_.userName, item->ratingKey);
+         return true;
    }
 
    bool StateSyncPlexUser::SyncEmbyPlayState(const EmbySyncState& syncState)
    {
       auto item = GetSyncStateItem(syncState);
-      if (!item || item->playbackPercentage == syncState.playbackPercentage)
+      if (!item || item->playbackPercentage == syncState.item->playbackPercentage)
          return false;
 
-      auto msLocation = (item->durationMs * static_cast<int64_t>(syncState.playbackPercentage)) / 100;
+      auto msLocation = (item->durationMs * static_cast<int64_t>(syncState.item->playbackPercentage)) / 100;
 
-      if (config_.token)
-         return api_->SetPlayedByUserToken(*config_.token, item->ratingKey, msLocation);
+      if (!dryRun_)
+      {
+         if (config_.token)
+            return api_->SetPlayedByUserToken(*config_.token, item->ratingKey, msLocation);
+         else
+            return api_->SetPlayedByUserName(config_.userName, item->ratingKey, msLocation);
+      }
       else
-         return api_->SetPlayedByUserName(config_.userName, item->ratingKey, msLocation);
+         return true;
    }
 
    void StateSyncPlexUser::SyncStateWithEmby(const EmbySyncState& syncState, std::string& syncResults)
@@ -157,7 +174,8 @@ namespace loomis
       if (!config_.token && !api_->GetUserTokenAvailable(config_.userName))
          return;
 
-      if (syncState.watched ? SyncEmbyWatchedState(syncState) : SyncEmbyPlayState(syncState))
+
+      if (syncState.item->watched ? SyncEmbyWatchedState(syncState) : SyncEmbyPlayState(syncState))
       {
          syncResults = warp::BuildSyncServerString(syncResults, warp::GetFormattedPlex(), config_.server);
       }
