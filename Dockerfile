@@ -1,5 +1,5 @@
 # Define the version
-ARG UBUNTU_RELEASE=24.04
+ARG UBUNTU_RELEASE=26.04
 
 # --- Stage 1: Build & Chisel ---
 FROM ubuntu:${UBUNTU_RELEASE} AS build
@@ -18,7 +18,7 @@ ENV CC=gcc-14
 ENV CXX=g++-14
 
 # 2. Install 'chisel' tool
-RUN curl -sSL https://github.com/canonical/chisel/releases/download/v1.0.0/chisel_v1.0.0_linux_amd64.tar.gz | tar -xz -C /usr/local/bin
+RUN curl -sSL https://github.com/canonical/chisel/releases/download/v1.4.2/chisel_v1.4.2_linux_amd64.tar.gz | tar -xz -C /usr/local/bin
 
 WORKDIR /app
 COPY . .

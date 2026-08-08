@@ -12,9 +12,9 @@ namespace loomis
                                         bool dryRun,
                                         const std::shared_ptr<warp::ApiManager>& apiManager,
                                         ServiceLogger logger)
-      : logger_(logger)
-      , dryRun_(dryRun)
+      : dryRun_(dryRun)
       , tracearrUserName_(tracearrUserName)
+      , logger_(logger)
       , config_(config)
    {
       api_ = apiManager->GetPlexApi(config_.server);

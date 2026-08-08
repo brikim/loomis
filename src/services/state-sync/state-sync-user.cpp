@@ -195,8 +195,6 @@ namespace loomis
 
    void StateSyncUser::Sync(const std::vector<const warp::TracearrHistoryItem*>& historyItems)
    {
-      auto tracearrApi = apiManager_->GetTracearrApi();
-
       // Have all users update to the latest data
       UpdateAllUsers();
 
