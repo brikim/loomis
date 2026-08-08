@@ -8,9 +8,9 @@
 #include <warp/api/api-tracearr-types.h>
 #include <warp/types.h>
 
-#include <chrono>
 #include <filesystem>
-#include <functional>
+#include <string>
+#include <string_view>
 
 namespace loomis
 {
@@ -34,24 +34,17 @@ namespace loomis
 
       void Update();
 
-      void SyncStateWithPlex(const warp::TracearrHistoryItem* item,
-                             const std::filesystem::path& itemPath,
-                             std::string& syncResults);
-
       struct EmbySyncState
       {
          const warp::TracearrHistoryItem* item{nullptr};
          const std::filesystem::path& mediaPath;
          const std::filesystem::path& path;
       };
-      void SyncStateWithEmby(const EmbySyncState& syncState, std::string& syncResults);
+      void SyncState(const EmbySyncState& syncState, std::string& syncResults);
 
    private:
-      bool SyncPlexWatchedState(std::string_view embyId, const warp::TracearrHistoryItem* historyItem);
-      bool SyncPlexPlayState(std::string_view embyId, const warp::TracearrHistoryItem* historyItem);
-
-      bool SyncEmbyWatchedState(std::string_view id);
-      bool SyncEmbyPlayState(const EmbySyncState& syncState, std::string_view id);
+      bool SyncWatchedState(std::string_view id);
+      bool SyncPlayState(const EmbySyncState& syncState, std::string_view id);
 
       bool valid_{false};
       ServiceLogger logger_;

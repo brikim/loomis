@@ -21,12 +21,11 @@ namespace loomis
       [[nodiscard]] const AppriseLoggingConfig& GetAppriseLogging() const;
       [[nodiscard]] const GotifyLoggingConfig& GetGotifyLogging() const;
       [[nodiscard]] const PlaylistSyncConfig& GetPlaylistSyncConfig() const;
-      [[nodiscard]] const WatchStateSyncConfig& GetWatchStateSyncConfig() const;
       [[nodiscard]] const FileSystemCleanupConfig& GetFilesystemCleanupConfig() const;
       [[nodiscard]] const DvrMaintainerConfig& GetDvrMaintainerConfig() const;
       [[nodiscard]] const DeleteWatchedConfig& GetDeleteWatchedConfig() const;
       [[nodiscard]] const EmbyTidyConfig& GetEmbyTidyConfig() const;
-      [[nodiscard]] const StateSyncTracearrConfig& GetStateSyncTracearrConfig() const;
+      [[nodiscard]] const StateSyncConfig& GetStateSyncConfig() const;
 
    private:
       void ReadConfigFile(const char* path);

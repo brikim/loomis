@@ -63,12 +63,12 @@ namespace loomis
       return tracearrUserName_;
    }
 
-   void StateSyncPlexUser::SyncStateWithPlex()
+   const std::filesystem::path& StateSyncPlexUser::GetMediaPath() const
    {
-      // Currently not supported. Future Growth?
+      return api_->GetMediaPath();
    }
 
-   std::optional<warp::PlexSearchResult> StateSyncPlexUser::GetSyncStateItem(const EmbySyncState& syncState) const
+   std::optional<warp::PlexSearchResult> StateSyncPlexUser::GetSyncStateItem(const PlexSyncState& syncState) const
    {
       std::optional<warp::PlexSearchResults> info;
       if (config_.token)
@@ -98,7 +98,7 @@ namespace loomis
       return *it;
    }
 
-   bool StateSyncPlexUser::SyncEmbyWatchedState(const EmbySyncState& syncState)
+   bool StateSyncPlexUser::SyncWatchedState(const PlexSyncState& syncState)
    {
       auto item = GetSyncStateItem(syncState);
       if (!item || item->watched)
@@ -115,7 +115,7 @@ namespace loomis
          return true;
    }
 
-   bool StateSyncPlexUser::SyncEmbyPlayState(const EmbySyncState& syncState)
+   bool StateSyncPlexUser::SyncPlayState(const PlexSyncState& syncState)
    {
       auto item = GetSyncStateItem(syncState);
       if (!item || item->playbackPercentage == syncState.item->playbackPercentage)
@@ -134,13 +134,13 @@ namespace loomis
          return true;
    }
 
-   void StateSyncPlexUser::SyncStateWithEmby(const EmbySyncState& syncState, std::string& syncResults)
+   void StateSyncPlexUser::SyncState(const PlexSyncState& syncState, std::string& syncResults)
    {
       if (!config_.token && !api_->GetUserTokenAvailable(config_.userName))
          return;
 
 
-      if (syncState.item->watched ? SyncEmbyWatchedState(syncState) : SyncEmbyPlayState(syncState))
+      if (syncState.item->watched ? SyncWatchedState(syncState) : SyncPlayState(syncState))
       {
          syncResults = warp::BuildSyncServerString(syncResults, warp::GetFormattedPlex(), config_.server);
       }

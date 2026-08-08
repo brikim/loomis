@@ -9,10 +9,9 @@
 #include <warp/types.h>
 
 #include <filesystem>
-#include <functional>
 #include <optional>
 #include <string>
-#include <vector>
+#include <string_view>
 
 namespace loomis
 {
@@ -32,21 +31,20 @@ namespace loomis
       [[nodiscard]] std::optional<std::string> GetTracearrServerName() const;
       [[nodiscard]] std::string_view GetTypeAndServerName() const;
       [[nodiscard]] std::string_view GetUser() const;
+      [[nodiscard]] const std::filesystem::path& GetMediaPath() const;
 
-      void SyncStateWithPlex();
-
-      struct EmbySyncState
+      struct PlexSyncState
       {
          const warp::TracearrHistoryItem* item{nullptr};
          const std::filesystem::path& mediaPath;
          const std::filesystem::path& path;
       };
-      void SyncStateWithEmby(const EmbySyncState& syncState, std::string& syncResults);
+      void SyncState(const PlexSyncState& syncState, std::string& syncResults);
 
    private:
-      std::optional<warp::PlexSearchResult> GetSyncStateItem(const EmbySyncState& syncState) const;
-      bool SyncEmbyWatchedState(const EmbySyncState& syncState);
-      bool SyncEmbyPlayState(const EmbySyncState& syncState);
+      std::optional<warp::PlexSearchResult> GetSyncStateItem(const PlexSyncState& syncState) const;
+      bool SyncWatchedState(const PlexSyncState& syncState);
+      bool SyncPlayState(const PlexSyncState& syncState);
 
       bool valid_{false};
       bool dryRun_{false};

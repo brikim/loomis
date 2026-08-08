@@ -1,4 +1,4 @@
-﻿#include "state-sync-tracearr-service.h"
+﻿#include "state-sync-service.h"
 
 #include "services/service-logger.h"
 #include "services/service-types.h"
@@ -10,24 +10,24 @@ namespace loomis
 {
    namespace
    {
-      constexpr std::string_view SERVICE_NAME("State Sync Tracearr");
+      constexpr std::string_view SERVICE_NAME("State Sync");
    }
 
-   StateSyncTracearrService::StateSyncTracearrService(const StateSyncTracearrConfig& config,
-                                                std::shared_ptr<warp::ApiManager> apiManager)
-      : ServiceBase(SERVICE_NAME, ANSI_CODE_SERVICE_STATE_SYNC_TRACEARR, apiManager, config.cron)
+   StateSyncService::StateSyncService(const StateSyncConfig& config,
+                                      std::shared_ptr<warp::ApiManager> apiManager)
+      : ServiceBase(SERVICE_NAME, ANSI_CODE_SERVICE_STATE_SYNC, apiManager, config.cron)
       , tracearrApi_(apiManager->GetTracearrApi())
    {
       if (!tracearrApi_)
       {
-         LogWarning("{} api not found. Required for service StateSyncTracearrService", warp::GetFormattedTracearr());
+         LogWarning("{} api not found. Required for service StateSyncService", warp::GetFormattedTracearr());
          return;
       }
 
       Init(config);
    }
 
-   void StateSyncTracearrService::Init(const StateSyncTracearrConfig& config)
+   void StateSyncService::Init(const StateSyncConfig& config)
    {
       for (const auto& user : config.users)
       {
@@ -62,7 +62,7 @@ namespace loomis
       return consolidated;
    }
 
-   void StateSyncTracearrService::Run()
+   void StateSyncService::Run()
    {
       // Get the watch history from tracearr for all servers and all users.
       constexpr uint32_t daysOfHistory{1};

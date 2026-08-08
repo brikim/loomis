@@ -85,11 +85,6 @@ namespace loomis
       return configData_.playlistSync;
    }
 
-   const WatchStateSyncConfig& ConfigReader::GetWatchStateSyncConfig() const
-   {
-      return configData_.watchStateSync;
-   }
-
    const FileSystemCleanupConfig& ConfigReader::GetFilesystemCleanupConfig() const
    {
       return configData_.fileSystemCleanup;
@@ -110,8 +105,8 @@ namespace loomis
       return configData_.embyTidy;
    }
 
-   const StateSyncTracearrConfig& ConfigReader::GetStateSyncTracearrConfig() const
+   const StateSyncConfig& ConfigReader::GetStateSyncConfig() const
    {
-      return configData_.stateSyncTracearr;
+      return configData_.stateSync;
    }
 }

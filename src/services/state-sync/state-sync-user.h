@@ -2,16 +2,14 @@
 
 #include "config-reader/config-reader-types.h"
 #include "services/service-logger.h"
-#include "services/state-sync-tracearr/emby-user.h"
-#include "services/state-sync-tracearr/plex-user.h"
+#include "services/state-sync/emby-user.h"
+#include "services/state-sync/plex-user.h"
 
 #include <warp/api/api-manager.h>
 #include <warp/api/api-tracearr-types.h>
 #include <warp/types.h>
 
-#include <functional>
 #include <memory>
-#include <unordered_map>
 #include <vector>
 
 namespace loomis
@@ -19,7 +17,7 @@ namespace loomis
    class StateSyncUser
    {
    public:
-      StateSyncUser(const UserSyncTracearrConfig& config,
+      StateSyncUser(const UserSyncConfig& config,
                     bool dryRun,
                     std::shared_ptr<warp::ApiManager> apiManager,
                     ServiceLogger logger);

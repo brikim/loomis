@@ -2,7 +2,7 @@
 
 #include "config-reader/config-reader-types.h"
 #include "services/service-base.h"
-#include "services/state-sync-tracearr/state-sync-user.h"
+#include "services/state-sync/state-sync-user.h"
 
 #include <warp/api/api-manager.h>
 #include <warp/api/api-tracearr.h>
@@ -12,17 +12,17 @@
 
 namespace loomis
 {
-   class StateSyncTracearrService : public ServiceBase
+   class StateSyncService : public ServiceBase
    {
    public:
-      StateSyncTracearrService(const StateSyncTracearrConfig& config,
+      StateSyncService(const StateSyncConfig& config,
                                std::shared_ptr<warp::ApiManager> apiManager);
-      ~StateSyncTracearrService() = default;
+      ~StateSyncService() = default;
 
       void Run() override;
 
    private:
-      void Init(const StateSyncTracearrConfig& config);
+      void Init(const StateSyncConfig& config);
 
       warp::TracearrApi* tracearrApi_{nullptr};
       std::vector<std::unique_ptr<StateSyncUser>> users_;

@@ -12,7 +12,7 @@
 
 namespace loomis
 {
-   StateSyncUser::StateSyncUser(const UserSyncTracearrConfig& config,
+   StateSyncUser::StateSyncUser(const UserSyncConfig& config,
                                 bool dryRun,
                                 std::shared_ptr<warp::ApiManager> apiManager,
                                 ServiceLogger logger)
@@ -117,15 +117,20 @@ namespace loomis
       // This will hold the list of servers that were synced for this item. It will be used to log the summary of the sync.
       std::string syncServers;
 
-      // Sync the plex play state with all plex users.
+      // Syncing plex to plex servers is not currently supported
       for (auto& user : plexUsers_)
-         if (user->GetValid())
-            user->SyncStateWithPlex();
+         if (user->GetServerName() != plexUser.GetServerName() && user->GetValid())
+            logger_.LogWarning("Syncing plex to plex servers is not currently supported.");
 
       // Sync the plex play state with all emby users.
+      auto embySyncState = StateSyncEmbyUser::EmbySyncState{
+         .item = historyItem,
+         .mediaPath = plexUser.GetMediaPath(),
+         .path = itemPath.value()
+      };
       for (auto& user : embyUsers_)
          if (user->GetValid())
-            user->SyncStateWithPlex(historyItem, itemPath.value(), syncServers);
+            user->SyncState(embySyncState, syncServers);
 
       // If syncServers is not empty, then log the summary of the sync.
       if (!syncServers.empty())
@@ -155,14 +160,14 @@ namespace loomis
       std::string syncServers;
 
       // Sync the emby play state with all plex users.
-      auto plexSyncState = StateSyncPlexUser::EmbySyncState{
+      auto plexSyncState = StateSyncPlexUser::PlexSyncState{
         .item = historyItem,
         .mediaPath = embyUser.GetMediaPath(),
         .path = itemPath.value(),
       };
       for (auto& user : plexUsers_)
          if (user->GetValid())
-            user->SyncStateWithEmby(plexSyncState, syncServers);
+            user->SyncState(plexSyncState, syncServers);
 
       // Sync the emby play state with all other emby users. Ignore the current user since they are already in sync with tracearr.
       auto embySyncState = StateSyncEmbyUser::EmbySyncState{
@@ -172,7 +177,7 @@ namespace loomis
       };
       for (auto& user : embyUsers_)
          if (user->GetServerName() != embyUser.GetServerName() && user->GetValid())
-            user->SyncStateWithEmby(embySyncState, syncServers);
+            user->SyncState(embySyncState, syncServers);
 
       // If syncServers is not empty, then log the summary of the sync.
       if (!syncServers.empty())

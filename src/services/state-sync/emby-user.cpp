@@ -97,53 +97,7 @@ namespace loomis
          userId_ = std::move(user->id);
    }
 
-   bool StateSyncEmbyUser::SyncPlexWatchedState(std::string_view embyId, const warp::TracearrHistoryItem* historyItem)
-   {
-      // If this item is already watched just return
-      if (api_->GetWatchedStatus(userId_, embyId))
-         return false;
-
-      if (!dryRun_)
-         api_->SetWatchedStatus(userId_, embyId);
-
-      return true;
-   }
-
-   bool StateSyncEmbyUser::SyncPlexPlayState(std::string_view embyId, const warp::TracearrHistoryItem* historyItem)
-   {
-      auto playState = api_->GetPlayState(userId_, embyId);
-      if (!playState || historyItem->playbackPercentage == std::lround(playState->percentage))
-         return false;
-
-      int64_t tickLocation = std::llround(static_cast<double>(playState->runTimeTicks) * (static_cast<double>(historyItem->playbackPercentage) / 100.0));
-      if (tickLocation == playState->runTimeTicks)
-      {
-         return SyncPlexWatchedState(embyId, historyItem);
-      }
-
-      if (!dryRun_)
-         return api_->SetPlayState(userId_, embyId, tickLocation, historyItem->watchTime);
-      else
-         return true;
-   }
-
-   void StateSyncEmbyUser::SyncStateWithPlex(const warp::TracearrHistoryItem* item,
-                                             const std::filesystem::path& itemPath,
-                                             std::string& syncResults)
-   {
-      auto id = api_->GetIdFromPath(itemPath);
-      if (!id)
-         return;
-
-      bool forceWatched = item->watched || item->playbackPercentage >= playbackPercentageThreshold;
-      bool success = forceWatched ? SyncPlexWatchedState(id.value(), item) : SyncPlexPlayState(id.value(), item);
-      if (success)
-      {
-         syncResults = warp::BuildSyncServerString(syncResults, warp::GetFormattedEmby(), config_.server);
-      }
-   }
-
-   bool StateSyncEmbyUser::SyncEmbyWatchedState(std::string_view id)
+   bool StateSyncEmbyUser::SyncWatchedState(std::string_view id)
    {
       if (api_->GetWatchedStatus(userId_, id))
          return false;
@@ -154,7 +108,7 @@ namespace loomis
          return true;
    }
 
-   bool StateSyncEmbyUser::SyncEmbyPlayState(const EmbySyncState& syncState, std::string_view id)
+   bool StateSyncEmbyUser::SyncPlayState(const EmbySyncState& syncState, std::string_view id)
    {
       auto playState = api_->GetPlayState(userId_, id);
       if (!playState || syncState.item->playbackPercentage == std::lround(playState->percentage))
@@ -169,14 +123,14 @@ namespace loomis
          return true;
    }
 
-   void StateSyncEmbyUser::SyncStateWithEmby(const EmbySyncState& syncState, std::string& syncResults)
+   void StateSyncEmbyUser::SyncState(const EmbySyncState& syncState, std::string& syncResults)
    {
       auto id = api_->GetIdFromPath(ReplaceMediaPath(syncState.path, syncState.mediaPath, GetMediaPath()));
       if (!id)
          return;
 
       bool forceWatched = syncState.item->watched || syncState.item->playbackPercentage >= playbackPercentageThreshold;
-      bool success = forceWatched ? SyncEmbyWatchedState(*id) : SyncEmbyPlayState(syncState, *id);
+      bool success = forceWatched ? SyncWatchedState(*id) : SyncPlayState(syncState, *id);
       if (success)
       {
          syncResults = warp::BuildSyncServerString(syncResults, warp::GetFormattedEmby(), config_.server);

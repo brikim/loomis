@@ -96,19 +96,6 @@ namespace loomis
       );
    };
 
-   struct UserSyncConfig
-   {
-      std::vector<ServerPlexUser> plex;
-      std::vector<ServerUser> emby;
-   };
-
-   struct WatchStateSyncConfig
-   {
-      bool enabled{false};
-      std::string cron;
-      std::vector<UserSyncConfig> users;
-   };
-
    struct ServerTracearrUser
    {
       std::string userName;
@@ -121,7 +108,7 @@ namespace loomis
       };
    };
 
-   struct UserSyncTracearrConfig
+   struct UserSyncConfig
    {
       ServerTracearrUser tracearr;
       std::vector<ServerPlexUser> plex;
@@ -130,27 +117,27 @@ namespace loomis
       struct glaze
       {
          static constexpr auto value = glz::object(
-            "tracearr", &UserSyncTracearrConfig::tracearr,
-            "plex", &UserSyncTracearrConfig::plex,
-            "emby", &UserSyncTracearrConfig::emby
+            "tracearr", &UserSyncConfig::tracearr,
+            "plex", &UserSyncConfig::plex,
+            "emby", &UserSyncConfig::emby
          );
       };
    };
 
-   struct StateSyncTracearrConfig
+   struct StateSyncConfig
    {
       bool enabled{false};
       bool dryRun{false};
       std::string cron;
-      std::vector<UserSyncTracearrConfig> users;
+      std::vector<UserSyncConfig> users;
 
       struct glaze
       {
          static constexpr auto value = glz::object(
-            "enabled", &StateSyncTracearrConfig::enabled,
-            "dry_run", &StateSyncTracearrConfig::dryRun,
-            "cron", &StateSyncTracearrConfig::cron,
-            "users", &StateSyncTracearrConfig::users
+            "enabled", &StateSyncConfig::enabled,
+            "dry_run", &StateSyncConfig::dryRun,
+            "cron", &StateSyncConfig::cron,
+            "users", &StateSyncConfig::users
          );
       };
    };
@@ -448,12 +435,11 @@ namespace loomis
       AppriseLoggingConfig appriseLogging;
       GotifyLoggingConfig gotifyLogging;
       PlaylistSyncConfig playlistSync;
-      WatchStateSyncConfig watchStateSync;
       FileSystemCleanupConfig fileSystemCleanup;
       DvrMaintainerConfig dvrMaintainer;
       DeleteWatchedConfig deleteWatched;
       EmbyTidyConfig embyTidy;
-      StateSyncTracearrConfig stateSyncTracearr;
+      StateSyncConfig stateSync;
 
       struct glaze
       {
@@ -464,12 +450,11 @@ namespace loomis
             "apprise_logging", &ConfigData::appriseLogging,
             "gotify_logging", &ConfigData::gotifyLogging,
             "playlist_sync", &ConfigData::playlistSync,
-            "watch_state_sync", &ConfigData::watchStateSync,
             "filesystem_cleanup", &ConfigData::fileSystemCleanup,
             "dvr_maintainer", &ConfigData::dvrMaintainer,
             "delete_watched", &ConfigData::deleteWatched,
             "emby_tidy", &ConfigData::embyTidy,
-            "state_sync_tracearr", &ConfigData::stateSyncTracearr
+            "state_sync", &ConfigData::stateSync
          );
       };
    };

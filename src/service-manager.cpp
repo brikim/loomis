@@ -5,8 +5,7 @@
 #include "services/emby-tidy/emby-tidy-service.h"
 #include "services/filesystem-cleanup/filesystem-cleanup-service.h"
 #include "services/playlist-sync/playlist-sync-service.h"
-#include "services/state-sync-tracearr/state-sync-tracearr-service.h"
-#include "services/watch-state-sync/watch-state-sync-service.h"
+#include "services/state-sync/state-sync-service.h"
 #include "version.h"
 
 #include <warp/log/log.h>
@@ -81,8 +80,8 @@ namespace loomis
       if (configReader_->GetPlaylistSyncConfig().enabled)
          services_.emplace_back(std::make_unique<PlaylistSyncService>(configReader_->GetPlaylistSyncConfig(), apiManager_));
 
-      if (configReader_->GetWatchStateSyncConfig().enabled)
-         services_.emplace_back(std::make_unique<WatchStateSyncService>(configReader_->GetWatchStateSyncConfig(), apiManager_));
+      if (configReader_->GetStateSyncConfig().enabled)
+         services_.emplace_back(std::make_unique<StateSyncService>(configReader_->GetStateSyncConfig(), apiManager_));
 
       if (configReader_->GetFilesystemCleanupConfig().enabled)
          services_.emplace_back(std::make_unique<FilesystemCleanupService>(configReader_->GetFilesystemCleanupConfig(), apiManager_));
@@ -95,9 +94,6 @@ namespace loomis
 
       if (configReader_->GetEmbyTidyConfig().enabled)
          services_.emplace_back(std::make_unique<EmbyTidyService>(configReader_->GetEmbyTidyConfig(), apiManager_));
-
-      if (configReader_->GetStateSyncTracearrConfig().enabled)
-         services_.emplace_back(std::make_unique<StateSyncTracearrService>(configReader_->GetStateSyncTracearrConfig(), apiManager_));
    }
 
    void ServiceManager::Run()
