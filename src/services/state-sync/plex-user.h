@@ -5,7 +5,6 @@
 
 #include <warp/api/api-manager.h>
 #include <warp/api/api-plex.h>
-#include <warp/api/api-tautulli.h>
 #include <warp/types.h>
 
 #include <filesystem>
