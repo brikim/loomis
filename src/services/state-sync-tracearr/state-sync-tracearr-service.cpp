@@ -20,7 +20,7 @@ namespace loomis
    {
       if (!tracearrApi_)
       {
-         LogWarning("{} api not found", warp::GetFormattedTracearr());
+         LogWarning("{} api not found. Required for service StateSyncTracearrService", warp::GetFormattedTracearr());
          return;
       }
 
@@ -64,6 +64,7 @@ namespace loomis
 
    void StateSyncTracearrService::Run()
    {
+      // Get the watch history from tracearr for all servers and all users.
       constexpr uint32_t daysOfHistory{1};
       auto historyTime = GetIsoTimeStr(std::chrono::system_clock::now() - std::chrono::days(daysOfHistory));
       auto history = tracearrApi_->GetWatchHistory(historyTime);
@@ -72,8 +73,10 @@ namespace loomis
          return;
       }
 
+      // Consolidate the history items to remove duplicates and keep the latest watch time for each item
       auto consolidatedHistory = ConsolidateHistory(history->items, [](const auto* i) { return i->watchTime; });
 
+      // Iterate over all users passing in the history to check for needed state syncs.
       for (auto& user : users_)
       {
          try

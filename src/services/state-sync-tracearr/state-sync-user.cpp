@@ -21,8 +21,9 @@ namespace loomis
       , dryRunText_(dryRun ? "[DRY RUN] " : "")
       , tracearrUserName_(config.tracearr.userName)
    {
-      std::ranges::for_each(config.plex, [this, dryRun](const auto& configPlexUser) {
+      std::ranges::for_each(config.plex, [this, dryRun, &config](const auto& configPlexUser) {
          auto plexUser{std::make_unique<StateSyncPlexUser>(configPlexUser,
+                                                           config.tracearr.userName,
                                                            dryRun,
                                                            apiManager_,
                                                            logger_)};
@@ -74,46 +75,10 @@ namespace loomis
 
    void StateSyncUser::UpdateAllUsers()
    {
-      std::ranges::for_each(plexUsers_, [this](auto& plexUser) {
-         plexUser->Update();
-      });
-
+      // Update all emby users to current data.
       std::ranges::for_each(embyUsers_, [this](auto& embyUser) {
          embyUser->Update();
       });
-   }
-
-   template <typename T, typename TimeFieldProj>
-   std::vector<const T*> ConsolidateHistory(const std::vector<T>& items, TimeFieldProj timeProj)
-   {
-      if (items.empty()) return {};
-
-      std::vector<const T*> consolidated;
-      consolidated.reserve(items.size());
-      for (const auto& item : items)
-         consolidated.push_back(&item);
-
-      // Sort by ID, then by Time (descending)
-      std::ranges::sort(consolidated, [&](const auto* a, const auto* b) {
-         if (a->id != b->id) return a->id < b->id;
-         return timeProj(a) > timeProj(b);
-      });
-
-      // Unique based on ID
-      auto [new_end, _] = std::ranges::unique(consolidated, std::ranges::equal_to{}, &T::id);
-      consolidated.erase(new_end, consolidated.end());
-
-      return consolidated;
-   }
-
-   std::vector<const warp::TautulliHistoryItem*> StateSyncUser::GetConsolidatedPlexHistory(const warp::TautulliHistoryItems& historyItems)
-   {
-      return ConsolidateHistory(historyItems.items, [](const auto* i) { return i->timeWatchedEpoch; });
-   }
-
-   std::vector<const warp::JellystatHistoryItem*> StateSyncUser::GetConsolidatedEmbyHistory(const warp::JellystatHistoryItems& historyItems)
-   {
-      return ConsolidateHistory(historyItems.items, [](const auto* i) { return i->watchTime; });
    }
 
    void StateSyncUser::LogSyncSummary(const LogSyncData& syncSummary)
@@ -149,16 +114,20 @@ namespace loomis
       if (!itemPath)
          return;
 
+      // This will hold the list of servers that were synced for this item. It will be used to log the summary of the sync.
       std::string syncServers;
 
+      // Sync the plex play state with all plex users.
       for (auto& user : plexUsers_)
          if (user->GetValid())
             user->SyncStateWithPlex();
 
+      // Sync the plex play state with all emby users.
       for (auto& user : embyUsers_)
          if (user->GetValid())
             user->SyncStateWithPlex(historyItem, itemPath.value(), syncServers);
 
+      // If syncServers is not empty, then log the summary of the sync.
       if (!syncServers.empty())
       {
          LogSyncSummary({
@@ -182,28 +151,30 @@ namespace loomis
       if (!itemPath)
          return;
 
-      auto plexSyncState = StateSyncPlexUser::EmbySyncState{
-         .item = historyItem,
-         .mediaPath = embyUser.GetMediaPath(),
-         .path = itemPath.value(),
-      };
+      // This will hold the list of servers that were synced for this item. It will be used to log the summary of the sync.
+      std::string syncServers;
 
+      // Sync the emby play state with all plex users.
+      auto plexSyncState = StateSyncPlexUser::EmbySyncState{
+        .item = historyItem,
+        .mediaPath = embyUser.GetMediaPath(),
+        .path = itemPath.value(),
+      };
+      for (auto& user : plexUsers_)
+         if (user->GetValid())
+            user->SyncStateWithEmby(plexSyncState, syncServers);
+
+      // Sync the emby play state with all other emby users. Ignore the current user since they are already in sync with tracearr.
       auto embySyncState = StateSyncEmbyUser::EmbySyncState{
          .item = historyItem,
          .mediaPath = embyUser.GetMediaPath(),
          .path = itemPath.value()
       };
-
-      std::string syncServers;
-
-      for (auto& user : plexUsers_)
-         if (user->GetValid())
-            user->SyncStateWithEmby(plexSyncState, syncServers);
-
       for (auto& user : embyUsers_)
          if (user->GetServerName() != embyUser.GetServerName() && user->GetValid())
             user->SyncStateWithEmby(embySyncState, syncServers);
 
+      // If syncServers is not empty, then log the summary of the sync.
       if (!syncServers.empty())
       {
          LogSyncSummary({
@@ -224,15 +195,18 @@ namespace loomis
       // Have all users update to the latest data
       UpdateAllUsers();
 
+      // Create a view of the history items that are only for this user
       auto isUser = [this](auto* item) { return tracearrUserName_ == item->user; };
       auto userViewItems = historyItems | std::views::filter(isUser);
+
+      // Sync each item with the associated servers and users assigned to this user
       for (const auto* item : userViewItems)
       {
          if (item->serverType == warp::TracearrServerType::PLEX)
          {
             for (auto& plexUser : plexUsers_)
             {
-               if (plexUser->GetTracearrServerName() == item->serverName)
+               if (plexUser->GetValid() && plexUser->GetTracearrServerName() == item->serverName)
                {
                   SyncPlexState(item, *plexUser);
                   break;
@@ -243,7 +217,7 @@ namespace loomis
          {
             for (auto& embyUser : embyUsers_)
             {
-               if (embyUser->GetTracearrServerName() == item->serverName)
+               if (embyUser->GetValid() && embyUser->GetTracearrServerName() == item->serverName)
                {
                   SyncEmbyState(item, *embyUser);
                   break;

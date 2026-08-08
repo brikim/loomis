@@ -20,6 +20,7 @@ namespace loomis
    {
    public:
       StateSyncPlexUser(const ServerPlexUser& config,
+                        std::string_view tracearrUserName,
                         bool dryRun,
                         const std::shared_ptr<warp::ApiManager>& apiManager,
                         ServiceLogger logger);
@@ -27,14 +28,10 @@ namespace loomis
 
       [[nodiscard]] bool GetValid() const;
       [[nodiscard]] std::string GetServerAndUserName() const;
-      [[nodiscard]] int32_t GetId() const;
       [[nodiscard]] std::string_view GetServerName() const;
       [[nodiscard]] std::optional<std::string> GetTracearrServerName() const;
       [[nodiscard]] std::string_view GetTypeAndServerName() const;
       [[nodiscard]] std::string_view GetUser() const;
-      [[nodiscard]] std::optional<warp::TautulliHistoryItems> GetWatchHistory(std::string_view historyDate, int64_t epochHistoryTime);
-
-      void Update();
 
       void SyncStateWithPlex();
 
@@ -53,12 +50,10 @@ namespace loomis
 
       bool valid_{false};
       bool dryRun_{false};
+      std::string tracearrUserName_;
       ServiceLogger logger_;
       ServerPlexUser config_;
 
       warp::PlexApi* api_{nullptr};
-      warp::TautulliApi* trackerApi_{nullptr};
-
-      warp::TautulliUserInfo userInfo_;
    };
 }

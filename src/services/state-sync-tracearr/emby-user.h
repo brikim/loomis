@@ -59,6 +59,6 @@ namespace loomis
       ServerUser config_;
       std::string userId_;
 
-      warp::EmbyApi* embyApi_{nullptr};
+      warp::EmbyApi* api_{nullptr};
    };
 }

@@ -8,45 +8,28 @@
 namespace loomis
 {
    StateSyncPlexUser::StateSyncPlexUser(const ServerPlexUser& config,
+                                        std::string_view tracearrUserName,
                                         bool dryRun,
                                         const std::shared_ptr<warp::ApiManager>& apiManager,
                                         ServiceLogger logger)
       : logger_(logger)
       , dryRun_(dryRun)
+      , tracearrUserName_(tracearrUserName)
       , config_(config)
    {
-      // Do some quick checking on the users and make sure the api in the config exists.
-      // Don't want to check if the user is valid on the api yet since it might be offline.
-      // This will be checked every run frame.
       api_ = apiManager->GetPlexApi(config_.server);
-      trackerApi_ = apiManager->GetTautulliApi(config_.server);
-      if (api_ && trackerApi_)
-      {
-         // Will get users from tautulli for plex. Do a small pre-check and warn the system.
-         if (trackerApi_->GetValid() && !trackerApi_->GetUserInfo(config_.userName))
-         {
-            logger_.LogWarning("{} not found on {}. Is user name correct?",
-                               warp::GetTag("user", config_.userName),
-                               trackerApi_->GetPrettyName());
-         }
-
+      if (api_ && api_->GetTracearrServerName())
          valid_ = true;
-      }
       else
       {
+         if (api_ && !api_->GetTracearrServerName())
+            logger_.LogWarning("{} api does not contain a Tracearr server name. Required for service.",
+                                  warp::GetServerName(warp::GetFormattedPlex(), config_.server));
+
          if (!api_)
-         {
             logger_.LogWarning("{} api not found for {}",
                                warp::GetServerName(warp::GetFormattedPlex(), config_.server),
                                warp::GetTag("user", config_.userName));
-         }
-
-         if (!trackerApi_)
-         {
-            logger_.LogWarning("{} tracker api not found for {}. Required for this service.",
-                               warp::GetServerName(warp::GetFormattedTautulli(), config_.server),
-                               warp::GetTag("user", config_.userName));
-         }
       }
    }
 
@@ -58,11 +41,6 @@ namespace loomis
    std::string StateSyncPlexUser::GetServerAndUserName() const
    {
       return api_->GetPrettyName() + ":" + config_.userName;
-   }
-
-   int32_t StateSyncPlexUser::GetId() const
-   {
-      return userInfo_.id;
    }
 
    std::string_view StateSyncPlexUser::GetServerName() const
@@ -82,20 +60,7 @@ namespace loomis
 
    std::string_view StateSyncPlexUser::GetUser() const
    {
-      return userInfo_.friendlyName.empty() ? config_.userName : userInfo_.friendlyName;
-   }
-
-   std::optional<warp::TautulliHistoryItems> StateSyncPlexUser::GetWatchHistory(std::string_view historyDate, int64_t epochHistoryTime)
-   {
-      return trackerApi_->GetWatchHistoryForUser(config_.userName, historyDate, epochHistoryTime);
-   }
-
-   void StateSyncPlexUser::Update()
-   {
-      auto userInfo = trackerApi_->GetUserInfo(config_.userName);
-      valid_ = userInfo.has_value();
-      if (valid_)
-         userInfo_ = *userInfo;
+      return tracearrUserName_;
    }
 
    void StateSyncPlexUser::SyncStateWithPlex()

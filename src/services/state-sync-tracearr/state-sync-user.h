@@ -47,10 +47,6 @@ namespace loomis
       };
       void LogSyncSummary(const LogSyncData& syncSummary);
 
-      // Returns no duplicates. These will be thrown out and the latest item of the duplicates will be returned
-      std::vector<const warp::TautulliHistoryItem*> GetConsolidatedPlexHistory(const warp::TautulliHistoryItems& historyItems);
-      std::vector<const warp::JellystatHistoryItem*> GetConsolidatedEmbyHistory(const warp::JellystatHistoryItems& historyItems);
-
       bool valid_{false};
       std::shared_ptr<warp::ApiManager> apiManager_;
       ServiceLogger logger_;
