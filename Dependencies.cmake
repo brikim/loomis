@@ -1,5 +1,5 @@
 # Version Definitions
-set(WARP_VERSION  v2.3.2)
+set(WARP_VERSION  v2.3.3)
 set(GLAZE_VERSION v8.0.0)
 
 # Repository URLs (optional, but good for one-spot editing)

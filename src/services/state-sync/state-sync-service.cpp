@@ -20,7 +20,7 @@ namespace loomis
    {
       if (!tracearrApi_)
       {
-         LogWarning("{} api not found. Required for service StateSyncService", warp::GetFormattedTracearr());
+         LogWarning("{} api not found. Required for {}", warp::GetFormattedTracearr(), warp::GetTag("service", SERVICE_NAME));
          return;
       }
 
