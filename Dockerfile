@@ -10,12 +10,12 @@ ARG UBUNTU_RELEASE
 
 # 1. Install build tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc-14 g++-14 cmake git ninja-build ca-certificates libssl-dev curl tar \
+    gcc-16 g++-16 cmake git ninja-build ca-certificates libssl-dev curl tar \
     && rm -rf /var/lib/apt/lists/*
 
-# Tell CMake to use GCC 14
-ENV CC=gcc-14
-ENV CXX=g++-14
+# Tell CMake to use GCC 16
+ENV CC=gcc-16
+ENV CXX=g++-16
 
 # 2. Install 'chisel' tool
 RUN curl -sSL https://github.com/canonical/chisel/releases/download/v1.4.2/chisel_v1.4.2_linux_amd64.tar.gz | tar -xz -C /usr/local/bin
