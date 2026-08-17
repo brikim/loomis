@@ -118,10 +118,10 @@ namespace loomis
    bool StateSyncPlexUser::SyncPlayState(const PlexSyncState& syncState)
    {
       auto item = GetSyncStateItem(syncState);
-      if (!item || item->playbackPercentage == syncState.item->playbackPercentage)
+      if (!item || !syncState.item->playbackPercentage.has_value() || item->playbackPercentage == syncState.item->playbackPercentage.value())
          return false;
 
-      auto msLocation = (item->durationMs * static_cast<int64_t>(syncState.item->playbackPercentage)) / 100;
+      auto msLocation = (item->durationMs * static_cast<int64_t>(syncState.item->playbackPercentage.value())) / 100;
 
       if (!dryRun_)
       {

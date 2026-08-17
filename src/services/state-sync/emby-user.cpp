@@ -111,12 +111,12 @@ namespace loomis
    bool StateSyncEmbyUser::SyncPlayState(const EmbySyncState& syncState, std::string_view id)
    {
       auto playState = api_->GetPlayState(userId_, id);
-      if (!playState || syncState.item->playbackPercentage == std::lround(playState->percentage))
+      if (!playState || !syncState.item->playbackPercentage.has_value() || syncState.item->playbackPercentage.value() == std::lround(playState->percentage))
          return false;
 
       if (!dryRun_)
       {
-         int64_t tickLocation = std::llround(static_cast<double>(playState->runTimeTicks) * (static_cast<double>(syncState.item->playbackPercentage) / 100.0));
+         int64_t tickLocation = std::llround(static_cast<double>(playState->runTimeTicks) * (static_cast<double>(syncState.item->playbackPercentage.value()) / 100.0));
          return api_->SetPlayState(userId_, id, tickLocation, syncState.item->watchTime);
       }
       else

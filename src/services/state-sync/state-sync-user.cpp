@@ -140,7 +140,7 @@ namespace loomis
             .user = plexUser.GetUser(),
             .name = historyItem->fullName,
             .watched = historyItem->watched,
-            .playbackPercentage = historyItem->playbackPercentage,
+            .playbackPercentage = historyItem->playbackPercentage.has_value() ? historyItem->playbackPercentage.value() : 0,
             .syncResults = syncServers
          });
       }
@@ -187,7 +187,7 @@ namespace loomis
             .user = embyUser.GetUser(),
             .name = historyItem->fullName,
             .watched = historyItem->watched,
-            .playbackPercentage = static_cast<int32_t>(std::lround(historyItem->playbackPercentage)),
+            .playbackPercentage = historyItem->playbackPercentage.has_value() ? static_cast<int32_t>(std::lround(historyItem->playbackPercentage.value())) : 0,
             .syncResults = syncServers
          });
       }
