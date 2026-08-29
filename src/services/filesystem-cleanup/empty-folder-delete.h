@@ -27,7 +27,8 @@ namespace loomis
       void Init(const FscEmptyFolderDeleteConfig& config);
 
       void NotifyServers(const FscEmptyFolderPathConfig& pathConfig);
-      bool IsFolderEmpty(const std::filesystem::path& p) const;
+      bool IsFolderEmpty(const std::filesystem::path& p,
+                         const std::unordered_set<std::filesystem::path>& deletedFolders) const;
       void CheckFolder(const FscEmptyFolderPathConfig& pathConfig);
 
       bool CheckMediaConnectionsValid(const std::vector<ServerLibraryConfig>& plex,

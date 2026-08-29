@@ -1,4 +1,4 @@
-﻿#include "empty-folder-delete.h"
+#include "empty-folder-delete.h"
 
 #include "services/service-types.h"
 
@@ -71,7 +71,12 @@ namespace loomis
       // Pre-lowercase the ignore lists for faster comparison in IsFolderEmpty
       for (auto& item : config_.ignoreFileEmptyCheck)
       {
-         ignoreFiles_.emplace(warp::ToLower(fs::path(item.item).native()));
+         auto nativeItem = warp::ToLower(fs::path(item.item).native());
+         ignoreFiles_.emplace(nativeItem);
+         if (!item.item.empty() && item.item[0] != '.')
+         {
+            ignoreFiles_.emplace(warp::ToLower(fs::path("." + item.item).native()));
+         }
       }
       for (auto& item : config_.ignoreFolders)
       {
@@ -79,28 +84,47 @@ namespace loomis
       }
    }
 
-   bool EmptyFolderDelete::IsFolderEmpty(const std::filesystem::path& p) const
+   bool EmptyFolderDelete::IsFolderEmpty(const std::filesystem::path& p,
+                                         const std::unordered_set<std::filesystem::path>& deletedFolders) const
    {
-      try
+      namespace fs = std::filesystem;
+      std::error_code ec;
+      auto it = fs::directory_iterator(p, fs::directory_options::skip_permission_denied, ec);
+      if (ec)
+         return false;
+
+      for (; it != fs::directory_iterator(); it.increment(ec))
       {
-         namespace fs = std::filesystem;
-         for (const auto& entry : fs::directory_iterator(p))
+         if (ec)
          {
-            const auto& path = entry.path();
-            auto name = path.filename().native();
-            if (!name.empty() && name[0] == '.')
-               continue;
-
-            if (auto lowerName = warp::ToLower(name);
-                ignoreFiles_.contains(lowerName) || ignoreFolders_.contains(lowerName))
-               continue;
-
-            // If we found something that isn't ignored, the folder isn't empty
+            ec.clear();
             return false;
          }
-      }
-      catch (...)
-      {
+
+         const auto& entry = *it;
+         const auto& entryPath = entry.path();
+
+         // If this subfolder/file was already deleted (or marked deleted in dry run), skip it
+         if (deletedFolders.contains(entryPath))
+            continue;
+
+         // If any non-deleted subfolder still exists inside, this parent folder is not empty
+         if (entry.is_directory(ec))
+            return false;
+
+         auto name = entryPath.filename().native();
+         if (!name.empty() && name[0] == '.')
+            continue;
+
+         auto lowerName = warp::ToLower(name);
+         if (ignoreFiles_.contains(lowerName))
+            continue;
+
+         auto lowerExt = warp::ToLower(entryPath.extension().native());
+         if (!lowerExt.empty() && ignoreFiles_.contains(lowerExt))
+            continue;
+
+         // Found a non-ignored file: folder is not empty
          return false;
       }
 
@@ -188,10 +212,18 @@ namespace loomis
       };
       bool directoryDeleted = false;
       std::vector<PathEntry> subdirs;
+      std::unordered_set<fs::path> deletedFolders;
       std::error_code ec;
 
       // Use error_code to avoid exceptions on permission-denied subfolders
-      for (auto it = fs::recursive_directory_iterator(rootPath, ec); it != fs::recursive_directory_iterator(); ++it)
+      auto it = fs::recursive_directory_iterator(rootPath, fs::directory_options::skip_permission_denied, ec);
+      if (ec)
+      {
+         logger_.LogError("Failed to open directory for iteration: {}", warp::GetTag("path", rootPath.string()));
+         return;
+      }
+
+      for (; it != fs::recursive_directory_iterator(); it.increment(ec))
       {
          if (ec)
          {
@@ -211,20 +243,31 @@ namespace loomis
       for (const auto& dir : subdirs)
       {
          // Safety: Never delete the top-level path itself
-         if (dir.path == rootPath ||
-             !IsFolderEmpty(dir.path))
+         if (dir.path == rootPath)
+            continue;
+
+         // Safety: Skip folders explicitly listed in ignoreFolders
+         auto dirName = warp::ToLower(dir.path.filename().native());
+         if (ignoreFolders_.contains(dirName))
+            continue;
+
+         if (!IsFolderEmpty(dir.path, deletedFolders))
             continue;
 
          if (dryRun_)
          {
             logger_.LogInfo("[Dry Run] Would remove empty folder: {}",
                             warp::GetTag("path", warp::GetStandoutText(dir.path.string())));
+            deletedFolders.insert(dir.path);
          }
          else
          {
-            if (std::error_code ec; fs::remove_all(dir.path, ec))
+            std::error_code ec;
+            const auto removedCount = fs::remove_all(dir.path, ec);
+            if (!ec && removedCount > 0 && removedCount != static_cast<std::uintmax_t>(-1))
             {
                logger_.LogInfo("Removed empty folder: {}", warp::GetTag("path", warp::GetStandoutText(dir.path.string())));
+               deletedFolders.insert(dir.path);
                directoryDeleted = true;
             }
             else if (ec)
