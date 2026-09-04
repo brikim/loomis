@@ -57,36 +57,6 @@ namespace loomis
       std::vector<PlaylistPlexCollection> plex_collection_sync;
    };
 
-   struct ServerUser
-   {
-      std::string server;
-      std::string userName;
-
-      struct glaze
-      {
-         static constexpr auto value = glz::object(
-            "server", &ServerUser::server,
-            "user_name", &ServerUser::userName
-         );
-      };
-   };
-
-   struct ServerPlexUser
-   {
-      std::string server;
-      std::string userName;
-      std::optional<std::string> token;
-
-      struct glaze
-      {
-         static constexpr auto value = glz::object(
-            "server", &ServerPlexUser::server,
-            "user_name", &ServerPlexUser::userName,
-            "token", &ServerPlexUser::token
-         );
-      };
-   };
-
    struct ExtensionConfig
    {
       std::string extension;
@@ -96,48 +66,18 @@ namespace loomis
       );
    };
 
-   struct ServerTracearrUser
-   {
-      std::string userName;
-
-      struct glaze
-      {
-         static constexpr auto value = glz::object(
-            "user_name", &ServerTracearrUser::userName
-         );
-      };
-   };
-
-   struct UserSyncConfig
-   {
-      ServerTracearrUser tracearr;
-      std::vector<ServerPlexUser> plex;
-      std::vector<ServerUser> emby;
-
-      struct glaze
-      {
-         static constexpr auto value = glz::object(
-            "tracearr", &UserSyncConfig::tracearr,
-            "plex", &UserSyncConfig::plex,
-            "emby", &UserSyncConfig::emby
-         );
-      };
-   };
-
    struct StateSyncConfig
    {
       bool enabled{false};
       bool dryRun{false};
       std::string cron;
-      std::vector<UserSyncConfig> users;
 
       struct glaze
       {
          static constexpr auto value = glz::object(
             "enabled", &StateSyncConfig::enabled,
             "dry_run", &StateSyncConfig::dryRun,
-            "cron", &StateSyncConfig::cron,
-            "users", &StateSyncConfig::users
+            "cron", &StateSyncConfig::cron
          );
       };
    };

@@ -17,41 +17,24 @@ namespace loomis
    class StateSyncEmbyUser
    {
    public:
-      StateSyncEmbyUser(const ServerUser& config,
-                        bool dryRun,
-                        const std::shared_ptr<warp::ApiManager>& apiManager,
+      StateSyncEmbyUser(bool dryRun,
                         ServiceLogger logger);
       ~StateSyncEmbyUser() = default;
 
-      [[nodiscard]] bool GetValid() const;
-      [[nodiscard]] std::string GetServerAndUserName() const;
-      [[nodiscard]] std::string_view GetServerName() const;
-      [[nodiscard]] std::optional<std::string> GetTracearrServerName() const;
-      [[nodiscard]] std::string_view GetTypeAndServerName() const;
-      [[nodiscard]] std::string_view GetUser() const;
-      [[nodiscard]] const std::filesystem::path& GetMediaPath() const;
-      [[nodiscard]] std::optional<warp::EmbyPlayState> GetPlayState(std::string_view id);
-
-      void Update();
-
       struct EmbySyncState
       {
-         const warp::TracearrHistoryItem* item{nullptr};
+         const warp::TracearrHistoryItem& item;
          const std::filesystem::path& mediaPath;
-         const std::filesystem::path& path;
+         warp::EmbyApi* embyApi{nullptr};
+         std::string_view embyUserId;
       };
-      void SyncState(const EmbySyncState& syncState, std::string& syncResults);
+      void SyncState(EmbySyncState syncState, std::string& syncResults);
 
    private:
-      bool SyncWatchedState(std::string_view id);
-      bool SyncPlayState(const EmbySyncState& syncState, std::string_view id);
+      bool SyncWatchedState(EmbySyncState& syncState, std::string_view id);
+      bool SyncPlayState(EmbySyncState& syncState, std::string_view id);
 
-      bool valid_{false};
       ServiceLogger logger_;
       bool dryRun_{false};
-      ServerUser config_;
-      std::string userId_;
-
-      warp::EmbyApi* api_{nullptr};
    };
 }

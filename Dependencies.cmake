@@ -1,6 +1,6 @@
 # Version Definitions
-set(WARP_VERSION  v2.3.5)
-set(GLAZE_VERSION v8.0.0)
+set(WARP_VERSION  v2.3.7)
+set(GLAZE_VERSION v8.3.0)
 
 # Repository URLs (optional, but good for one-spot editing)
 set(WARP_REPO  https://github.com/brikim/warp.git)

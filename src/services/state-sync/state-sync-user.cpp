@@ -12,73 +12,16 @@
 
 namespace loomis
 {
-   StateSyncUser::StateSyncUser(const UserSyncConfig& config,
-                                bool dryRun,
+   StateSyncUser::StateSyncUser(bool dryRun,
                                 std::shared_ptr<warp::ApiManager> apiManager,
                                 ServiceLogger logger)
       : apiManager_(std::move(apiManager))
       , logger_(logger)
       , dryRunText_(dryRun ? "[DRY RUN] " : "")
-      , tracearrUserName_(config.tracearr.userName)
+      , tracearrApi_(apiManager_->GetTracearrApi())
    {
-      std::ranges::for_each(config.plex, [this, dryRun, &config](const auto& configPlexUser) {
-         auto plexUser{std::make_unique<StateSyncPlexUser>(configPlexUser,
-                                                           config.tracearr.userName,
-                                                           dryRun,
-                                                           apiManager_,
-                                                           logger_)};
-         if (plexUser->GetValid())
-         {
-            this->plexUsers_.emplace_back(std::move(plexUser));
-         }
-      });
-
-      std::ranges::for_each(config.emby, [this, dryRun](const auto& configEmbyUser) {
-         auto embyUser{std::make_unique<StateSyncEmbyUser>(configEmbyUser,
-                                                           dryRun,
-                                                           apiManager_,
-                                                           logger_)};
-         if (embyUser->GetValid())
-         {
-            this->embyUsers_.emplace_back(std::move(embyUser));
-         }
-      });
-
-      if (!tracearrUserName_.empty() && (plexUsers_.size() + embyUsers_.size()) >= 2)
-      {
-         valid_ = true;
-      }
-   }
-
-   bool StateSyncUser::GetValid() const
-   {
-      return valid_;
-   }
-
-   std::string StateSyncUser::GetServerAndUserName() const
-   {
-      std::string names;
-      for (const auto& plexUser : plexUsers_)
-      {
-         if (!names.empty())
-            names += ", ";
-         names += plexUser->GetServerAndUserName();
-      }
-      for (const auto& embyUser : embyUsers_)
-      {
-         if (!names.empty())
-            names += ", ";
-         names += embyUser->GetServerAndUserName();
-      }
-      return names;
-   }
-
-   void StateSyncUser::UpdateAllUsers()
-   {
-      // Update all emby users to current data.
-      std::ranges::for_each(embyUsers_, [this](auto& embyUser) {
-         embyUser->Update();
-      });
+      plexUser_ = std::make_unique<StateSyncPlexUser>(dryRun, logger_);
+      embyUser_ = std::make_unique<StateSyncEmbyUser>(dryRun, logger_);
    }
 
    void StateSyncUser::LogSyncSummary(const LogSyncData& syncSummary)
@@ -104,129 +47,162 @@ namespace loomis
       }
    }
 
-   void StateSyncUser::SyncPlexState(const warp::TracearrHistoryItem* historyItem, StateSyncPlexUser& plexUser)
+   void StateSyncUser::SyncPlexState(const warp::TracearrUser& user, const warp::TracearrHistoryItem& historyItem)
    {
-      auto plexApi = apiManager_->GetPlexApi(plexUser.GetServerName());
+      auto plexApi = apiManager_->GetTracearrPlexApi(historyItem.serverName);
       if (!plexApi || !plexApi->GetValid())
          return;
 
-      auto itemPath = plexApi->GetItemPath(historyItem->serverRatingKey);
+      auto itemPath = plexApi->GetItemPath(historyItem.serverRatingKey);
       if (!itemPath)
          return;
 
+
       // This will hold the list of servers that were synced for this item. It will be used to log the summary of the sync.
       std::string syncServers;
+      std::string_view plexUserName;
 
-      // Syncing plex to plex servers is not currently supported
-      for (auto& user : plexUsers_)
-         if (user->GetServerName() != plexUser.GetServerName() && user->GetValid())
-            logger_.LogWarning("Syncing plex to plex servers is not currently supported.");
+      for (auto& account : user.accounts)
+      {
+         // If this is the server that watched the item get the server user name and skip syncing since it is already in sync
+         if (account.serverId == historyItem.serverId)
+         {
+            plexUserName = account.externalUserName;
+            continue;
+         }
 
-      // Sync the plex play state with all emby users.
-      auto embySyncState = StateSyncEmbyUser::EmbySyncState{
-         .item = historyItem,
-         .mediaPath = plexUser.GetMediaPath(),
-         .path = itemPath.value()
-      };
-      for (auto& user : embyUsers_)
-         if (user->GetValid())
-            user->SyncState(embySyncState, syncServers);
+         if (account.serverType == warp::TracearrServerType::PLEX)
+         {
+            // Syncing plex to plex servers is not currently supported
+         }
+         else if (account.serverType == warp::TracearrServerType::EMBY)
+         {
+            auto serverName = tracearrApi_->GetServerNameFromId(account.serverId);
+            if (!serverName.has_value())
+               continue;
+
+            auto* embyApi = apiManager_->GetTracearrEmbyApi(serverName.value());
+            if (!embyApi)
+               continue;
+
+            StateSyncEmbyUser::EmbySyncState syncState{
+               .item = historyItem,
+               .mediaPath = ReplaceMediaPath(itemPath.value(), plexApi->GetMediaPath(), embyApi->GetMediaPath()),
+               .embyApi = embyApi,
+               .embyUserId = account.externalUserId
+            };
+            embyUser_->SyncState(syncState, syncServers);
+         }
+      }
 
       // If syncServers is not empty, then log the summary of the sync.
       if (!syncServers.empty())
       {
          LogSyncSummary({
-            .server = plexUser.GetTypeAndServerName(),
-            .user = plexUser.GetUser(),
-            .name = historyItem->fullName,
-            .watched = historyItem->watched,
-            .playbackPercentage = historyItem->playbackPercentage.has_value() ? historyItem->playbackPercentage.value() : 0,
+            .server = plexApi->GetPrettyName(),
+            .user = plexUserName,
+            .name = historyItem.fullName,
+            .watched = historyItem.watched,
+            .playbackPercentage = historyItem.playbackPercentage.has_value() ? historyItem.playbackPercentage.value() : 0,
             .syncResults = syncServers
          });
       }
    }
 
-   void StateSyncUser::SyncEmbyState(const warp::TracearrHistoryItem* historyItem, StateSyncEmbyUser& embyUser)
+   void StateSyncUser::SyncEmbyState(const warp::TracearrUser& user, const warp::TracearrHistoryItem& historyItem)
    {
-      auto embyApi = apiManager_->GetEmbyApi(embyUser.GetServerName());
+      auto embyApi = apiManager_->GetTracearrEmbyApi(historyItem.serverName);
       if (!embyApi || !embyApi->GetValid())
          return;
 
-      auto itemPath = embyApi->GetItemPath(historyItem->serverRatingKey);
+      auto itemPath = embyApi->GetItemPath(historyItem.serverRatingKey);
       if (!itemPath)
          return;
 
       // This will hold the list of servers that were synced for this item. It will be used to log the summary of the sync.
       std::string syncServers;
+      std::string_view embyUserName;
 
-      // Sync the emby play state with all plex users.
-      auto plexSyncState = StateSyncPlexUser::PlexSyncState{
-        .item = historyItem,
-        .mediaPath = embyUser.GetMediaPath(),
-        .path = itemPath.value(),
-      };
-      for (auto& user : plexUsers_)
-         if (user->GetValid())
-            user->SyncState(plexSyncState, syncServers);
+      for (auto& account : user.accounts)
+      {
+         // If this is the server that watched the item get the server user name and skip syncing since it is already in sync
+         if (account.serverId == historyItem.serverId)
+         {
+            embyUserName = account.externalUserName;
+            continue;
+         }
 
-      // Sync the emby play state with all other emby users. Ignore the current user since they are already in sync with tracearr.
-      auto embySyncState = StateSyncEmbyUser::EmbySyncState{
-         .item = historyItem,
-         .mediaPath = embyUser.GetMediaPath(),
-         .path = itemPath.value()
-      };
-      for (auto& user : embyUsers_)
-         if (user->GetServerName() != embyUser.GetServerName() && user->GetValid())
-            user->SyncState(embySyncState, syncServers);
+         if (account.serverType == warp::TracearrServerType::PLEX)
+         {
+            auto serverName = tracearrApi_->GetServerNameFromId(account.serverId);
+            if (!serverName.has_value())
+               continue;
+
+            auto* syncPlexApi = apiManager_->GetTracearrPlexApi(serverName.value());
+            if (!syncPlexApi)
+               continue;
+
+            StateSyncPlexUser::PlexSyncState syncState{
+              .item = historyItem,
+              .mediaPath = ReplaceMediaPath(itemPath.value(), embyApi->GetMediaPath(), syncPlexApi->GetMediaPath()),
+              .api = syncPlexApi,
+              .userName = account.externalUserName
+            };
+            plexUser_->SyncState(syncState, syncServers);
+         }
+         else if (account.serverType == warp::TracearrServerType::EMBY)
+         {
+            auto serverName = tracearrApi_->GetServerNameFromId(account.serverId);
+            if (!serverName.has_value())
+               continue;
+
+            auto* syncEmbyApi = apiManager_->GetTracearrEmbyApi(serverName.value());
+            if (!syncEmbyApi)
+               continue;
+
+            StateSyncEmbyUser::EmbySyncState syncState{
+               .item = historyItem,
+               .mediaPath = ReplaceMediaPath(itemPath.value(), embyApi->GetMediaPath(), syncEmbyApi->GetMediaPath()),
+               .embyApi = syncEmbyApi,
+               .embyUserId = account.externalUserId
+            };
+            embyUser_->SyncState(syncState, syncServers);
+         }
+      }
 
       // If syncServers is not empty, then log the summary of the sync.
       if (!syncServers.empty())
       {
          LogSyncSummary({
-            .server = embyUser.GetTypeAndServerName(),
-            .user = embyUser.GetUser(),
-            .name = historyItem->fullName,
-            .watched = historyItem->watched,
-            .playbackPercentage = historyItem->playbackPercentage.has_value() ? static_cast<int32_t>(std::lround(historyItem->playbackPercentage.value())) : 0,
+            .server = embyApi->GetPrettyName(),
+            .user = embyUserName,
+            .name = historyItem.fullName,
+            .watched = historyItem.watched,
+            .playbackPercentage = historyItem.playbackPercentage.has_value() ? historyItem.playbackPercentage.value() : 0,
             .syncResults = syncServers
          });
       }
    }
 
-   void StateSyncUser::Sync(const std::vector<const warp::TracearrHistoryItem*>& historyItems)
+   void StateSyncUser::Sync(const warp::TracearrHistoryItem& historyItem)
    {
-      // Have all users update to the latest data
-      UpdateAllUsers();
+      // Get the tracearr user for this item. If not valid or has only one account skip since nothing to sync with.
+      auto tracearrUser = tracearrApi_->GetUser(historyItem.user.id);
+      if (!tracearrUser.has_value() || tracearrUser.value().accounts.size() <= 1u)
+         return;
 
-      // Create a view of the history items that are only for this user
-      auto isUser = [this](auto* item) { return tracearrUserName_ == item->user; };
-      auto userViewItems = historyItems | std::views::filter(isUser);
-
-      // Sync each item with the associated servers and users assigned to this user
-      for (const auto* item : userViewItems)
+      // Sync item with the associated servers and users assigned to this user
+      if (historyItem.serverType == warp::TracearrServerType::PLEX)
       {
-         if (item->serverType == warp::TracearrServerType::PLEX)
-         {
-            for (auto& plexUser : plexUsers_)
-            {
-               if (plexUser->GetValid() && plexUser->GetTracearrServerName() == item->serverName)
-               {
-                  SyncPlexState(item, *plexUser);
-                  break;
-               }
-            }
-         }
-         else if (item->serverType == warp::TracearrServerType::EMBY)
-         {
-            for (auto& embyUser : embyUsers_)
-            {
-               if (embyUser->GetValid() && embyUser->GetTracearrServerName() == item->serverName)
-               {
-                  SyncEmbyState(item, *embyUser);
-                  break;
-               }
-            }
-         }
+         SyncPlexState(tracearrUser.value(), historyItem);
+      }
+      else if (historyItem.serverType == warp::TracearrServerType::EMBY)
+      {
+         SyncEmbyState(tracearrUser.value(), historyItem);
+      }
+      else
+      {
+         //*do-nothing*//
       }
    }
 }

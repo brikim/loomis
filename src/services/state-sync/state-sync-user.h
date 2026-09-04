@@ -17,22 +17,16 @@ namespace loomis
    class StateSyncUser
    {
    public:
-      StateSyncUser(const UserSyncConfig& config,
-                    bool dryRun,
+      StateSyncUser(bool dryRun,
                     std::shared_ptr<warp::ApiManager> apiManager,
                     ServiceLogger logger);
       ~StateSyncUser() = default;
 
-      [[nodiscard]] bool GetValid() const;
-      [[nodiscard]] std::string GetServerAndUserName() const;
-
-      void Sync(const std::vector<const warp::TracearrHistoryItem*>& historyItems);
+      void Sync(const warp::TracearrHistoryItem& historyItem);
 
    private:
-      void UpdateAllUsers();
-
-      void SyncPlexState(const warp::TracearrHistoryItem* historyItem, StateSyncPlexUser& plexUser);
-      void SyncEmbyState(const warp::TracearrHistoryItem* historyItem, StateSyncEmbyUser& embyUser);
+      void SyncPlexState(const warp::TracearrUser& user, const warp::TracearrHistoryItem& historyItem);
+      void SyncEmbyState(const warp::TracearrUser& user, const warp::TracearrHistoryItem& historyItem);
 
       struct LogSyncData
       {
@@ -45,13 +39,12 @@ namespace loomis
       };
       void LogSyncSummary(const LogSyncData& syncSummary);
 
-      bool valid_{false};
       std::shared_ptr<warp::ApiManager> apiManager_;
       ServiceLogger logger_;
       std::string dryRunText_;
+      warp::TracearrApi* tracearrApi_{nullptr};
 
-      std::string tracearrUserName_;
-      std::vector<std::unique_ptr<StateSyncPlexUser>> plexUsers_;
-      std::vector<std::unique_ptr<StateSyncEmbyUser>> embyUsers_;
+      std::unique_ptr<StateSyncPlexUser> plexUser_;
+      std::unique_ptr<StateSyncEmbyUser> embyUser_;
    };
 }

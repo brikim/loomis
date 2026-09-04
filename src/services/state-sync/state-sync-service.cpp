@@ -29,14 +29,7 @@ namespace loomis
 
    void StateSyncService::Init(const StateSyncConfig& config)
    {
-      for (const auto& user : config.users)
-      {
-         if (auto stateSyncUser{std::make_unique<StateSyncUser>(user, config.dryRun, GetApiManager(), ServiceLogger(*this))};
-             stateSyncUser->GetValid())
-         {
-            users_.emplace_back(std::move(stateSyncUser));
-         }
-      }
+      user_ = std::make_unique<StateSyncUser>(config.dryRun, GetApiManager(), ServiceLogger(*this));
    }
 
    template <typename T, typename TimeFieldProj>
@@ -76,19 +69,19 @@ namespace loomis
       // Consolidate the history items to remove duplicates and keep the latest watch time for each item
       auto consolidatedHistory = ConsolidateHistory(history->items, [](const auto* i) { return i->watchTime; });
 
-      // Iterate over all users passing in the history to check for needed state syncs.
-      for (auto& user : users_)
+      for (auto* historyItem : consolidatedHistory)
       {
          try
          {
-            user->Sync(consolidatedHistory);
+            user_->Sync(*historyItem);
          }
          catch (const std::exception& e)
          {
-            LogWarning("Encountered a error for {} during sync: {}",
-                       user->GetServerAndUserName(),
-                       e.what());
+            LogWarning("Encountered a problem for {} {} sync: {}",
+                       warp::GetTag("user", historyItem->user.name),
+                       warp::GetTag("name", historyItem->fullName),
+                       warp::GetTag("error", e.what()));
          }
-      };
+      }
    }
 }

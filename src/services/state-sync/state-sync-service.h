@@ -25,6 +25,6 @@ namespace loomis
       void Init(const StateSyncConfig& config);
 
       warp::TracearrApi* tracearrApi_{nullptr};
-      std::vector<std::unique_ptr<StateSyncUser>> users_;
+      std::unique_ptr<StateSyncUser> user_;
    };
 }
