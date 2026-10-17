@@ -9,6 +9,7 @@
 #include <warp/api/api-manager.h>
 #include <warp/api/api-tracearr-types.h>
 #include <warp/types.h>
+#include <warp/utils.h>
 
 #include <memory>
 #include <vector>
@@ -84,7 +85,7 @@ namespace loomis
 
             StateSyncPlexUser::PlexSyncState syncState{
               .item = historyItem,
-              .mediaPath = ReplaceMediaPath(*itemPath, sourceApi->GetMediaPath(), targetApi->GetMediaPath()),
+              .mediaPath = warp::ReplaceMediaPath(*itemPath, sourceApi->GetMediaPath(), targetApi->GetMediaPath()),
               .api = targetApi,
               .userName = account.externalUserName
             };
@@ -98,7 +99,7 @@ namespace loomis
 
             StateSyncEmbyUser::EmbySyncState syncState{
                .item = historyItem,
-               .mediaPath = ReplaceMediaPath(*itemPath, sourceApi->GetMediaPath(), targetApi->GetMediaPath()),
+               .mediaPath = warp::ReplaceMediaPath(*itemPath, sourceApi->GetMediaPath(), targetApi->GetMediaPath()),
                .embyApi = targetApi,
                .embyUserId = account.externalUserId
             };

@@ -224,9 +224,9 @@ namespace loomis
             if ((std::chrono::system_clock::now() - lastWatched) <= deleteTimeHours_) continue;
 
             returnDeletes.emplace_back(DeleteFileInfo{
-               .path = ReplaceMediaPath(*itemPath, data.mediaPath, containerPath_),
+               .path = warp::ReplaceMediaPath(*itemPath, data.mediaPath, containerPath_),
                .userName = user,
-               .server = data.api->GetPrettyName()
+               .server = std::string(data.api->GetPrettyName())
             });
          }
       }
@@ -269,9 +269,9 @@ namespace loomis
             continue;
 
          returnDeletes.emplace_back(DeleteFileInfo{
-               .path = ReplaceMediaPath(playState->path, data.mediaPath, containerPath_),
+               .path = warp::ReplaceMediaPath(playState->path, data.mediaPath, containerPath_),
                .userName = *userIter,
-               .server = data.api->GetPrettyName()
+               .server = std::string(data.api->GetPrettyName())
             });
       }
 
