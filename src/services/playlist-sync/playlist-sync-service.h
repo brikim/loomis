@@ -1,11 +1,12 @@
 #pragma once
 
-#include "config-reader/config-reader-types.h"
 #include "services/service-base.h"
 
 #include <warp/api/api-emby.h>
 #include <warp/api/api-manager.h>
 #include <warp/api/api-plex.h>
+
+#include "config-reader/config-reader-types.h"
 
 #include <atomic>
 #include <cstdint>
@@ -20,7 +21,7 @@ namespace loomis
    public:
       PlaylistSyncService(const PlaylistSyncConfig& config,
                           std::shared_ptr<warp::ApiManager> apiManager);
-      ~PlaylistSyncService() = default;
+      ~PlaylistSyncService() override = default;
 
       void Run() override;
 
@@ -34,7 +35,6 @@ namespace loomis
       void SyncPlexCollection(warp::PlexApi* plexApi, warp::EmbyApi* embyApi, const PlaylistPlexCollection& collection);
 
       uint32_t timeForEmbyUpdateSec_{1u};
-      uint32_t timeBetweenSyncsSec_{1u};
       std::vector<PlaylistPlexCollection> plexCollections_;
    };
-}
+} // namespace loomis

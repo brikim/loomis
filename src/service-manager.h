@@ -1,11 +1,12 @@
 #pragma once
 
-#include "config-reader/config-reader.h"
-#include "config-reader/config-reader-types.h"
 #include "services/service-base.h"
 
 #include <warp/api/api-manager.h>
 #include <warp/scheduler/cron-scheduler.h>
+
+#include "config-reader/config-reader-types.h"
+#include "config-reader/config-reader.h"
 
 #include <atomic>
 #include <condition_variable>
@@ -13,6 +14,7 @@
 #include <mutex>
 #include <stop_token>
 #include <vector>
+
 
 namespace loomis
 {
@@ -43,4 +45,4 @@ namespace loomis
 
       std::stop_source stopSource_;
    };
-}
+} // namespace loomis

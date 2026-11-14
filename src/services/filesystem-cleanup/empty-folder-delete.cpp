@@ -175,7 +175,7 @@ namespace loomis
    }
 
    bool EmptyFolderDelete::CheckMediaConnectionsValid(const std::vector<ServerLibraryConfig>& plex,
-                                                             const std::vector<ServerLibraryConfig>& emby)
+                                                      const std::vector<ServerLibraryConfig>& emby)
    {
       for (const auto& p : plex)
       {
@@ -262,17 +262,17 @@ namespace loomis
          }
          else
          {
-            std::error_code ec;
-            const auto removedCount = fs::remove_all(dir.path, ec);
-            if (!ec && removedCount > 0 && removedCount != static_cast<std::uintmax_t>(-1))
+            std::error_code removeEc;
+            const auto removedCount = fs::remove_all(dir.path, removeEc);
+            if (!removeEc && removedCount > 0 && removedCount != static_cast<std::uintmax_t>(-1))
             {
                logger_.LogInfo("Removed empty folder: {}", warp::GetTag("path", warp::GetStandoutText(dir.path.string())));
                deletedFolders.insert(dir.path);
                directoryDeleted = true;
             }
-            else if (ec)
+            else if (removeEc)
             {
-               logger_.LogWarning("Failed to remove {}: {}", warp::GetTag("path", dir.path.string()), ec.message());
+               logger_.LogWarning("Failed to remove {}: {}", warp::GetTag("path", dir.path.string()), removeEc.message());
             }
          }
       }
@@ -290,4 +290,4 @@ namespace loomis
          CheckFolder(pathConfig);
       }
    }
-}
+} // namespace loomis

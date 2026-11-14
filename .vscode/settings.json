@@ -1,0 +1,23 @@
+{
+    "cSpell.words": [
+        "ANSII",
+        "emby",
+        "jellyfin",
+        "jellystat",
+        "loomis",
+        "PLEXTV",
+        "tautulli",
+        "Tmdb",
+        "Tracerr"
+    ],
+    "cmake.generator": "Ninja",
+    "cmake.exportCompileCommandsFile": true,
+    "cmake.useVsDeveloperEnvironment": "always",
+    "clangd.arguments": [
+        "--compile-commands-dir=${workspaceFolder}/build"
+    ],
+    "cmake.configureSettings": {
+        "OPENSSL_ROOT_DIR": "C:/Program Files/OpenSSL-Win64",
+        "OPENSSL_USE_STATIC_LIBS": "ON"
+    }
+}

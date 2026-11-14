@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.25...3.30)
 
 # 1. SILENCE DEPRECATION WARNINGS (Must be before project())
 set(CMAKE_POLICY_DEFAULT_CMP0000 NEW)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 project(loomis LANGUAGES CXX)
 
@@ -9,11 +10,25 @@ project(loomis LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
 
 # 3. IPO/LTO SUPPORT CHECK
 include(CheckIPOSupported)
 check_ipo_supported(RESULT ipo_supported OUTPUT ipo_error)
+
+if(WIN32)
+    # 1. Point CMake to the OpenSSL installation directory
+    if(NOT OPENSSL_ROOT_DIR)
+        set(OPENSSL_ROOT_DIR "C:/Program Files/OpenSSL-Win64" CACHE PATH "Directory containing OpenSSL")
+    endif()
+
+    # 2. Force CMake to look for static libraries if warp links statically
+    set(OPENSSL_USE_STATIC_LIBS ON CACHE BOOL "Use static OpenSSL libraries")
+endif()
+
+# Disable test suites and targets for sub-dependencies
+set(LIBCRON_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
 
 # 4. DEPENDENCIES (FetchContent)
 include(FetchContent)
@@ -42,8 +57,25 @@ if(ipo_supported)
 endif()
 
 target_compile_options(loomis PRIVATE
+    # MSVC / clang-cl flags
     $<$<CXX_COMPILER_ID:MSVC>:/utf-8 /MP>
-    $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic>
+    
+    # Standard Clang/GCC flags (C++ only, skips OpenSSL's applink.c)
+    $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:ClangCl>>>:
+        -Wall 
+        -Wextra 
+        -Wpedantic 
+        -Wshadow 
+        -Wconversion 
+        -Wno-c++98-compat 
+        -Wno-c++98-compat-pedantic 
+        -Wno-exit-time-destructors 
+        -Wno-global-constructors 
+        -Wno-padded
+        -Wno-covered-switch-default
+        -Wno-ctad-maybe-unsupported
+        -Wno-switch-enum
+    >
 )
 
 # 8. PLATFORM SPECIFIC (UNIX/SSL)
@@ -74,7 +106,11 @@ target_precompile_headers(loomis PRIVATE
 )
 
 # 10. INCLUDES & LINKING
-target_include_directories(loomis PRIVATE include src)
+target_include_directories(loomis PRIVATE 
+    "${PROJECT_SOURCE_DIR}/include"
+    "${PROJECT_SOURCE_DIR}/src"
+    "${PROJECT_SOURCE_DIR}/src/services"
+)
 
 target_link_libraries(loomis PRIVATE
     warp::warp

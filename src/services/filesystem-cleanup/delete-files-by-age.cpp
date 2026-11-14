@@ -9,9 +9,9 @@
 namespace loomis
 {
    DeleteFilesByAge::DeleteFilesByAge(const FscDeleteFilesByAgeConfig& config,
-                                        std::shared_ptr<warp::ApiManager> apiManager,
-                                        ServiceLogger logger,
-                                        bool dryRun)
+                                      std::shared_ptr<warp::ApiManager> apiManager,
+                                      ServiceLogger logger,
+                                      bool dryRun)
       : apiManager_(apiManager)
       , logger_(logger)
       , dryRun_(dryRun)
@@ -143,4 +143,4 @@ namespace loomis
          CheckForDeletes(pathDelete, now, fileNow);
       }
    }
-}
+} // namespace loomis

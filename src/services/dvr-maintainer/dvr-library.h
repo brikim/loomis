@@ -1,11 +1,12 @@
 #pragma once
 
-#include "config-reader/config-reader-types.h"
 #include "services/service-logger.h"
 
 #include <warp/api/api-emby.h>
 #include <warp/api/api-manager.h>
 #include <warp/api/api-plex.h>
+
+#include "config-reader/config-reader-types.h"
 
 #include <cstdint>
 #include <filesystem>
@@ -14,6 +15,7 @@
 #include <string_view>
 #include <unordered_set>
 #include <vector>
+
 
 namespace loomis
 {
@@ -90,4 +92,4 @@ namespace loomis
       std::vector<DvrAction> actions_;
       std::unordered_set<std::string> extensionsToDelete_;
    };
-}
+} // namespace loomis

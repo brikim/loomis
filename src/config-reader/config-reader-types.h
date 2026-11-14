@@ -2,6 +2,9 @@
 
 #include <cstdint>
 #include <filesystem>
+#include <glaze/glaze.hpp>
+#include <limits>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -53,7 +56,6 @@ namespace loomis
       bool enabled{false};
       std::string cron;
       uint32_t time_for_emby_to_update_seconds{5u};
-      uint32_t time_between_syncs_seconds{1u};
       std::vector<PlaylistPlexCollection> plex_collection_sync;
    };
 
@@ -61,9 +63,11 @@ namespace loomis
    {
       std::string extension;
 
+      // clang-format off
       static constexpr auto value = glz::object(
             "extension", &ExtensionConfig::extension
       );
+      // clang-format on
    };
 
    struct StateSyncConfig
@@ -74,11 +78,85 @@ namespace loomis
 
       struct glaze
       {
+         // clang-format off
          static constexpr auto value = glz::object(
             "enabled", &StateSyncConfig::enabled,
             "dry_run", &StateSyncConfig::dryRun,
             "cron", &StateSyncConfig::cron
          );
+         // clang-format on
+      };
+   };
+
+   struct TmdbPlaylistPlexServerConfig
+   {
+      std::string name;
+      std::string library;
+
+      struct glaze
+      {
+         // clang-format off
+         static constexpr auto value = glz::object(
+            "server", &TmdbPlaylistPlexServerConfig::name,
+            "library_name", &TmdbPlaylistPlexServerConfig::library
+         );
+         // clang-format on
+      };
+   };
+
+   struct TmdbPlaylistEmbyServerConfig
+   {
+      std::string name;
+
+      struct glaze
+      {
+         // clang-format off
+         static constexpr auto value = glz::object(
+            "server", &TmdbPlaylistEmbyServerConfig::name
+         );
+         // clang-format on
+      };
+   };
+
+   struct TmdbPlaylistConfig
+   {
+      std::string name;
+      std::string type;
+      std::optional<std::string> timeWindow;
+      std::vector<TmdbPlaylistPlexServerConfig> plexServers;
+      std::vector<TmdbPlaylistEmbyServerConfig> embyServers;
+
+      struct glaze
+      {
+         // clang-format off
+         static constexpr auto value = glz::object(
+            "name", &TmdbPlaylistConfig::name,
+            "type", &TmdbPlaylistConfig::type,
+            "time_window", &TmdbPlaylistConfig::timeWindow,
+            "plex", &TmdbPlaylistConfig::plexServers,
+            "emby", &TmdbPlaylistConfig::embyServers
+         );
+         // clang-format on
+      };
+   };
+
+   struct TmdbSyncConfig
+   {
+      bool enabled{false};
+      bool dryRun{false};
+      std::string cron;
+      std::vector<TmdbPlaylistConfig> playlists;
+
+      struct glaze
+      {
+         // clang-format off
+         static constexpr auto value = glz::object(
+            "enabled", &TmdbSyncConfig::enabled,
+            "dry_run", &TmdbSyncConfig::dryRun,
+            "cron", &TmdbSyncConfig::cron,
+            "playlists", &TmdbSyncConfig::playlists
+         );
+         // clang-format on
       };
    };
 
@@ -89,10 +167,12 @@ namespace loomis
 
       struct glaze
       {
+         // clang-format off
          static constexpr auto value = glz::object(
             "server", &ServerLibraryConfig::server,
             "library_name", &ServerLibraryConfig::library
          );
+         // clang-format on
       };
    };
 
@@ -102,9 +182,11 @@ namespace loomis
 
       struct glaze
       {
+         // clang-format off
          static constexpr auto value = glz::object(
             "ignore", &FscIgnoreItem::item
          );
+         // clang-format on
       };
    };
 
@@ -116,11 +198,13 @@ namespace loomis
 
       struct glaze
       {
+         // clang-format off
          static constexpr auto value = glz::object(
             "path", &FscEmptyFolderPathConfig::path,
             "plex", &FscEmptyFolderPathConfig::plex,
             "emby", &FscEmptyFolderPathConfig::emby
          );
+         // clang-format on
       };
    };
 
@@ -132,11 +216,13 @@ namespace loomis
 
       struct glaze
       {
+         // clang-format off
          static constexpr auto value = glz::object(
             "paths", &FscEmptyFolderDeleteConfig::paths,
             "ignore_folder_in_empty_check", &FscEmptyFolderDeleteConfig::ignoreFolders,
             "ignore_file_in_empty_check", &FscEmptyFolderDeleteConfig::ignoreFileEmptyCheck
          );
+         // clang-format on
       };
    };
 
@@ -148,11 +234,13 @@ namespace loomis
 
       struct glaze
       {
+         // clang-format off
          static constexpr auto value = glz::object(
             "path", &FscDeleteFilePathConfig::path,
             "delete_age_hours", &FscDeleteFilePathConfig::deleteAgeHours,
             "valid_extensions_to_delete", &FscDeleteFilePathConfig::validExtensions
          );
+         // clang-format on
       };
    };
 
@@ -162,9 +250,11 @@ namespace loomis
 
       struct glaze
       {
+         // clang-format off
          static constexpr auto value = glz::object(
             "paths", &FscDeleteFilesByAgeConfig::paths
          );
+         // clang-format on
       };
    };
 
@@ -178,6 +268,7 @@ namespace loomis
 
       struct glaze
       {
+         // clang-format off
          static constexpr auto value = glz::object(
             "enabled", &FileSystemCleanupConfig::enabled,
             "dry_run", &FileSystemCleanupConfig::dryRun,
@@ -185,6 +276,7 @@ namespace loomis
             "empty_folder_delete", &FileSystemCleanupConfig::emptyFolderDeleteConfig,
             "delete_files_by_age", &FileSystemCleanupConfig::deleteFilesByAgeConfig
          );
+         // clang-format on
       };
    };
 
@@ -204,6 +296,7 @@ namespace loomis
 
       struct glaze
       {
+         // clang-format off
          static constexpr auto value = glz::object(
             "plex", &DvrMaintainerLibrary::plex,
             "emby", &DvrMaintainerLibrary::emby,
@@ -211,6 +304,7 @@ namespace loomis
             "actions", &DvrMaintainerLibrary::actions,
             "extensions_to_delete", &DvrMaintainerLibrary::extensionsToDelete
          );
+         // clang-format on
       };
    };
 
@@ -223,12 +317,14 @@ namespace loomis
 
       struct glaze
       {
+         // clang-format off
          static constexpr auto value = glz::object(
             "enabled", &DvrMaintainerConfig::enabled,
             "dry_run", &DvrMaintainerConfig::dryRun,
             "cron", &DvrMaintainerConfig::cron,
             "libraries", &DvrMaintainerConfig::libraries
          );
+         // clang-format on
       };
    };
 
@@ -238,9 +334,11 @@ namespace loomis
 
       struct glaze
       {
+         // clang-format off
          static constexpr auto value = glz::object(
             "name", &DeleteWatchedUserConfig::name
          );
+         // clang-format on
       };
    };
 
@@ -248,17 +346,17 @@ namespace loomis
    {
       std::string server;
       std::string library;
-      std::vector<DeleteWatchedUserConfig> users;
       std::filesystem::path mediaPath;
 
       struct glaze
       {
+         // clang-format off
          static constexpr auto value = glz::object(
             "server", &DeleteWatchedServerConfig::server,
             "library_name", &DeleteWatchedServerConfig::library,
-            "users", &DeleteWatchedServerConfig::users,
             "media_path", &DeleteWatchedServerConfig::mediaPath
          );
+         // clang-format on
       };
    };
 
@@ -270,11 +368,27 @@ namespace loomis
 
       struct glaze
       {
+         // clang-format off
          static constexpr auto value = glz::object(
             "container_path", &DeleteWatchedLibraryConfig::containerPath,
             "plex", &DeleteWatchedLibraryConfig::plex,
             "emby", &DeleteWatchedLibraryConfig::emby
          );
+         // clang-format on
+      };
+   };
+
+   struct DeleteWatchedTracearrUsers
+   {
+      std::string name;
+
+      struct glaze
+      {
+         // clang-format off
+         static constexpr auto value = glz::object(
+            "name", &DeleteWatchedTracearrUsers::name
+         );
+         // clang-format on
       };
    };
 
@@ -284,17 +398,21 @@ namespace loomis
       bool dryRun{false};
       std::string cron;
       int32_t deleteTimeHours{24};
+      std::vector<DeleteWatchedTracearrUsers> tracearrUsers;
       std::vector<DeleteWatchedLibraryConfig> libraries;
 
       struct glaze
       {
+         // clang-format off
          static constexpr auto value = glz::object(
             "enabled", &DeleteWatchedConfig::enabled,
             "dry_run", &DeleteWatchedConfig::dryRun,
             "cron", &DeleteWatchedConfig::cron,
             "delete_time_hours", &DeleteWatchedConfig::deleteTimeHours,
+            "tracearr_users", &DeleteWatchedConfig::tracearrUsers,
             "libraries", &DeleteWatchedConfig::libraries
          );
+         // clang-format on
       };
    };
 
@@ -304,9 +422,11 @@ namespace loomis
 
       struct glaze
       {
+         // clang-format off
          static constexpr auto value = glz::object(
             "library", &EmbyTidyLibraryConfig::name
          );
+         // clang-format on
       };
    };
 
@@ -319,12 +439,14 @@ namespace loomis
 
       struct glaze
       {
+         // clang-format off
          static constexpr auto value = glz::object(
             "server", &EmbyTidyServerConfig::name,
             "clean_up_non_local_backdrops", &EmbyTidyServerConfig::cleanUpNonLocalBackdrops,
             "local_backdrop_container_start_path", &EmbyTidyServerConfig::localBackdropContainerStartPath,
             "libraries", &EmbyTidyServerConfig::libraries
          );
+         // clang-format on
       };
    };
 
@@ -337,12 +459,14 @@ namespace loomis
 
       struct glaze
       {
+         // clang-format off
          static constexpr auto value = glz::object(
             "enabled", &EmbyTidyConfig::enabled,
             "dry_run", &EmbyTidyConfig::dryRun,
             "cron", &EmbyTidyConfig::cron,
             "servers", &EmbyTidyConfig::servers
          );
+         // clang-format on
       };
    };
 
@@ -359,11 +483,13 @@ namespace loomis
 
       struct glaze
       {
+         // clang-format off
          static constexpr auto value = glz::object(
             "server_name", &TracearrServer::server_name,
             "url", &TracearrServer::url,
             "api_key", &TracearrServer::api_key
          );
+         // clang-format on
       };
    };
 
@@ -380,9 +506,11 @@ namespace loomis
       DeleteWatchedConfig deleteWatched;
       EmbyTidyConfig embyTidy;
       StateSyncConfig stateSync;
+      TmdbSyncConfig tmdbSync;
 
       struct glaze
       {
+         // clang-format off
          static constexpr auto value = glz::object(
             "plex", &ConfigData::plex,
             "emby", &ConfigData::emby,
@@ -394,8 +522,10 @@ namespace loomis
             "dvr_maintainer", &ConfigData::dvrMaintainer,
             "delete_watched", &ConfigData::deleteWatched,
             "emby_tidy", &ConfigData::embyTidy,
-            "state_sync", &ConfigData::stateSync
+            "state_sync", &ConfigData::stateSync,
+            "tmdb_sync", &ConfigData::tmdbSync
          );
+         // clang-format on
       };
    };
-}
+} // namespace loomis

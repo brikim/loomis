@@ -3,5 +3,5 @@
 
 namespace loomis
 {
-   static constexpr const std::string_view LOOMIS_VERSION("v1.7.4");
+   inline constexpr const std::string_view LOOMIS_VERSION("v1.8.0");
 }

@@ -1,10 +1,11 @@
 #pragma once
 
-#include "config-reader/config-reader-types.h"
 #include "services/service-base.h"
 
 #include <warp/api/api-emby.h>
 #include <warp/api/api-manager.h>
+
+#include "config-reader/config-reader-types.h"
 
 #include <vector>
 
@@ -15,7 +16,7 @@ namespace loomis
    public:
       EmbyTidyService(const EmbyTidyConfig& config,
                       std::shared_ptr<warp::ApiManager> apiManager);
-      ~EmbyTidyService() = default;
+      ~EmbyTidyService() override = default;
 
       void Run() override;
 
@@ -37,4 +38,4 @@ namespace loomis
       std::vector<ServerConfig> servers_;
    };
 
-} // namespace Loomis
+} // namespace loomis

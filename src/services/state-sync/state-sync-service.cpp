@@ -35,7 +35,8 @@ namespace loomis
    template <typename T, typename TimeFieldProj>
    std::vector<const T*> ConsolidateHistory(const std::vector<T>& items, TimeFieldProj timeProj)
    {
-      if (items.empty()) return {};
+      if (items.empty())
+         return {};
 
       std::vector<const T*> consolidated;
       consolidated.reserve(items.size());
@@ -44,7 +45,8 @@ namespace loomis
 
       // Sort by ID, then by Time (descending)
       std::ranges::sort(consolidated, [&](const auto* a, const auto* b) {
-         if (a->id != b->id) return a->id < b->id;
+         if (a->id != b->id)
+            return a->id < b->id;
          return timeProj(a) > timeProj(b);
       });
 
@@ -74,8 +76,7 @@ namespace loomis
          try
          {
             user_->Sync(*historyItem);
-         }
-         catch (const std::exception& e)
+         } catch (const std::exception& e)
          {
             LogWarning("Encountered a problem for {} {} sync: {}",
                        warp::GetTag("user", historyItem->user.name),
@@ -84,4 +85,4 @@ namespace loomis
          }
       }
    }
-}
+} // namespace loomis

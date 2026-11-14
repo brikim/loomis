@@ -2,7 +2,7 @@
 
 #include "config-reader/config-reader-types.h"
 
-#include <span>
+#include <string_view>
 #include <vector>
 
 namespace loomis
@@ -26,11 +26,12 @@ namespace loomis
       [[nodiscard]] const DeleteWatchedConfig& GetDeleteWatchedConfig() const;
       [[nodiscard]] const EmbyTidyConfig& GetEmbyTidyConfig() const;
       [[nodiscard]] const StateSyncConfig& GetStateSyncConfig() const;
+      [[nodiscard]] const TmdbSyncConfig& GetTmdbSyncConfig() const;
 
    private:
-      void ReadConfigFile(const char* path);
+      void ReadConfigFile(const std::string_view path);
 
       bool configValid_{false};
       ConfigData configData_;
    };
-}
+} // namespace loomis

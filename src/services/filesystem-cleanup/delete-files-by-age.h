@@ -1,9 +1,10 @@
 #pragma once
 
-#include "config-reader/config-reader-types.h"
 #include "services/service-logger.h"
 
 #include <warp/api/api-manager.h>
+
+#include "config-reader/config-reader-types.h"
 
 #include <filesystem>
 #include <limits>
@@ -11,15 +12,16 @@
 #include <string>
 #include <unordered_set>
 
+
 namespace loomis
 {
    class DeleteFilesByAge
    {
    public:
       DeleteFilesByAge(const FscDeleteFilesByAgeConfig& config,
-                        std::shared_ptr<warp::ApiManager> apiManager,
-                        ServiceLogger logger,
-                        bool dryRun);
+                       std::shared_ptr<warp::ApiManager> apiManager,
+                       ServiceLogger logger,
+                       bool dryRun);
       ~DeleteFilesByAge() = default;
 
       void Run();
@@ -44,4 +46,4 @@ namespace loomis
       FscDeleteFilesByAgeConfig config_;
       std::vector<PathDeleteConfig> pathDeletes_;
    };
-}
+} // namespace loomis

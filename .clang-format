@@ -1,0 +1,76 @@
+Language: Cpp
+BasedOnStyle: LLVM
+
+# --- Core Indentation & Sizing ---
+AccessModifierOffset: -3
+IndentWidth: 3
+ContinuationIndentWidth: 3
+TabWidth: 3
+UseTab: Never
+ColumnLimit: 0
+
+# --- Braces and Alignment ---
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterCaseLabel: false
+  AfterClass: true
+  AfterControlStatement: true
+  AfterEnum: true
+  AfterFunction: true
+  AfterNamespace: true
+  AfterObjCDeclaration: false
+  AfterStruct: true
+  AfterUnion: false
+  BeforeCatch: false
+  BeforeElse: true
+  IndentBraces: false
+
+Cpp11BracedListStyle: true
+
+NamespaceIndentation: All
+
+# --- Constructor Initializer Lists ---
+ConstructorInitializerIndentWidth: 3
+PackConstructorInitializers: BinPack
+BreakConstructorInitializers: BeforeComma
+BreakBeforeTernaryOperators: true
+
+# --- Argument & Parameter Alignment ---
+AlignAfterOpenBracket: Align
+AllowAllArgumentsOnNextLine: false
+AllowAllParametersOfDeclarationOnNextLine: false
+BinPackArguments: false
+BinPackParameters: false
+
+# --- Compact Code Blocks & Initializers ---
+AllowShortBlocksOnASingleLine: Never
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+
+# --- Designated Initializers (C++20 struct initialization) ---
+AlignConsecutiveAssignments: None
+AlignOperands: false
+
+KeepEmptyLinesAtTheStartOfBlocks: false
+
+# --- Header Include Organization & Priority ---
+IncludeBlocks: Regroup
+IncludeCategories:
+  - Regex:           '^"delete-watched-library\.h"'
+    Priority:        1
+  - Regex:           '^"services/'
+    Priority:        2
+  - Regex:           '^<warp/'
+    Priority:        3
+  - Regex:           '^"'
+    Priority:        4
+  - Regex:           '^<.*>'
+    Priority:        5
+
+# --- Miscellaneous Cleanliness Features ---
+PointerAlignment: Left
+SpaceBeforeParens: ControlStatements
+SpaceInEmptyParentheses: false
+SpacesInContainerLiterals: false

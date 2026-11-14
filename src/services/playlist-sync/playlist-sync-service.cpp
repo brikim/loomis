@@ -3,12 +3,11 @@
 #include "services/service-types.h"
 
 #include <warp/api/api-manager.h>
-#include <warp/log/log.h>
 #include <warp/log/log-utils.h>
+#include <warp/log/log.h>
 #include <warp/utils.h>
 
 #include <algorithm>
-#include <ranges>
 #include <unordered_set>
 
 namespace loomis
@@ -17,13 +16,12 @@ namespace loomis
    {
       constexpr std::string_view SERVICE_NAME("Playlist Sync");
       constexpr auto PLAYLIST_UPDATE_WAIT_TIME(std::chrono::milliseconds(100));
-   }
+   } // namespace
 
    PlaylistSyncService::PlaylistSyncService(const PlaylistSyncConfig& config,
                                             std::shared_ptr<warp::ApiManager> apiManager)
       : ServiceBase(SERVICE_NAME, ANSI_CODE_SERVICE_PLAYLIST_SYNC, apiManager, config.cron)
       , timeForEmbyUpdateSec_(config.time_for_emby_to_update_seconds)
-      , timeBetweenSyncsSec_(config.time_between_syncs_seconds)
    {
       Init(config);
    }
@@ -37,10 +35,11 @@ namespace loomis
          {
             if (plexApi->GetValid() && !plexApi->GetCollectionValid(plexCollection.library, plexCollection.collection_name))
             {
-               LogWarning("{} {} {} not found on server",
-                          plexApi->GetPrettyName(),
-                          warp::GetTag("library", plexCollection.library),
-                          warp::GetTag("collection", plexCollection.collection_name));
+               LogWarning(
+                  "{} {} {} not found on server",
+                  plexApi->GetPrettyName(),
+                  warp::GetTag("library", plexCollection.library),
+                  warp::GetTag("collection", plexCollection.collection_name));
                continue;
             }
 
@@ -53,10 +52,11 @@ namespace loomis
                }
                else
                {
-                  LogWarning("{} api not found for {} {}",
-                             warp::GetServerName(warp::GetFormattedEmby(), embyServerName.server),
-                             plexApi->GetPrettyName(),
-                             warp::GetTag("collection", plexCollection.collection_name));
+                  LogWarning(
+                     "{} api not found for {} {}",
+                     warp::GetServerName(warp::GetFormattedEmby(), embyServerName.server),
+                     plexApi->GetPrettyName(),
+                     warp::GetTag("collection", plexCollection.collection_name));
                }
             }
 
@@ -70,24 +70,27 @@ namespace loomis
             }
             else
             {
-               LogWarning("{} {} {} no emby servers to sync ... skipping",
-                          plexApi->GetPrettyName(),
-                          warp::GetTag("library", plexCollection.library),
-                          warp::GetTag("collection", plexCollection.collection_name));
+               LogWarning(
+                  "{} {} {} no emby servers to sync ... skipping",
+                  plexApi->GetPrettyName(),
+                  warp::GetTag("library", plexCollection.library),
+                  warp::GetTag("collection", plexCollection.collection_name));
             }
          }
          else
          {
-            LogWarning("No {} found with {} ... Skipping",
-                       warp::GetFormattedPlex(),
-                       warp::GetTag("server_name", plexCollection.server));
+            LogWarning(
+               "No {} found with {} ... Skipping",
+               warp::GetFormattedPlex(),
+               warp::GetTag("server_name", plexCollection.server));
          }
       }
    }
 
-   std::pair<size_t, size_t> PlaylistSyncService::AddRemoveEmbyPlaylistItems(warp::EmbyApi* embyApi,
-                                                                             const warp::EmbyPlaylist& currentPlaylist,
-                                                                             const std::vector<std::string>& updatedPlaylistIds)
+   std::pair<size_t, size_t> PlaylistSyncService::AddRemoveEmbyPlaylistItems(
+      warp::EmbyApi* embyApi,
+      const warp::EmbyPlaylist& currentPlaylist,
+      const std::vector<std::string>& updatedPlaylistIds)
    {
       std::unordered_set<std::string_view> currentItemIds;
       currentItemIds.reserve(currentPlaylist.items.size());
@@ -124,11 +127,12 @@ namespace loomis
       }
 
       auto logPlaylistWarning = [this, &embyApi, &currentPlaylist](bool addErr, const std::vector<std::string>& ids) {
-         LogWarning("{} failed to {} {} to {}",
-                    embyApi->GetPrettyName(),
-                    addErr ? "add" : "remove",
-                    warp::GetTag("item_count", ids.size()),
-                    warp::GetTag("playlist", currentPlaylist.name));
+         LogWarning(
+            "{} failed to {} {} to {}",
+            embyApi->GetPrettyName(),
+            addErr ? "add" : "remove",
+            warp::GetTag("item_count", ids.size()),
+            warp::GetTag("playlist", currentPlaylist.name));
       };
 
       // API Calls
@@ -162,21 +166,23 @@ namespace loomis
          }
          else
          {
-            LogWarning("{} failed to retrieve {} on update",
-                    embyApi->GetPrettyName(),
-                    warp::GetTag("playlist", currentPlaylist.name));
+            LogWarning(
+               "{} failed to retrieve {} on update",
+               embyApi->GetPrettyName(),
+               warp::GetTag("playlist", currentPlaylist.name));
             return;
          }
       }
 
       if (currentPlaylist.items.size() != correctIds.size())
       {
-         LogWarning("{} sync {} {} playlist updated failed. Playlist length should be {} but {}",
-                    embyApi->GetPrettyName(),
-                    plexApi->GetPrettyName(),
-                    warp::GetTag("collection", currentPlaylist.name),
-                    warp::GetTag("length", correctIds.size()),
-                    warp::GetTag("reported_length", currentPlaylist.items.size()));
+         LogWarning(
+            "{} sync {} {} playlist updated failed. Playlist length should be {} but {}",
+            embyApi->GetPrettyName(),
+            plexApi->GetPrettyName(),
+            warp::GetTag("collection", currentPlaylist.name),
+            warp::GetTag("length", correctIds.size()),
+            warp::GetTag("reported_length", currentPlaylist.items.size()));
          return;
       }
 
@@ -194,10 +200,12 @@ namespace loomis
       for (uint32_t i = 0; i < correctIds.size(); ++i)
       {
          // If already correct, skip search
-         if (virtualItems[i].id == correctIds[i]) continue;
+         if (virtualItems[i].id == correctIds[i])
+            continue;
 
-         auto it = std::find_if(virtualItems.begin() + i, virtualItems.end(),
-                                [&](const auto& vt) { return vt.id == correctIds[i]; });
+         auto it = std::ranges::find_if(
+            virtualItems | std::views::drop(i),
+            [&](const auto& vt) { return vt.id == correctIds[i]; });
 
          if (it == virtualItems.end())
             continue;
@@ -211,29 +219,33 @@ namespace loomis
 
             std::this_thread::sleep_for(PLAYLIST_UPDATE_WAIT_TIME);
          }
-
       }
 
       if (orderChanged || added > 0 || removed > 0)
       {
-         LogInfo("Syncing {} {} to {} {} {} {}",
-                 plexApi->GetPrettyName(),
-                 warp::GetTag("collection", currentPlaylist.name),
-                 embyApi->GetPrettyName(),
-                 warp::GetTag("added", added),
-                 warp::GetTag("removed", removed),
-                 warp::GetTag("reordered", orderChanged ? "true" : "false"));
+         LogInfo(
+            "Syncing {} {} to {} {} {} {}",
+            plexApi->GetPrettyName(),
+            warp::GetTag("collection", currentPlaylist.name),
+            embyApi->GetPrettyName(),
+            warp::GetTag("added", added),
+            warp::GetTag("removed", removed),
+            warp::GetTag("reordered", orderChanged ? "true" : "false"));
       }
    }
 
-   void PlaylistSyncService::SyncEmbyPlaylist(warp::PlexApi* plexApi, warp::EmbyApi* embyApi, const warp::PlexCollection& plexCollection)
+   void PlaylistSyncService::SyncEmbyPlaylist(
+      warp::PlexApi* plexApi,
+      warp::EmbyApi* embyApi,
+      const warp::PlexCollection& plexCollection)
    {
       if (embyApi->GetPathCacheEmpty() && !plexCollection.items.empty())
       {
-         LogWarning("{} path map is empty. {} {} can not be synced.",
-                    embyApi->GetPrettyName(),
-                    plexApi->GetPrettyName(),
-                    warp::GetTag("collection", plexCollection.name));
+         LogWarning(
+            "{} path map is empty. {} {} can not be synced.",
+            embyApi->GetPrettyName(),
+            plexApi->GetPrettyName(),
+            warp::GetTag("collection", plexCollection.name));
          return;
       }
 
@@ -253,11 +265,12 @@ namespace loomis
 
          if (!foundItem)
          {
-            LogWarning("{} sync {} {} {} not found",
-                       embyApi->GetPrettyName(),
-                       plexApi->GetPrettyName(),
-                       warp::GetTag("collection", plexCollection.name),
-                       warp::GetTag("item", item.title));
+            LogWarning(
+               "{} sync {} {} {} not found",
+               embyApi->GetPrettyName(),
+               plexApi->GetPrettyName(),
+               warp::GetTag("collection", plexCollection.name),
+               warp::GetTag("item", item.title));
          }
       }
 
@@ -269,14 +282,18 @@ namespace loomis
       {
          embyApi->CreatePlaylist(plexCollection.name, updatedPlaylistIds);
 
-         LogInfo("Creating {} {} on {}",
-                 plexApi->GetPrettyName(),
-                 warp::GetTag("collection", plexCollection.name),
-                 embyApi->GetPrettyName());
+         LogInfo(
+            "Creating {} {} on {}",
+            plexApi->GetPrettyName(),
+            warp::GetTag("collection", plexCollection.name),
+            embyApi->GetPrettyName());
       }
    }
 
-   void PlaylistSyncService::SyncPlexCollection(warp::PlexApi* plexApi, warp::EmbyApi* embyApi, const PlaylistPlexCollection& collection)
+   void PlaylistSyncService::SyncPlexCollection(
+      warp::PlexApi* plexApi,
+      warp::EmbyApi* embyApi,
+      const PlaylistPlexCollection& collection)
    {
       if (auto plexCollection = plexApi->GetCollection(collection.library, collection.collection_name);
           plexCollection)
@@ -289,19 +306,23 @@ namespace loomis
    {
       for (auto& plexCollection : plexCollections_)
       {
-         if (auto* plexApi{GetApiManager()->GetPlexApi(plexCollection.server)};
-             plexApi->GetValid())
+         auto* plexApi{GetApiManager()->GetPlexApi(plexCollection.server)};
+         if (!plexApi || !plexApi->GetValid())
          {
-            for (const auto& embyServer : plexCollection.target_emby_servers)
+            continue;
+         }
+
+         for (const auto& embyServer : plexCollection.target_emby_servers)
+         {
+            auto* embyApi{GetApiManager()->GetEmbyApi(embyServer.server)};
+            if (!embyApi || !embyApi->GetValid())
             {
-               if (auto* embyApi{GetApiManager()->GetEmbyApi(embyServer.server)};
-                   embyApi->GetValid())
-               {
-                  // Sync this plex collection with the emby server
-                  SyncPlexCollection(plexApi, embyApi, plexCollection);
-               }
+               continue;
             }
+
+            // Sync this plex collection with the emby server
+            SyncPlexCollection(plexApi, embyApi, plexCollection);
          }
       }
    }
-}
+} // namespace loomis

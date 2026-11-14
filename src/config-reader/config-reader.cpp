@@ -1,22 +1,23 @@
 #include "config-reader.h"
 
-#include <glaze/glaze.hpp>
-#include <warp/log/log.h>
 #include <warp/log/log-utils.h>
+#include <warp/log/log.h>
 
-#include <cstdlib>
+#include "utils.h"
+
 #include <filesystem>
-#include <fstream>
+#include <glaze/glaze.hpp>
+#include <string>
 
 namespace loomis
 {
    ConfigReader::ConfigReader()
    {
       //_putenv_s("CONFIG_PATH", "../config");
-      if (const auto* configPath = std::getenv("CONFIG_PATH");
-          configPath != nullptr)
+      if (const auto configPath = GetEnv("CONFIG_PATH");
+          configPath.has_value())
       {
-         ReadConfigFile(configPath);
+         ReadConfigFile(configPath.value());
       }
       else
       {
@@ -24,7 +25,7 @@ namespace loomis
       }
    }
 
-   void ConfigReader::ReadConfigFile(const char* path)
+   void ConfigReader::ReadConfigFile(const std::string_view path)
    {
       std::filesystem::path pathFileName = std::filesystem::path(path) / "config.conf";
       if (!std::filesystem::exists(pathFileName))
@@ -33,17 +34,18 @@ namespace loomis
          return;
       }
 
-      auto ec = glz::read_file_json < glz::opts{.error_on_unknown_keys = false} > (
-          configData_,
-          pathFileName.string(),
-          std::string{}
-      );
+      auto ec = glz::read_file_json<glz::opts{.error_on_unknown_keys = false}>(
+         configData_,
+         pathFileName.string(),
+         std::string{});
 
       if (ec)
       {
          std::string pretty_error = glz::format_error(ec, "");
          warp::log::Warning("{} - Glaze Error: {} (File: {})",
-                            __func__, pretty_error, pathFileName.string());
+                            __func__,
+                            pretty_error,
+                            pathFileName.string());
          return;
       }
 
@@ -109,4 +111,9 @@ namespace loomis
    {
       return configData_.stateSync;
    }
-}
+
+   const TmdbSyncConfig& ConfigReader::GetTmdbSyncConfig() const
+   {
+      return configData_.tmdbSync;
+   }
+} // namespace loomis

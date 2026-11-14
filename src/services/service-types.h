@@ -13,4 +13,5 @@ namespace loomis
    inline const std::string ANSI_CODE_SERVICE_DELETE_WATCHED{std::format("{}215{}", warp::ANSI_CODE_START, warp::ANSI_CODE_END)};
    inline const std::string ANSI_CODE_SERVICE_EMBY_TIDY{std::format("{}71{}", warp::ANSI_CODE_START, warp::ANSI_CODE_END)};
    inline const std::string ANSI_CODE_SERVICE_STATE_SYNC{std::format("{}45{}", warp::ANSI_CODE_START, warp::ANSI_CODE_END)};
-}
+   inline const std::string ANSI_CODE_SERVICE_TMDB_SYNC{std::format("{}208{}", warp::ANSI_CODE_START, warp::ANSI_CODE_END)};
+} // namespace loomis

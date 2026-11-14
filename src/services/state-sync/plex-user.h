@@ -1,16 +1,18 @@
 #pragma once
 
-#include "config-reader/config-reader-types.h"
 #include "services/service-logger.h"
 
 #include <warp/api/api-manager.h>
 #include <warp/api/api-plex.h>
 #include <warp/types.h>
 
+#include "config-reader/config-reader-types.h"
+
 #include <filesystem>
 #include <optional>
 #include <string>
 #include <string_view>
+
 
 namespace loomis
 {
@@ -38,4 +40,4 @@ namespace loomis
       bool dryRun_{false};
       ServiceLogger logger_;
    };
-}
+} // namespace loomis

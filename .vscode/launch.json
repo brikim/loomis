@@ -2,25 +2,31 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "(gdb) Launch",
-            "type": "cppdbg",
+            "name": "(Windows) Launch loomis",
+            "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/loomis", 
+            "program": "${command:cmake.launchTargetPath}",
             "args": [],
-            "stopAtEntry": true,
+            "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [
-                {"name": "CONFIG_PATH", "value": "/home/brian/test/loomis"}
+                { "name": "CONFIG_PATH", "value": "C:/tmp/loomis" }
+            ],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "(Linux/GDB) Launch loomis",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/loomis",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [
+                { "name": "CONFIG_PATH", "value": "/config" }
             ],
             "externalConsole": false,
             "MIMode": "gdb",
-            "setupCommands": [
-                {
-                    "description": "Enable pretty-printing for gdb",
-                    "text": "-enable-pretty-printing",
-                    "ignoreFailures": true
-                }
-            ],
             "miDebuggerPath": "/usr/bin/gdb"
         }
     ]

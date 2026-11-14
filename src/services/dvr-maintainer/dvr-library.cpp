@@ -1,7 +1,7 @@
 ﻿#include "dvr-library.h"
 
-#include <warp/log/log.h>
 #include <warp/log/log-utils.h>
+#include <warp/log/log.h>
 #include <warp/utils.h>
 
 namespace loomis
@@ -10,7 +10,7 @@ namespace loomis
    {
       constexpr std::string_view KEEP_LAST_VALUE("KEEP_LAST_");
       constexpr std::string_view KEEP_LENGTH_DAYS_VALUE("KEEP_LENGTH_DAYS_");
-   }
+   } // namespace
 
    DvrLibrary::DvrLibrary(const DvrMaintainerLibrary& config,
                           std::shared_ptr<warp::ApiManager> apiManager,
@@ -48,8 +48,8 @@ namespace loomis
          else
          {
             serviceLogger_.LogWarning("No {} found with {} ... Skipping",
-                formatName,
-                warp::GetTag("server_name", serverConfig.server));
+                                      formatName,
+                                      warp::GetTag("server_name", serverConfig.server));
          }
       };
 
@@ -100,15 +100,17 @@ namespace loomis
          auto valuePart = std::string_view(action.action).substr(prefix.size());
 
          int value = 0;
-         auto [ptr, ec] = std::from_chars(valuePart.data(), valuePart.data() + valuePart.size(), value);
+         auto [ptr, ec] = std::from_chars(
+            std::to_address(valuePart.begin()),
+            std::to_address(valuePart.end()),
+            value);
 
          if (ec == std::errc())
          {
             actions_.emplace_back(DvrAction{
-                .name = action.name,
-                .type = *type,
-                .value = value
-            });
+               .name = action.name,
+               .type = *type,
+               .value = value});
          }
          else if (ec == std::errc::invalid_argument)
          {
@@ -170,8 +172,7 @@ namespace loomis
                files.push_back({.path = p, .ageDays = days});
             }
          }
-      }
-      catch (const std::exception& e)
+      } catch (const std::exception& e)
       {
          serviceLogger_.LogError("Critical error scanning path: {}", e.what());
       }
@@ -191,8 +192,7 @@ namespace loomis
          try
          {
             std::filesystem::remove(pathFileName);
-         }
-         catch (const std::filesystem::filesystem_error& e)
+         } catch (const std::filesystem::filesystem_error& e)
          {
             serviceLogger_.LogError("Problem deleting {} {}",
                                     warp::GetTag("file", pathFileName.generic_string()),
@@ -216,7 +216,7 @@ namespace loomis
          return a.ageDays > b.ageDays;
       });
 
-      size_t showsToDelete = fileInfo.size() - value;
+      size_t showsToDelete = fileInfo.size() - static_cast<size_t>(value);
       size_t deletedCount = 0;
       bool showsDeleted = false;
       for (const auto& file : fileInfo)
@@ -226,12 +226,12 @@ namespace loomis
                                 warp::GetTag("age days", file.ageDays, ".1f"),
                                 warp::GetTag("file", warp::GetStandoutText(warp::GetDisplayFolder(file.path).generic_string())));
 
-
          DeleteItem(file.path);
          showsDeleted = true;
 
          ++deletedCount;
-         if (deletedCount >= showsToDelete) break;
+         if (deletedCount >= showsToDelete)
+            break;
       }
       return showsDeleted;
    }
@@ -265,12 +265,12 @@ namespace loomis
 
       switch (action.type)
       {
-         case DvrActionType::KEEP_LAST:
-            return KeepLastDelete(libraryFilePath.string(), action.value);
-         case DvrActionType::KEEP_NUMBER_OF_DAYS:
-            return KeepDaysDelete(libraryFilePath.string(), action.value);
-         default:
-            return false;
+      case DvrActionType::KEEP_LAST:
+         return KeepLastDelete(libraryFilePath.string(), action.value);
+      case DvrActionType::KEEP_NUMBER_OF_DAYS:
+         return KeepDaysDelete(libraryFilePath.string(), action.value);
+      default:
+         return false;
       }
    }
 
@@ -310,7 +310,7 @@ namespace loomis
             if (!data.api->GetValid())
             {
                serviceLogger_.LogWarning("{} not available",
-                   data.api->GetPrettyName());
+                                         data.api->GetPrettyName());
                return false;
             }
 
@@ -320,8 +320,8 @@ namespace loomis
                if (!libId)
                {
                   serviceLogger_.LogWarning("{} {} not valid",
-                      data.api->GetPrettyName(),
-                      warp::GetTag("library", data.libraryName));
+                                            data.api->GetPrettyName(),
+                                            warp::GetTag("library", data.libraryName));
                   return false;
                }
                data.libraryId = *libId;
@@ -356,4 +356,4 @@ namespace loomis
       if (itemsDeleted)
          NotifyServers();
    }
-}
+} // namespace loomis

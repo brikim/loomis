@@ -14,7 +14,7 @@ namespace loomis
    }
 
    FilesystemCleanupService::FilesystemCleanupService(const FileSystemCleanupConfig& config,
-                                            std::shared_ptr<warp::ApiManager> apiManager)
+                                                      std::shared_ptr<warp::ApiManager> apiManager)
       : ServiceBase(SERVICE_NAME, ANSI_CODE_SERVICE_FILESYSTEM_CLEANUP, apiManager, config.cron)
       , emptyFolderDelete_(config.emptyFolderDeleteConfig, apiManager, ServiceLogger(*this), config.dryRun)
       , deleteFilesByAge_(config.deleteFilesByAgeConfig, apiManager, ServiceLogger(*this), config.dryRun)
@@ -26,4 +26,4 @@ namespace loomis
       emptyFolderDelete_.Run();
       deleteFilesByAge_.Run();
    }
-}
+} // namespace loomis

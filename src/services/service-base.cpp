@@ -1,7 +1,7 @@
 ﻿#include "service-base.h"
 
-#include <warp/log/log.h>
 #include <warp/log/log-utils.h>
+#include <warp/log/log.h>
 
 #include <chrono>
 #include <ranges>
@@ -26,8 +26,8 @@ namespace loomis
       return task_;
    }
 
-   const std::shared_ptr<warp::ApiManager> ServiceBase::GetApiManager() const
+   const std::shared_ptr<warp::ApiManager>& ServiceBase::GetApiManager() const
    {
       return apiManager_;
    }
-}
+} // namespace loomis

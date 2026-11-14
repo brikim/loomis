@@ -19,7 +19,8 @@ namespace loomis
       , tracearrApi_(apiManager_->GetTracearrApi())
       , plexUser_(dryRun, logger_)
       , embyUser_(dryRun, logger_)
-   {}
+   {
+   }
 
    void StateSyncUser::LogSyncSummary(const LogSyncData& syncSummary)
    {
@@ -57,7 +58,7 @@ namespace loomis
    void StateSyncUser::Sync(const warp::TracearrHistoryItem& historyItem)
    {
       // Get the tracearr user for this item. If not valid or has only one account skip since nothing to sync with.
-      auto tracearrUser = tracearrApi_->GetUser(historyItem.user.id);
+      auto tracearrUser = tracearrApi_->GetUserById(historyItem.user.id);
       if (!tracearrUser.has_value() || tracearrUser.value().accounts.size() <= 1u)
          return;
 
@@ -75,4 +76,4 @@ namespace loomis
          //*do-nothing*//
       }
    }
-}
+} // namespace loomis

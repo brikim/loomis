@@ -1,14 +1,16 @@
 #pragma once
 
-#include "config-reader/config-reader-types.h"
 #include "services/service-logger.h"
 
 #include <warp/api/api-manager.h>
+
+#include "config-reader/config-reader-types.h"
 
 #include <filesystem>
 #include <memory>
 #include <string>
 #include <unordered_set>
+
 
 namespace loomis
 {
@@ -42,4 +44,4 @@ namespace loomis
       std::unordered_set<std::filesystem::path::string_type> ignoreFolders_;
       std::unordered_set<std::filesystem::path::string_type> ignoreFiles_;
    };
-}
+} // namespace loomis

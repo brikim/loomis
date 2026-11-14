@@ -5,8 +5,9 @@
 #include <warp/api/api-emby.h>
 #include <warp/api/api-manager.h>
 #include <warp/api/api-plex.h>
-#include <warp/log/log.h>
+#include <warp/api/api-tracearr.h>
 #include <warp/log/log-utils.h>
+#include <warp/log/log.h>
 #include <warp/utils.h>
 
 #include <ranges>
@@ -22,7 +23,6 @@ namespace loomis
       , serviceLogger_(serviceLogger)
       , containerPath_(config.containerPath)
       , deleteTimeHours_(deleteTimeHours)
-      , historyDays_(std::max((deleteTimeHours / 24) + 1, 1))
       , dryRun_(dryRun)
       , dryRunText_(dryRun ? "[DRY RUN] " : "")
    {
@@ -39,146 +39,73 @@ namespace loomis
 
       for (const auto& plexConfig : config.plex)
       {
-         auto* api = apiManager_->GetPlexApi(plexConfig.server);
-         if (!api)
+         auto* plexApi = apiManager_->GetPlexApi(plexConfig.server);
+         if (!plexApi)
          {
-            serviceLogger_.LogWarning("No {} found with {}",
-                                      warp::GetFormattedPlex(),
-                                      warp::GetTag("server_name", plexConfig.server));
-         }
-
-         auto* trackerApi = apiManager_->GetTautulliApi(plexConfig.server);
-         if (!trackerApi)
-         {
-            serviceLogger_.LogWarning("No {} found with {}",
-                                      warp::GetFormattedTautulli(),
-                                      warp::GetTag("server_name", plexConfig.server));
-         }
-
-         // One of the required api's was not found
-         if (!api || !trackerApi)
+            serviceLogger_.LogWarning(
+               "No {} found with {}",
+               warp::GetFormattedPlex(),
+               warp::GetTag("server_name", plexConfig.server));
             continue;
+         }
 
-         bool libraryValid = true;
-         if (api->GetValid())
+         bool plexLibraryValid = true;
+         if (plexApi->GetValid())
          {
-            if (auto libId = api->GetLibraryId(plexConfig.library);
+            if (auto libId = plexApi->GetLibraryId(plexConfig.library);
                 !libId)
             {
-               serviceLogger_.LogWarning("{} does not have {} ... Skipping",
-                                         api->GetPrettyName(),
-                                         warp::GetTag("library", plexConfig.library));
-               libraryValid = false;
+               serviceLogger_.LogWarning(
+                  "{} does not have {} ... Skipping",
+                  plexApi->GetPrettyName(),
+                  warp::GetTag("library", plexConfig.library));
+               plexLibraryValid = false;
             }
          }
 
-         std::vector<std::string> validUsers;
-         validUsers.reserve(plexConfig.users.size());
-         if (trackerApi->GetValid())
+         if (plexLibraryValid)
          {
-            for (const auto& user : plexConfig.users)
-            {
-               if (auto userInfo = trackerApi->GetUserInfo(user.name);
-                   userInfo)
-               {
-                  validUsers.emplace_back(user.name);
-               }
-               else
-               {
-                  serviceLogger_.LogWarning("{} does not have {} ... Skipping",
-                                            api->GetPrettyName(),
-                                            warp::GetTag("user", user.name));
-               }
-            }
-         }
-         else
-         {
-            // Can't check right now since the api is not valid ... add all users
-            std::ranges::for_each(plexConfig.users, [&validUsers](const auto& user) {
-               validUsers.emplace_back(user.name);
-            });
-         }
-
-         if (libraryValid && !validUsers.empty())
-         {
-            plexDatas_.emplace_back(DeleteWatchedPlexData{
-               .api = api,
-               .trackerApi = trackerApi,
-               .libraryName = plexConfig.library,
-               .mediaPath = plexConfig.mediaPath,
-               .users = std::move(validUsers)
-            });
+            plexDatas_.emplace_back(
+               DeleteWatchedPlexData{
+                  .api = plexApi,
+                  .libraryName = plexConfig.library,
+                  .mediaPath = plexConfig.mediaPath});
          }
       }
 
       for (const auto& embyConfig : config.emby)
       {
-         auto* api = apiManager_->GetEmbyApi(embyConfig.server);
-         if (!api)
+         auto* embyApi = apiManager_->GetEmbyApi(embyConfig.server);
+         if (!embyApi)
          {
-            serviceLogger_.LogWarning("No {} found with {}",
-                                      warp::GetFormattedEmby(),
-                                      warp::GetTag("server_name", embyConfig.server));
-         }
-
-         auto* trackerApi = apiManager_->GetJellystatApi(embyConfig.server);
-         if (!trackerApi)
-         {
-            serviceLogger_.LogWarning("No {} found with {}",
-                                      warp::GetFormattedJellystat(),
-                                      warp::GetTag("server_name", embyConfig.server));
-         }
-
-         // One of the required api's was not found
-         if (!api || !trackerApi)
+            serviceLogger_.LogWarning(
+               "No {} found with {}",
+               warp::GetFormattedEmby(),
+               warp::GetTag("server_name", embyConfig.server));
             continue;
+         }
 
-         bool libraryValid = true;
-         std::vector<std::string> validUsers;
-         validUsers.reserve(embyConfig.users.size());
-         if (api->GetValid())
+         bool embyLibraryValid = true;
+         if (embyApi->GetValid())
          {
-            if (auto libId = api->GetLibraryId(embyConfig.library);
+            if (auto libId = embyApi->GetLibraryId(embyConfig.library);
                 !libId)
             {
-               libraryValid = false;
-               serviceLogger_.LogWarning("{} does not have {} ... Skipping",
-                                         api->GetPrettyName(),
-                                         warp::GetTag("library", embyConfig.library));
-            }
-
-            for (const auto& user : embyConfig.users)
-            {
-               if (auto userData = api->GetUser(user.name);
-                   userData)
-               {
-                  validUsers.emplace_back(user.name);
-               }
-               else
-               {
-                  serviceLogger_.LogWarning("{} does not have {} ... Skipping",
-                                            api->GetPrettyName(),
-                                            warp::GetTag("user", user.name));
-               }
+               embyLibraryValid = false;
+               serviceLogger_.LogWarning(
+                  "{} does not have {} ... Skipping",
+                  embyApi->GetPrettyName(),
+                  warp::GetTag("library", embyConfig.library));
             }
          }
-         else
-         {
-            // Can't check right now since the api is not valid ... add all users
-            std::ranges::for_each(embyConfig.users, [&validUsers](const auto& user) {
-               validUsers.emplace_back(user.name);
-            });
-         }
 
-         if (libraryValid && !validUsers.empty())
+         if (embyLibraryValid)
          {
-            embyDatas_.emplace_back(DeleteWatchedEmbyData{
-               .api = api,
-               .trackerApi = trackerApi,
-               .libraryName = embyConfig.library,
-               .mediaPath = embyConfig.mediaPath,
-               .users = std::move(validUsers)
-            });
+            embyDatas_.emplace_back(
+               DeleteWatchedEmbyData{
+                  .api = embyApi,
+                  .libraryName = embyConfig.library,
+                  .mediaPath = embyConfig.mediaPath});
          }
       }
 
@@ -190,92 +117,58 @@ namespace loomis
       return valid_;
    }
 
-   std::vector<DeleteFileInfo> DeleteWatchedLibrary::FindPlexWatched(const DeleteWatchedPlexData& data,
-                                                                     const std::string& dataTimeForHistory,
-                                                                     int64_t epochDateTimeForHistory)
+   std::optional<DeleteFileInfo> DeleteWatchedLibrary::ValidPlexItem(const std::string_view user,
+                                                                     const warp::TracearrHistoryItem& historyItem)
    {
-      std::vector<DeleteFileInfo> returnDeletes;
-
-      auto libraryId = data.api->GetLibraryId(data.libraryName);
-      if (!libraryId)
-         return {};
-
-      for (const auto& user : data.users)
+      for (const auto& plexData : plexDatas_)
       {
-         auto userHistory = data.trackerApi->GetWatchHistoryForUserAndLibrary(user,
-                                                                              *libraryId,
-                                                                              dataTimeForHistory,
-                                                                              epochDateTimeForHistory);
-         if (!userHistory)
+         if ((historyItem.serverName != plexData.api->GetTracearrServerName()) ||
+             !plexData.api->GetValid())
             continue;
 
-         for (auto& item : userHistory->items)
-         {
-            if (!item.watched)
-               continue;
-
-            auto itemPath = data.api->GetItemPath(item.id);
-
-            if (!itemPath)
-               continue;
-
-            std::chrono::system_clock::time_point lastWatched{std::chrono::seconds{item.timeWatchedEpoch}};
-
-            if ((std::chrono::system_clock::now() - lastWatched) <= deleteTimeHours_) continue;
-
-            returnDeletes.emplace_back(DeleteFileInfo{
-               .path = warp::ReplaceMediaPath(*itemPath, data.mediaPath, containerPath_),
-               .userName = user,
-               .server = std::string(data.api->GetPrettyName())
-            });
-         }
-      }
-
-      return returnDeletes;
-   }
-
-   std::vector<DeleteFileInfo> DeleteWatchedLibrary::FindEmbyWatched(const DeleteWatchedEmbyData& data)
-   {
-      auto libraryId = data.api->GetLibraryId(data.libraryName);
-      if (!libraryId)
-         return {};
-
-      auto libraryHistory = data.trackerApi->GetWatchHistoryForLibrary(*libraryId);
-      if (!libraryHistory)
-         return {};
-
-      std::vector<DeleteFileInfo> returnDeletes;
-      for (const auto& item : libraryHistory->items)
-      {
-         auto userIter = std::ranges::find_if(data.users, [&item](const auto& user) {
-            return item.user == user;
-         });
-
-         // User is not in the list to be considered watch ... continue
-         if (userIter == data.users.end())
+         auto libId = plexData.api->GetLibraryId(plexData.libraryName);
+         if (!libId || libId.value() != historyItem.libraryId)
             continue;
 
-         auto userData = data.api->GetUser(*userIter);
-         if (!userData)
-            continue;
-
-         auto playState = data.api->GetPlayState(userData->id, item.episodeId ? *item.episodeId : item.id);
-         if (!playState || !playState->watched)
-            continue;
-
-         // Check if the show if the amount of time has elapsed before delete
-         auto watchTime = warp::ConvertIsoToTimePoint(item.watchTime);
+         auto watchTime = warp::ConvertIsoToTimePoint(historyItem.watchTime);
          if (!watchTime || (std::chrono::system_clock::now() - *watchTime) <= deleteTimeHours_)
             continue;
 
-         returnDeletes.emplace_back(DeleteFileInfo{
-               .path = warp::ReplaceMediaPath(playState->path, data.mediaPath, containerPath_),
-               .userName = *userIter,
-               .server = std::string(data.api->GetPrettyName())
-            });
+         if (auto itemPath = plexData.api->GetItemPath(historyItem.serverRatingKey);
+             itemPath)
+            return DeleteFileInfo{
+               .path = warp::ReplaceMediaPath(*itemPath, plexData.mediaPath, containerPath_),
+               .userName = std::string(user),
+               .server = std::string(plexData.api->GetPrettyName())};
       }
+      return std::nullopt;
+   }
 
-      return returnDeletes;
+   std::optional<DeleteFileInfo> DeleteWatchedLibrary::ValidEmbyItem(const std::string_view user,
+                                                                     const warp::TracearrHistoryItem& historyItem)
+   {
+      for (const auto& embyData : embyDatas_)
+      {
+         if ((historyItem.serverName != embyData.api->GetTracearrServerName()) ||
+             !embyData.api->GetValid())
+            continue;
+
+         auto libId = embyData.api->GetLibraryId(embyData.libraryName);
+         if (!libId || libId.value() != historyItem.libraryId)
+            continue;
+
+         auto watchTime = warp::ConvertIsoToTimePoint(historyItem.watchTime);
+         if (!watchTime || (std::chrono::system_clock::now() - *watchTime) <= deleteTimeHours_)
+            continue;
+
+         if (auto itemPath = embyData.api->GetItemPath(historyItem.serverRatingKey);
+             itemPath)
+            return DeleteFileInfo{
+               .path = warp::ReplaceMediaPath(*itemPath, embyData.mediaPath, containerPath_),
+               .userName = std::string(user),
+               .server = std::string(embyData.api->GetPrettyName())};
+      }
+      return std::nullopt;
    }
 
    bool DeleteWatchedLibrary::DeleteFiles(const std::vector<DeleteFileInfo>& files)
@@ -295,11 +188,13 @@ namespace loomis
             {
                deletedFile = true;
             }
-            else if (ec) // Only log if there's a genuine error (not just 'file not found')
+            else if (ec) // Only log if there's a genuine error (not just 'file not
+                         // found')
             {
-               serviceLogger_.LogWarning("Failed to delete {} - {}",
-                                         warp::GetStandoutText(file.path.generic_string()),
-                                         ec.message());
+               serviceLogger_.LogWarning(
+                  "Failed to delete {} - {}",
+                  warp::GetStandoutText(file.path.generic_string()),
+                  ec.message());
             }
          }
 
@@ -335,7 +230,8 @@ namespace loomis
          if (!dryRun_)
             plex.api->SetLibraryScan(*libraryId);
 
-         syncServerNames = warp::BuildSyncServerString(syncServerNames, plex.api->GetPrettyName(), "") + ":" + plex.libraryName;
+         syncServerNames =
+            warp::BuildSyncServerString(syncServerNames, plex.api->GetPrettyName(), "") + ":" + plex.libraryName;
       }
 
       // Notify Emby Servers
@@ -351,38 +247,38 @@ namespace loomis
          if (!dryRun_)
             emby.api->SetLibraryScan(*libraryId);
 
-         syncServerNames = warp::BuildSyncServerString(syncServerNames, emby.api->GetPrettyName(), "") + ":" + emby.libraryName;
+         syncServerNames =
+            warp::BuildSyncServerString(syncServerNames, emby.api->GetPrettyName(), "") + ":" + emby.libraryName;
       }
 
       if (!syncServerNames.empty())
       {
-         serviceLogger_.LogInfo("{}Notified {} to refresh",
-                                dryRunText_,
-                                syncServerNames);
+         serviceLogger_.LogInfo("{}Notified {} to refresh", dryRunText_, syncServerNames);
       }
    }
 
-   void DeleteWatchedLibrary::Run()
+   void DeleteWatchedLibrary::ProcessDeletes(std::string_view user, const warp::TracearrHistoryItems& userHistory)
    {
       std::vector<DeleteFileInfo> deleteInfo;
 
-      auto dataTimeForHistoryPlex = GetDatetimeForHistoryPlex(historyDays_);
-      auto plexEpochHistoryTime = GetEpochTimeForPlexHistory(historyDays_);
-      for (const auto& plexData : plexDatas_)
+      for (const auto& historyItem : userHistory.items)
       {
-         auto plexDeleteInfo = FindPlexWatched(plexData, dataTimeForHistoryPlex, plexEpochHistoryTime);
-         deleteInfo.reserve(deleteInfo.size() + plexDeleteInfo.size());
-         deleteInfo.insert(deleteInfo.end(), std::make_move_iterator(plexDeleteInfo.begin()), std::make_move_iterator(plexDeleteInfo.end()));
-      }
+         if (!historyItem.watched || !historyItem.libraryId)
+            continue;
 
-      for (const auto& embyData : embyDatas_)
-      {
-         auto embyDeleteInfo = FindEmbyWatched(embyData);
-         deleteInfo.reserve(deleteInfo.size() + embyDeleteInfo.size());
-         deleteInfo.insert(deleteInfo.end(), std::make_move_iterator(embyDeleteInfo.begin()), std::make_move_iterator(embyDeleteInfo.end()));
+         if (auto plexDeleteInfo = ValidPlexItem(user, historyItem);
+             plexDeleteInfo)
+         {
+            deleteInfo.emplace_back(std::move(plexDeleteInfo.value()));
+         }
+         else if (auto embyDeleteInfo = ValidEmbyItem(user, historyItem);
+                  embyDeleteInfo)
+         {
+            deleteInfo.emplace_back(std::move(embyDeleteInfo.value()));
+         }
       }
 
       if (DeleteFiles(deleteInfo))
          NotifyServers();
    }
-}
+} // namespace loomis

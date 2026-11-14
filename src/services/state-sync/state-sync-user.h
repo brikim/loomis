@@ -1,6 +1,5 @@
 #pragma once
 
-#include "config-reader/config-reader-types.h"
 #include "services/service-logger.h"
 #include "services/service-utils.h"
 #include "services/state-sync/emby-user.h"
@@ -11,8 +10,11 @@
 #include <warp/types.h>
 #include <warp/utils.h>
 
+#include "config-reader/config-reader-types.h"
+
 #include <memory>
 #include <vector>
+
 
 namespace loomis
 {
@@ -84,11 +86,10 @@ namespace loomis
                continue;
 
             StateSyncPlexUser::PlexSyncState syncState{
-              .item = historyItem,
-              .mediaPath = warp::ReplaceMediaPath(*itemPath, sourceApi->GetMediaPath(), targetApi->GetMediaPath()),
-              .api = targetApi,
-              .userName = account.externalUserName
-            };
+               .item = historyItem,
+               .mediaPath = warp::ReplaceMediaPath(*itemPath, sourceApi->GetMediaPath(), targetApi->GetMediaPath()),
+               .api = targetApi,
+               .userName = account.externalUserName};
             plexUser_.SyncState(syncState, syncServers);
          }
          else if (account.serverType == warp::TracearrServerType::EMBY)
@@ -101,8 +102,7 @@ namespace loomis
                .item = historyItem,
                .mediaPath = warp::ReplaceMediaPath(*itemPath, sourceApi->GetMediaPath(), targetApi->GetMediaPath()),
                .embyApi = targetApi,
-               .embyUserId = account.externalUserId
-            };
+               .embyUserId = account.externalUserId};
             embyUser_.SyncState(syncState, syncServers);
          }
          else
@@ -114,14 +114,12 @@ namespace loomis
       // If syncServers is not empty, log the summary of the sync
       if (!syncServers.empty())
       {
-         LogSyncSummary({
-            .server = sourceApi->GetPrettyName(),
-            .user = historyItem.user.name,
-            .name = historyItem.fullName,
-            .watched = historyItem.watched,
-            .playbackPercentage = historyItem.playbackPercentage.value_or(0),
-            .syncResults = syncServers
-         });
+         LogSyncSummary({.server = sourceApi->GetPrettyName(),
+                         .user = historyItem.user.name,
+                         .name = historyItem.fullName,
+                         .watched = historyItem.watched,
+                         .playbackPercentage = historyItem.playbackPercentage.value_or(0),
+                         .syncResults = syncServers});
       }
    }
-}
+} // namespace loomis

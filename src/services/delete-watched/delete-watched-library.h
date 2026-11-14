@@ -1,8 +1,11 @@
 #pragma once
 
-#include "config-reader/config-reader-types.h"
 #include "services/delete-watched/delete-watched-types.h"
 #include "services/service-logger.h"
+
+#include <warp/api/api-tracearr-types.h>
+
+#include "config-reader/config-reader-types.h"
 
 #include <chrono>
 #include <cstdint>
@@ -14,7 +17,8 @@
 namespace warp
 {
    class ApiManager;
-}
+   class TracearrApi;
+} // namespace warp
 
 namespace loomis
 {
@@ -33,16 +37,13 @@ namespace loomis
 
       [[nodiscard]] bool IsValid() const;
 
-      void Run();
+      void ProcessDeletes(std::string_view user, const warp::TracearrHistoryItems& userHistory);
 
    private:
       void Init(const DeleteWatchedLibraryConfig& config);
 
-      std::vector<DeleteFileInfo> FindPlexWatched(const DeleteWatchedPlexData& data,
-                                                  const std::string& dataTimeForHistory,
-                                                  int64_t epochDateTimeForHistory);
-
-      std::vector<DeleteFileInfo> FindEmbyWatched(const DeleteWatchedEmbyData& data);
+      std::optional<DeleteFileInfo> ValidPlexItem(const std::string_view user, const warp::TracearrHistoryItem& historyItem);
+      std::optional<DeleteFileInfo> ValidEmbyItem(const std::string_view user, const warp::TracearrHistoryItem& historyItem);
 
       [[nodiscard]] bool DeleteFiles(const std::vector<DeleteFileInfo>& files);
 
@@ -53,7 +54,6 @@ namespace loomis
       std::filesystem::path containerPath_;
       bool valid_{false};
       std::chrono::hours deleteTimeHours_;
-      int32_t historyDays_{1};
 
       bool dryRun_{false};
       std::string dryRunText_;
@@ -61,4 +61,4 @@ namespace loomis
       std::vector<DeleteWatchedPlexData> plexDatas_;
       std::vector<DeleteWatchedEmbyData> embyDatas_;
    };
-}
+} // namespace loomis

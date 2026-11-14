@@ -21,7 +21,8 @@ namespace loomis
 
    void EmbyTidyService::Init(const EmbyTidyConfig& config)
    {
-      if (dryRun_) LogInfo("[DRY RUN] Enabled - No emby items will be modified");
+      if (dryRun_)
+         LogInfo("[DRY RUN] Enabled - No emby items will be modified");
 
       for (const auto& server : config.servers)
       {
@@ -87,9 +88,10 @@ namespace loomis
             auto current = backdrop.path.lexically_normal();
 
             auto [it_prefix, it_full] = std::mismatch(
-                config.pathPrefix.begin(), config.pathPrefix.end(),
-                current.begin(), current.end()
-            );
+               config.pathPrefix.begin(),
+               config.pathPrefix.end(),
+               current.begin(),
+               current.end());
 
             if (bool isLocal = (it_prefix == config.pathPrefix.end());
                 isLocal)
@@ -154,4 +156,4 @@ namespace loomis
          }
       }
    }
-}
+} // namespace loomis

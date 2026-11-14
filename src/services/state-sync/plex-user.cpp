@@ -11,7 +11,8 @@ namespace loomis
                                         ServiceLogger logger)
       : dryRun_(dryRun)
       , logger_(logger)
-   {}
+   {
+   }
 
    std::optional<warp::PlexSearchResult> StateSyncPlexUser::GetSyncStateItem(const PlexSyncState& syncState) const
    {
@@ -63,10 +64,9 @@ namespace loomis
       if (!syncState.api->GetUserTokenAvailable(syncState.userName))
          return;
 
-
       if (syncState.item.watched ? SyncWatchedState(syncState) : SyncPlayState(syncState))
       {
          syncResults = warp::BuildSyncServerString(syncResults, warp::GetFormattedPlex(), syncState.api->GetName());
       }
    }
-}
+} // namespace loomis

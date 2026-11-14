@@ -6,12 +6,15 @@
 #include "services/filesystem-cleanup/filesystem-cleanup-service.h"
 #include "services/playlist-sync/playlist-sync-service.h"
 #include "services/state-sync/state-sync-service.h"
+#include "services/tmdb-sync/tmdb-sync-service.h"
+
+#include <warp/log/log-utils.h>
+#include <warp/log/log.h>
+
 #include "version.h"
 
-#include <warp/log/log.h>
-#include <warp/log/log-utils.h>
-
 #include <algorithm>
+
 
 namespace loomis
 {
@@ -83,6 +86,9 @@ namespace loomis
       if (configReader_->GetStateSyncConfig().enabled)
          services_.emplace_back(std::make_unique<StateSyncService>(configReader_->GetStateSyncConfig(), apiManager_));
 
+      if (configReader_->GetTmdbSyncConfig().enabled)
+         services_.emplace_back(std::make_unique<TmdbSyncService>(configReader_->GetTmdbSyncConfig(), apiManager_));
+
       if (configReader_->GetFilesystemCleanupConfig().enabled)
          services_.emplace_back(std::make_unique<FilesystemCleanupService>(configReader_->GetFilesystemCleanupConfig(), apiManager_));
 
@@ -145,4 +151,4 @@ namespace loomis
 
       stopSource_.request_stop();
    }
-}
+} // namespace loomis

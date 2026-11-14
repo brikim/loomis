@@ -1,29 +1,29 @@
+#include <warp/log/log.h>
+
 #include "config-reader/config-reader.h"
 #include "service-manager.h"
+#include "utils.h"
 #include "version.h"
-
-#include <warp/log/log.h>
 
 #include <csignal>
 #include <memory>
 
-std::unique_ptr<loomis::ServiceManager> SERVICE_MANAGER;
+static std::unique_ptr<loomis::ServiceManager> SERVICE_MANAGER;
 
-void signal_handler(int signal_num)
+static void signal_handler(int signal_num)
 {
-   if ((signal_num == SIGINT || signal_num == SIGTERM)
-       && SERVICE_MANAGER)
+   if ((signal_num == SIGINT || signal_num == SIGTERM) && SERVICE_MANAGER)
    {
       SERVICE_MANAGER->ProcessShutdown();
    }
 }
 
-void init_logging(const std::shared_ptr<loomis::ConfigReader>& configReader)
+static void init_logging(const std::shared_ptr<loomis::ConfigReader>& configReader)
 {
-   if (const auto* logPath = std::getenv("LOG_PATH");
-       logPath)
+   if (const auto logPath = loomis::GetEnv("LOG_PATH");
+       logPath.has_value())
    {
-      warp::log::InitFileLogging(logPath, "loomis.log");
+      warp::log::InitFileLogging(logPath.value(), "loomis.log");
    }
 
    // Initialize Apprise logging if configured
@@ -33,8 +33,7 @@ void init_logging(const std::shared_ptr<loomis::ConfigReader>& configReader)
       warp::AppriseLoggingConfig warpAppriseConfig{
          .url = appriseConfig.url,
          .key = appriseConfig.key,
-         .message_title = appriseConfig.message_title
-      };
+         .message_title = appriseConfig.message_title};
       warp::log::InitApprise(warpAppriseConfig);
    }
 
@@ -46,8 +45,7 @@ void init_logging(const std::shared_ptr<loomis::ConfigReader>& configReader)
          .url = gotifyConfig.url,
          .key = gotifyConfig.key,
          .message_title = gotifyConfig.message_title,
-         .priority = gotifyConfig.priority
-      };
+         .priority = gotifyConfig.priority};
       warp::log::InitGotify(warpGotifyConfig);
    }
 }

@@ -1,10 +1,11 @@
 #pragma once
 
-#include "config-reader/config-reader-types.h"
 #include "services/dvr-maintainer/dvr-library.h"
 #include "services/service-base.h"
 
 #include <warp/api/api-manager.h>
+
+#include "config-reader/config-reader-types.h"
 
 #include <memory>
 #include <vector>
@@ -16,7 +17,7 @@ namespace loomis
    public:
       DvrMaintainerService(const DvrMaintainerConfig& config,
                            std::shared_ptr<warp::ApiManager> apiManager);
-      ~DvrMaintainerService() = default;
+      ~DvrMaintainerService() override = default;
 
       void Run() override;
 
@@ -28,4 +29,4 @@ namespace loomis
       std::vector<std::unique_ptr<DvrLibrary>> libraries_;
    };
 
-} // namespace Loomis
+} // namespace loomis

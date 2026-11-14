@@ -16,7 +16,8 @@ namespace loomis
                                         ServiceLogger logger)
       : logger_(logger)
       , dryRun_(dryRun)
-   {}
+   {
+   }
 
    bool StateSyncEmbyUser::SyncWatchedState(EmbySyncState& syncState, std::string_view id)
    {
@@ -57,4 +58,4 @@ namespace loomis
          syncResults = warp::BuildSyncServerString(syncResults, warp::GetFormattedEmby(), syncState.embyApi->GetName());
       }
    }
-}
+} // namespace loomis

@@ -24,12 +24,12 @@ namespace loomis
 
       // Convert to seconds since epoch
       return std::chrono::duration_cast<std::chrono::seconds>(
-          yesterday.time_since_epoch()
-      ).count();
+                yesterday.time_since_epoch())
+         .count();
    }
 
    inline std::string GetIsoTimeStr(std::chrono::system_clock::time_point tp)
    {
       return std::format("{:%FT%TZ}", tp);
    }
-}
+} // namespace loomis

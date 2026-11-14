@@ -18,12 +18,12 @@ namespace loomis
                   std::string_view ansiiColor,
                   std::shared_ptr<warp::ApiManager> apiManager,
                   const std::string& cronSchedule);
-      virtual ~ServiceBase() = default;
+      ~ServiceBase() override = default;
 
       [[nodiscard]] const warp::Task& GetTask() const;
 
    protected:
-      [[nodiscard]] const std::shared_ptr<warp::ApiManager> GetApiManager() const;
+      [[nodiscard]] const std::shared_ptr<warp::ApiManager>& GetApiManager() const;
 
       // Function will be called at the returned cron schedule
       virtual void Run() = 0;
@@ -32,4 +32,4 @@ namespace loomis
       warp::Task task_;
       std::shared_ptr<warp::ApiManager> apiManager_;
    };
-}
+} // namespace loomis
