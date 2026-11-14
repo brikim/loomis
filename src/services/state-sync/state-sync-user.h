@@ -10,6 +10,7 @@
 #include <warp/utils.h>
 
 #include <memory>
+#include <vector>
 
 namespace loomis
 {
@@ -21,9 +22,11 @@ namespace loomis
                     ServiceLogger logger);
       ~StateSyncUser() = default;
 
-      void Sync(const warp::TracearrHistoryItem& historyItem);
+      void Sync(std::string_view userId,
+                const std::vector<const warp::TracearrHistoryItem*>& historyItems);
 
    private:
+      void SyncHistoryItem(const warp::TracearrUser& user, const warp::TracearrHistoryItem& historyItem);
       void SyncPlexState(const warp::TracearrUser& user, const warp::TracearrHistoryItem& historyItem);
       void SyncEmbyState(const warp::TracearrUser& user, const warp::TracearrHistoryItem& historyItem);
 
@@ -109,12 +112,13 @@ namespace loomis
       // If syncServers is not empty, log the summary of the sync
       if (!syncServers.empty())
       {
-         LogSyncSummary({.server = sourceApi->GetPrettyName(),
-                         .user = historyItem.user.name,
-                         .name = historyItem.fullName,
-                         .watched = historyItem.watched,
-                         .playbackPercentage = historyItem.playbackPercentage.value_or(0),
-                         .syncResults = syncServers});
+         LogSyncSummary(LogSyncData{
+            .server = sourceApi->GetPrettyName(),
+            .user = historyItem.user.name,
+            .name = historyItem.fullName,
+            .watched = historyItem.watched,
+            .playbackPercentage = historyItem.playbackPercentage.value_or(0),
+            .syncResults = syncServers});
       }
    }
 } // namespace loomis

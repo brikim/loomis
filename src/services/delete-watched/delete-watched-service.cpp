@@ -14,14 +14,13 @@ namespace loomis
    DeleteWatchedService::DeleteWatchedService(const DeleteWatchedConfig& config,
                                               std::shared_ptr<warp::ApiManager> apiManager)
       : ServiceBase(SERVICE_NAME, ANSI_CODE_SERVICE_DELETE_WATCHED, apiManager, config.cron)
-      , config_(config)
    {
-      Init(config_);
+      Init(config);
    }
 
    void DeleteWatchedService::Init(const DeleteWatchedConfig& config)
    {
-      if (config_.dryRun)
+      if (config.dryRun)
       {
          LogInfo("[DRY RUN] Enabled - No files will be physically removed.");
       }
@@ -52,10 +51,10 @@ namespace loomis
          }
       }
 
-      validUsers_.reserve(config_.tracearrUsers.size());
+      validUsers_.reserve(config.tracearrUsers.size());
       if (tracearrApi_->GetValid())
       {
-         for (const auto& user : config_.tracearrUsers)
+         for (const auto& user : config.tracearrUsers)
          {
             if (auto userInfo = tracearrApi_->GetUserByName(user.name);
                 userInfo)
@@ -74,7 +73,7 @@ namespace loomis
       else
       {
          // Can't check right now since the api is not valid ... add all users
-         std::ranges::for_each(config_.tracearrUsers, [this](const auto& user) { validUsers_.emplace_back(user.name); });
+         std::ranges::for_each(config.tracearrUsers, [this](const auto& user) { validUsers_.emplace_back(user.name); });
          LogInfo("{} API found but currently not valid. Adding all users.", tracearrApi_->GetPrettyName());
       }
    }

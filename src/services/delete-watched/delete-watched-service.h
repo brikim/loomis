@@ -25,7 +25,6 @@ namespace loomis
    private:
       void Init(const DeleteWatchedConfig& config);
 
-      DeleteWatchedConfig config_;
       std::vector<std::string> validUsers_;
       warp::TracearrApi* tracearrApi_{nullptr};
       std::vector<std::unique_ptr<DeleteWatchedLibrary>> libraries_;

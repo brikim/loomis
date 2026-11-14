@@ -23,22 +23,24 @@ namespace loomis
    {
       if (syncSummary.watched)
       {
-         logger_.LogInfo("{}{} watched {} on {} sync {} watch state",
-                         dryRunText_,
-                         warp::GetStandoutText(syncSummary.user),
-                         warp::GetStandoutText(syncSummary.name),
-                         syncSummary.server,
-                         syncSummary.syncResults);
+         logger_.LogInfo(
+            "{}{} watched {} on {} sync {} watch state",
+            dryRunText_,
+            warp::GetStandoutText(syncSummary.user),
+            warp::GetStandoutText(syncSummary.name),
+            syncSummary.server,
+            syncSummary.syncResults);
       }
       else
       {
-         logger_.LogInfo("{}{} played {}% of {} on {} sync {} play state",
-                         dryRunText_,
-                         warp::GetStandoutText(syncSummary.user),
-                         syncSummary.playbackPercentage,
-                         warp::GetStandoutText(syncSummary.name),
-                         syncSummary.server,
-                         syncSummary.syncResults);
+         logger_.LogInfo(
+            "{}{} played {}% of {} on {} sync {} play state",
+            dryRunText_,
+            warp::GetStandoutText(syncSummary.user),
+            syncSummary.playbackPercentage,
+            warp::GetStandoutText(syncSummary.name),
+            syncSummary.server,
+            syncSummary.syncResults);
       }
    }
 
@@ -52,25 +54,48 @@ namespace loomis
       SyncStateInternal(user, historyItem, apiManager_->GetTracearrEmbyApi(historyItem.serverName));
    }
 
-   void StateSyncUser::Sync(const warp::TracearrHistoryItem& historyItem)
+   void StateSyncUser::SyncHistoryItem(const warp::TracearrUser& user,
+                                       const warp::TracearrHistoryItem& historyItem)
    {
-      // Get the tracearr user for this item. If not valid or has only one account skip since nothing to sync with.
-      auto tracearrUser = tracearrApi_->GetUserById(historyItem.user.id);
-      if (!tracearrUser.has_value() || tracearrUser.value().accounts.size() <= 1u)
-         return;
-
-      // Sync item with the associated servers and users assigned to this user
       if (historyItem.serverType == warp::TracearrServerType::PLEX)
       {
-         SyncPlexState(tracearrUser.value(), historyItem);
+         SyncPlexState(user, historyItem);
       }
       else if (historyItem.serverType == warp::TracearrServerType::EMBY)
       {
-         SyncEmbyState(tracearrUser.value(), historyItem);
+         SyncEmbyState(user, historyItem);
       }
       else
       {
          //*do-nothing*//
+      }
+   }
+
+   void StateSyncUser::Sync(std::string_view userId,
+                            const std::vector<const warp::TracearrHistoryItem*>& historyItems)
+   {
+      if (historyItems.empty())
+         return;
+
+      // Get the Tracearr user once for all history items belonging to this user.
+      auto tracearrUser = tracearrApi_->GetUserById(userId);
+      if (!tracearrUser.has_value() || (*tracearrUser).accounts.size() <= 1u)
+         return;
+
+      for (const auto* historyItem : historyItems)
+      {
+         try
+         {
+            SyncHistoryItem(*tracearrUser, *historyItem);
+         }
+         catch (const std::exception& e)
+         {
+            logger_.LogWarning(
+               "Encountered a problem for {} {} sync: {}",
+               warp::GetTag("user", historyItem->user.name),
+               warp::GetTag("name", historyItem->fullName),
+               warp::GetTag("error", e.what()));
+         }
       }
    }
 } // namespace loomis

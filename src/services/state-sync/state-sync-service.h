@@ -4,7 +4,6 @@
 #include "services/state-sync/state-sync-user.h"
 
 #include <warp/api/api-manager.h>
-#include <warp/api/api-tracearr.h>
 
 #include "config-reader/config-reader-types.h"
 
@@ -24,7 +23,6 @@ namespace loomis
    private:
       void Init(const StateSyncConfig& config);
 
-      warp::TracearrApi* tracearrApi_{nullptr};
       std::unique_ptr<StateSyncUser> user_;
    };
 } // namespace loomis
