@@ -7,12 +7,9 @@
 #include <warp/api/api-tracearr-types.h>
 #include <warp/types.h>
 
-#include "config-reader/config-reader-types.h"
-
 #include <filesystem>
 #include <string>
 #include <string_view>
-
 
 namespace loomis
 {

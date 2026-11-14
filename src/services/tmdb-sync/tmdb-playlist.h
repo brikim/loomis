@@ -7,8 +7,6 @@
 #include "config-reader/config-reader-types.h"
 
 #include <string>
-#include <vector>
-
 
 namespace loomis
 {

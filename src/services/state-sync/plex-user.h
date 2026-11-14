@@ -6,13 +6,10 @@
 #include <warp/api/api-plex.h>
 #include <warp/types.h>
 
-#include "config-reader/config-reader-types.h"
-
 #include <filesystem>
 #include <optional>
 #include <string>
 #include <string_view>
-
 
 namespace loomis
 {

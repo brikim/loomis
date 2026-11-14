@@ -4,10 +4,8 @@
 #include <warp/base.h>
 #include <warp/types.h>
 
-#include <atomic>
 #include <memory>
 #include <string>
-#include <thread>
 
 namespace loomis
 {

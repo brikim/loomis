@@ -5,16 +5,11 @@
 #include <warp/api/api-manager.h>
 #include <warp/scheduler/cron-scheduler.h>
 
-#include "config-reader/config-reader-types.h"
 #include "config-reader/config-reader.h"
 
-#include <atomic>
-#include <condition_variable>
 #include <memory>
-#include <mutex>
 #include <stop_token>
 #include <vector>
-
 
 namespace loomis
 {

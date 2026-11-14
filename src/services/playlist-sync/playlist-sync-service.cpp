@@ -8,6 +8,7 @@
 #include <warp/utils.h>
 
 #include <algorithm>
+#include <thread>
 #include <unordered_set>
 
 namespace loomis

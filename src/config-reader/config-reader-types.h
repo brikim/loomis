@@ -16,8 +16,6 @@ namespace loomis
       std::optional<std::string> tracearr_server_name;
       std::string url;
       std::string api_key;
-      std::string tracker_url;
-      std::string tracker_api_key;
       std::filesystem::path media_path;
    };
 

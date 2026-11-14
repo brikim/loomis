@@ -2,12 +2,10 @@
 
 #include "services/service-logger.h"
 #include "services/service-types.h"
-#include "services/service-utils.h"
 
 #include <warp/log/log-utils.h>
 
 #include <algorithm>
-
 
 namespace loomis
 {

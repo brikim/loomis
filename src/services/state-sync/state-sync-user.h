@@ -1,7 +1,6 @@
 #pragma once
 
 #include "services/service-logger.h"
-#include "services/service-utils.h"
 #include "services/state-sync/emby-user.h"
 #include "services/state-sync/plex-user.h"
 
@@ -10,11 +9,7 @@
 #include <warp/types.h>
 #include <warp/utils.h>
 
-#include "config-reader/config-reader-types.h"
-
 #include <memory>
-#include <vector>
-
 
 namespace loomis
 {

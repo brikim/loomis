@@ -5,9 +5,6 @@
 #include <warp/api/api-tracearr.h>
 #include <warp/log/log-utils.h>
 
-#include <algorithm>
-#include <ranges>
-
 namespace loomis
 {
    StateSyncUser::StateSyncUser(bool dryRun,

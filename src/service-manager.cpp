@@ -13,8 +13,7 @@
 
 #include "version.h"
 
-#include <algorithm>
-
+#include <condition_variable>
 
 namespace loomis
 {
@@ -36,8 +35,6 @@ namespace loomis
             .tracearrServerName = plexServer.tracearr_server_name,
             .url = plexServer.url,
             .apiKey = plexServer.api_key,
-            .trackerUrl = plexServer.tracker_url,
-            .trackerApiKey = plexServer.tracker_api_key,
             .mediaPath = plexServer.media_path});
       }
       apiManagerConfig.plexConfig.options.enableCacheCollection = true;
@@ -52,8 +49,6 @@ namespace loomis
             .tracearrServerName = embyServer.tracearr_server_name,
             .url = embyServer.url,
             .apiKey = embyServer.api_key,
-            .trackerUrl = embyServer.tracker_url,
-            .trackerApiKey = embyServer.tracker_api_key,
             .mediaPath = embyServer.media_path});
       }
       apiManagerConfig.embyConfig.options.enableCachePaths = true;

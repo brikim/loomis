@@ -8,10 +8,8 @@
 
 #include "config-reader/config-reader-types.h"
 
-#include <atomic>
 #include <cstdint>
 #include <memory>
-#include <mutex>
 #include <vector>
 
 namespace loomis

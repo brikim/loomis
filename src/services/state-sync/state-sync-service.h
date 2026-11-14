@@ -9,7 +9,6 @@
 #include "config-reader/config-reader-types.h"
 
 #include <memory>
-#include <vector>
 
 namespace loomis
 {
