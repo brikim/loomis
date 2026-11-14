@@ -18,7 +18,7 @@ ENV CC=gcc-16
 ENV CXX=g++-16
 
 # 2. Install 'chisel' tool
-RUN curl -sSL https://github.com/canonical/chisel/releases/download/v1.4.2/chisel_v1.4.2_linux_amd64.tar.gz | tar -xz -C /usr/local/bin
+RUN curl -fsSL https://github.com/canonical/chisel/releases/download/v1.5.1/chisel_v1.5.1_linux_amd64.tar.gz | tar -xz -C /usr/local/bin
 
 WORKDIR /app
 COPY . .
