@@ -4,7 +4,6 @@
 #include "services/dvr-maintainer/dvr-maintainer-service.h"
 #include "services/emby-tidy/emby-tidy-service.h"
 #include "services/filesystem-cleanup/filesystem-cleanup-service.h"
-#include "services/playlist-sync/playlist-sync-service.h"
 #include "services/state-sync/state-sync-service.h"
 #include "services/tmdb-sync/tmdb-sync-service.h"
 
@@ -75,9 +74,6 @@ namespace loomis
 
    void ServiceManager::CreateServices()
    {
-      if (configReader_->GetPlaylistSyncConfig().enabled)
-         services_.emplace_back(std::make_unique<PlaylistSyncService>(configReader_->GetPlaylistSyncConfig(), apiManager_));
-
       if (configReader_->GetStateSyncConfig().enabled)
          services_.emplace_back(std::make_unique<StateSyncService>(configReader_->GetStateSyncConfig(), apiManager_));
 

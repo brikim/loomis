@@ -1,8 +1,8 @@
 # Loomis
 Loomis is a collection of services to assist in your Plex and Emby media management.
 
-1. Playlist Sync
-* Allows the syncing of Plex Collections to Emby Playlists
+1. TMDB Sync
+* Creates and updates Emby playlists from TMDB movie lists.
 
 Each service can be configured independently. Each service allows for a cron rate on when to run.
 
@@ -99,17 +99,6 @@ A configuration file is required to use Loomis. Create a config.conf file in the
         "message_title": "Test loomis notification"
     },
 
-    "playlist_sync": {
-        "enabled": true,
-        "cron_comment": "Non-Standard cron expression. First digit is seconds so leave this as 0 if this accuracy is not needed and fill in the rest with standard cron expression",
-        "cron": "0 0 */2 * * *",
-        "time_for_emby_to_update_seconds": 1,
-        "time_between_syncs_seconds": 1,
-        "plex_collection_sync": [
-            {"server": "Server1", "library": "Server1_LibraryName", "collection_name": "plexCollectionName", "target_emby_servers": [{"server": "Server1"}, {"server": "Server2"}]}
-        ]
-    },
-
     "watch_state_sync": {
         "enabled": true,
         "cron_run_rate": "0 0 */2 * * *",
@@ -136,24 +125,6 @@ Not required unless wanting to send Warnings or Errors to Apprise
 | url              | Url including port to your apprise server |
 | key              | Apprise key to be used to send notifications |
 | message_title    | Title to put in the title bar of the message |
-
-#### Playlist Sync
-Playlist Sync will sync Plex Collections to Emby Playlists with the same name. This will run at the scheduled rate and update the Emby playlist to match the Plex collection.
-
-| playlist_sync | Function |
-| :--------------- | :------------------------ |
-| enabled                           | Enable the sync watch service |
-| cron                              | Rate at which to run this service. Non-Standard cron expression. First digit is seconds so leave this as 0 if this accuracy is not needed and fill in the rest with standard cron expression |
-| time_for_emby_to_update_seconds   | How many seconds to give the Emby server to update |
-| time_between_syncs_seconds        | How many seconds to give the Emby server between sync updates |
-
-1 to many plex collections can be synced
-| plex_collection_sync | Function |
-| :--------------- | :------------------------ |
-| server                | The name of the plex server for this collection. Must be in the plex server list. |
-| library               | The name of the plex library that contains this collection. |
-| collection_name       | The name of the collection to sync. |
-| target_emby_servers   | A list of emby servers to sync the plex collection. |
 
 #### TMDB Sync
 

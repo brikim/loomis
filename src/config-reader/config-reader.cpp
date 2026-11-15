@@ -82,11 +82,6 @@ namespace loomis
       return configData_.gotifyLogging;
    }
 
-   const PlaylistSyncConfig& ConfigReader::GetPlaylistSyncConfig() const
-   {
-      return configData_.playlistSync;
-   }
-
    const FileSystemCleanupConfig& ConfigReader::GetFilesystemCleanupConfig() const
    {
       return configData_.fileSystemCleanup;

@@ -20,7 +20,6 @@ namespace loomis
       [[nodiscard]] const TracearrServer& GetTracearrServer() const;
       [[nodiscard]] const AppriseLoggingConfig& GetAppriseLogging() const;
       [[nodiscard]] const GotifyLoggingConfig& GetGotifyLogging() const;
-      [[nodiscard]] const PlaylistSyncConfig& GetPlaylistSyncConfig() const;
       [[nodiscard]] const FileSystemCleanupConfig& GetFilesystemCleanupConfig() const;
       [[nodiscard]] const DvrMaintainerConfig& GetDvrMaintainerConfig() const;
       [[nodiscard]] const DeleteWatchedConfig& GetDeleteWatchedConfig() const;

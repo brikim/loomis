@@ -37,27 +37,6 @@ namespace loomis
       int32_t priority{5};
    };
 
-   struct PlaylistEmbyServers
-   {
-      std::string server;
-   };
-
-   struct PlaylistPlexCollection
-   {
-      std::string server;
-      std::string library;
-      std::string collection_name;
-      std::vector<PlaylistEmbyServers> target_emby_servers;
-   };
-
-   struct PlaylistSyncConfig
-   {
-      bool enabled{false};
-      std::string cron;
-      uint32_t time_for_emby_to_update_seconds{5u};
-      std::vector<PlaylistPlexCollection> plex_collection_sync;
-   };
-
    struct ExtensionConfig
    {
       std::string extension;
@@ -522,7 +501,6 @@ namespace loomis
       TracearrServer tracearr;
       AppriseLoggingConfig appriseLogging;
       GotifyLoggingConfig gotifyLogging;
-      PlaylistSyncConfig playlistSync;
       FileSystemCleanupConfig fileSystemCleanup;
       DvrMaintainerConfig dvrMaintainer;
       DeleteWatchedConfig deleteWatched;
@@ -539,7 +517,6 @@ namespace loomis
             "tracearr", &ConfigData::tracearr,
             "apprise_logging", &ConfigData::appriseLogging,
             "gotify_logging", &ConfigData::gotifyLogging,
-            "playlist_sync", &ConfigData::playlistSync,
             "filesystem_cleanup", &ConfigData::fileSystemCleanup,
             "dvr_maintainer", &ConfigData::dvrMaintainer,
             "delete_watched", &ConfigData::deleteWatched,
