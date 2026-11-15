@@ -1,5 +1,8 @@
 #pragma once
 
+#include "services/tmdb-sync/tmdb-media-item.h"
+
+#include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <glaze/glaze.hpp>
@@ -116,11 +119,31 @@ namespace loomis
       };
    };
 
+   struct TmdbPlaylistGenreConfig
+   {
+      std::string withGenres;
+      std::string withoutGenres;
+
+      struct glaze
+      {
+         // clang-format off
+         static constexpr auto value = glz::object(
+            "with", &TmdbPlaylistGenreConfig::withGenres,
+            "without", &TmdbPlaylistGenreConfig::withoutGenres
+         );
+         // clang-format on
+      };
+   };
+
    struct TmdbPlaylistConfig
    {
       std::string name;
+      std::string mediaType{TMDB_MEDIA_TYPE_MOVIE};
       std::string type;
       std::optional<std::string> timeWindow;
+      std::optional<TmdbPlaylistGenreConfig> genre;
+      // Optional here so playlist validation can reject a missing config value.
+      std::optional<std::size_t> maxItems;
       std::vector<TmdbPlaylistPlexServerConfig> plexServers;
       std::vector<TmdbPlaylistEmbyServerConfig> embyServers;
 
@@ -129,8 +152,11 @@ namespace loomis
          // clang-format off
          static constexpr auto value = glz::object(
             "name", &TmdbPlaylistConfig::name,
+            "media_type", &TmdbPlaylistConfig::mediaType,
             "type", &TmdbPlaylistConfig::type,
             "time_window", &TmdbPlaylistConfig::timeWindow,
+            "genre", &TmdbPlaylistConfig::genre,
+            "max_items", &TmdbPlaylistConfig::maxItems,
             "plex", &TmdbPlaylistConfig::plexServers,
             "emby", &TmdbPlaylistConfig::embyServers
          );
@@ -143,6 +169,7 @@ namespace loomis
       bool enabled{false};
       bool dryRun{false};
       std::string cron;
+      std::string tmdbApiKey;
       std::vector<TmdbPlaylistConfig> playlists;
 
       struct glaze
@@ -152,6 +179,7 @@ namespace loomis
             "enabled", &TmdbSyncConfig::enabled,
             "dry_run", &TmdbSyncConfig::dryRun,
             "cron", &TmdbSyncConfig::cron,
+            "tmdb_api_key", &TmdbSyncConfig::tmdbApiKey,
             "playlists", &TmdbSyncConfig::playlists
          );
          // clang-format on

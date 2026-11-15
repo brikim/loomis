@@ -1,37 +1,19 @@
-﻿#include "tmdb-playlist.h"
+#include "tmdb-playlist.h"
 
-#include <array>
-#include <numeric>
-#include <span>
+#include "services/tmdb-sync/tmdb-media-source-factory.h"
+#include "services/tmdb-sync/tmdb-playlist-type.h"
+#include "services/tmdb-sync/tmdb-string-utils.h"
+
+#include <warp/log/log-utils.h>
 
 namespace loomis
 {
-   namespace
-   {
-      constexpr std::string_view TYPE_TRENDING{"trending"};
-      constexpr std::array<std::string_view, 5> VALID_TYPES{TYPE_TRENDING, "popular", "top_rated", "now_playing", "upcoming"};
-      constexpr std::array<std::string_view, 2> VALID_TIME_WINDOWS{"day", "week"};
-
-      inline std::string BuildCommaSeparatedList(std::span<const std::string_view> list)
-      {
-         if (list.empty())
-            return "";
-
-         return std::accumulate(std::next(list.begin()), list.end(), std::string(list[0]), [](std::string a, std::string_view b) {
-            a.reserve(a.size() + 1 + b.size());
-            a.push_back(',');
-            a.append(b);
-            return a;
-         });
-      }
-   } // namespace
-
    TmdbPlaylist::TmdbPlaylist(const TmdbPlaylistConfig& config,
+                              std::shared_ptr<TmdbClient> tmdbClient,
                               bool dryRun,
-                              std::shared_ptr<warp::ApiManager> apiManager,
                               ServiceLogger logger)
       : config_(config)
-      , apiManager_(std::move(apiManager))
+      , tmdbClient_(std::move(tmdbClient))
       , logger_(logger)
       , dryRunText_(dryRun ? "[DRY RUN] " : "")
    {
@@ -40,43 +22,53 @@ namespace loomis
 
    void TmdbPlaylist::ErrorCheckConfig()
    {
+      const auto playlistType = ParseTmdbPlaylistType(config_.type);
+      if (!playlistType)
+      {
+         logger_.LogError(
+            "{}Unsupported TMDB {}",
+            dryRunText_,
+            warp::GetTag("playlist type", config_.type));
+         return;
+      }
+
+      const auto mediaType = ParseTmdbMediaType(config_.mediaType);
+      if (!mediaType)
+      {
+         logger_.LogError(
+            "{}{} has invalid {}. Supported values are: {}.",
+            dryRunText_,
+            warp::GetTag("playlist", config_.name),
+            warp::GetTag("media type", config_.mediaType),
+            JoinCommaSeparated(TMDB_MEDIA_TYPE_NAMES));
+         return;
+      }
+
       if (config_.embyServers.empty() && config_.plexServers.empty())
       {
-         logger_.LogError("{}No servers configured. At least one Plex or Emby server is required.", dryRunText_);
+         logger_.LogError("{}No servers configured. At least one Plex or Emby server is required.",
+                          dryRunText_);
          return;
       }
 
-      if (VALID_TYPES.end() == std::ranges::find(VALID_TYPES, config_.type))
+      if (!tmdbClient_)
       {
-         logger_.LogError("{}Invalid playlist type: {}. Valid types are: {}",
-                          dryRunText_,
-                          config_.type,
-                          BuildCommaSeparatedList(VALID_TYPES));
+         logger_.LogError("{}TMDB client is unavailable.", dryRunText_);
          return;
       }
 
-      if (config_.type == TYPE_TRENDING)
+      if (!config_.maxItems)
       {
-         if (!config_.timeWindow.has_value())
-         {
-            logger_.LogError("{}No time window. Required for {}. Valid time windows are: {}",
-                             dryRunText_,
-                             config_.type,
-                             BuildCommaSeparatedList(VALID_TIME_WINDOWS));
-            return;
-         }
-         else if (VALID_TIME_WINDOWS.end() == std::ranges::find(VALID_TIME_WINDOWS, config_.timeWindow.value()))
-         {
-            logger_.LogError("{}Invalid time window: {}. Required for {}. Valid time windows are: {}",
-                             dryRunText_,
-                             config_.timeWindow.value(),
-                             config_.type,
-                             BuildCommaSeparatedList(VALID_TIME_WINDOWS));
-            return;
-         }
+         logger_.LogError(
+            "{}Playlist {} requires {} to be set.",
+            dryRunText_,
+            warp::GetTag("playlist", config_.name),
+            warp::GetTag("config", "max_items"));
+         return;
       }
 
-      valid_ = true;
+      mediaSource_ = CreateTmdbMediaSource(config_, *playlistType, *mediaType, logger_, dryRunText_);
+      valid_ = mediaSource_ != nullptr;
    }
 
    bool TmdbPlaylist::IsValid() const
@@ -86,5 +78,57 @@ namespace loomis
 
    void TmdbPlaylist::Sync()
    {
+      if (!valid_)
+      {
+         logger_.LogError(
+            "{}Cannot sync invalid TMDB playlist {}.",
+            dryRunText_,
+            warp::GetTag("playlist", config_.name));
+         return;
+      }
+
+      logger_.LogInfo(
+         "{}Starting TMDB playlist sync for {} ({})",
+         dryRunText_,
+         config_.name,
+         config_.type);
+
+      const auto mediaItems = mediaSource_->Fetch(*tmdbClient_, *config_.maxItems);
+      if (!mediaItems)
+      {
+         logger_.LogError(
+            "{}Failed to fetch TMDB media items for playlist {}",
+            dryRunText_,
+            config_.name);
+         return;
+      }
+
+      if (mediaItems->empty())
+      {
+         logger_.LogWarning(
+            "{}TMDB {} returned no media items for {}",
+            dryRunText_,
+            config_.type,
+            config_.name);
+         return;
+      }
+
+      logger_.LogInfo(
+         "{}TMDB {} returned {} media items for {}",
+         dryRunText_,
+         config_.type,
+         mediaItems->size(),
+         config_.name);
+
+      for (const auto& item : *mediaItems)
+      {
+         const auto mediaType = GetTmdbMediaTypeString(item.mediaType);
+         logger_.LogInfo(
+            "{}TMDB {} id from {}: {}",
+            dryRunText_,
+            mediaType,
+            config_.name,
+            item.id);
+      }
    }
 } // namespace loomis

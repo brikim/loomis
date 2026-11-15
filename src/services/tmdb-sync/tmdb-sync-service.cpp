@@ -2,6 +2,7 @@
 
 #include "services/service-logger.h"
 #include "services/service-types.h"
+#include "services/tmdb-sync/tmdb-client.h"
 
 #include <warp/log/log-utils.h>
 
@@ -23,9 +24,24 @@ namespace loomis
 
    void TmdbSyncService::Init(const TmdbSyncConfig& config)
    {
+      if (config.tmdbApiKey.empty())
+      {
+         LogError("TMDB API key is empty. Set tmdb_api_key in the configuration before enabling this service.");
+         return;
+      }
+
+      auto tmdbClient = std::make_shared<TmdbClient>(
+         config.tmdbApiKey,
+         ServiceLogger(*this),
+         config.dryRun);
+
       for (const auto& playlistConfig : config.playlists)
       {
-         if (auto playlist = std::make_unique<TmdbPlaylist>(playlistConfig, config.dryRun, GetApiManager(), ServiceLogger(*this));
+         if (auto playlist = std::make_unique<TmdbPlaylist>(
+                playlistConfig,
+                tmdbClient,
+                config.dryRun,
+                ServiceLogger(*this));
              playlist->IsValid())
          {
             playlists_.emplace_back(std::move(playlist));
