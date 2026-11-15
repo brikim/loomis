@@ -37,30 +37,27 @@ namespace loomis
          const warp::EmbyPlaylist& playlist,
          const std::vector<std::string>& targetIds)
       {
-         std::unordered_set<std::string_view> currentItemIds;
-         currentItemIds.reserve(playlist.items.size());
-         for (const auto& item : playlist.items)
-            currentItemIds.emplace(item.id);
-
          std::unordered_set<std::string_view> targetIdSet;
          targetIdSet.reserve(targetIds.size());
          for (const auto& id : targetIds)
             targetIdSet.emplace(id);
 
+         std::unordered_set<std::string_view> currentItemIds;
+         currentItemIds.reserve(playlist.items.size());
          PlaylistChanges changes;
+         changes.deleteIds.reserve(playlist.items.size());
+         for (const auto& item : playlist.items)
+         {
+            const bool firstOccurrence = currentItemIds.emplace(item.id).second;
+            if (!targetIdSet.contains(item.id) || !firstOccurrence)
+               changes.deleteIds.emplace_back(item.playlistId);
+         }
+
          changes.addIds.reserve(targetIds.size());
          for (const auto& targetId : targetIds)
          {
             if (!currentItemIds.contains(targetId))
                changes.addIds.emplace_back(targetId);
-         }
-
-         for (const auto& item : playlist.items)
-         {
-            if (!targetIdSet.contains(item.id))
-            {
-               changes.deleteIds.emplace_back(item.playlistId);
-            }
          }
 
          return changes;
@@ -225,22 +222,32 @@ namespace loomis
          bool dryRun)
       {
          PlaylistSyncResult result;
+         std::vector<std::string> uniqueTargetIds;
+         uniqueTargetIds.reserve(targetIds.size());
+         std::unordered_set<std::string_view> targetIdSet;
+         targetIdSet.reserve(targetIds.size());
+         for (const auto& id : targetIds)
+         {
+            if (targetIdSet.emplace(id).second)
+               uniqueTargetIds.emplace_back(id);
+         }
+
          auto currentPlaylist = embyApi.GetPlaylist(playlistName);
          if (!currentPlaylist)
          {
             result.creationRequired = true;
             if (!dryRun)
-               embyApi.CreatePlaylist(playlistName, targetIds);
+               embyApi.CreatePlaylist(playlistName, uniqueTargetIds);
             return result;
          }
 
-         const auto changes = BuildPlaylistChanges(*currentPlaylist, targetIds);
+         const auto changes = BuildPlaylistChanges(*currentPlaylist, uniqueTargetIds);
          result.added = changes.addIds.size();
          result.removed = changes.deleteIds.size();
 
          if (dryRun)
          {
-            result.reordered = WouldRequireReordering(*currentPlaylist, targetIds);
+            result.reordered = WouldRequireReordering(*currentPlaylist, uniqueTargetIds);
             return result;
          }
 
@@ -249,13 +256,13 @@ namespace loomis
             std::move(*currentPlaylist),
             changes,
             playlistName,
-            targetIds.size(),
+            uniqueTargetIds.size(),
             logger);
          result.successful = updateResult.successful;
          if (!updateResult.playlist)
             return result;
 
-         const auto reorderResult = ReorderPlaylist(embyApi, *updateResult.playlist, targetIds, logger);
+         const auto reorderResult = ReorderPlaylist(embyApi, *updateResult.playlist, uniqueTargetIds, logger);
          result.reordered = reorderResult.reordered;
          result.successful = result.successful && reorderResult.successful;
          return result;

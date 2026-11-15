@@ -2,6 +2,8 @@
 
 #include <algorithm>
 #include <glaze/glaze.hpp>
+#include <unordered_set>
+#include <utility>
 
 namespace loomis
 {
@@ -63,14 +65,16 @@ namespace loomis
       std::vector<int64_t> items;
       if (maxItems == 0)
          return items;
+      std::unordered_set<int64_t> seenItems;
 
       int32_t totalPages{FIRST_TMDB_PAGE};
       int32_t currentPage{FIRST_TMDB_PAGE};
+      auto pageParams = params;
+      pageParams.emplace_back("page", std::string{});
       // Returns early when maxItems is reached; MAX_TMDB_PAGE is only a safety cap.
       while (currentPage <= MAX_TMDB_PAGE)
       {
-         auto pageParams = params;
-         pageParams.emplace_back("page", std::to_string(currentPage));
+         pageParams.back().second = std::to_string(currentPage);
 
          const auto response = GetResponse(path, pageParams);
          if (!response)
@@ -80,12 +84,16 @@ namespace loomis
          if (!pageItems)
             return std::nullopt;
 
-         const auto remaining = maxItems - items.size();
-         const auto countToAdd = std::min(remaining, pageItems->size());
-         for (std::size_t index = 0; index < countToAdd; ++index)
-            items.emplace_back((*pageItems)[index]);
+         for (const auto item : *pageItems)
+         {
+            if (seenItems.emplace(item).second)
+               items.emplace_back(item);
 
-         if (items.size() >= maxItems || currentPage >= totalPages)
+            if (items.size() >= maxItems)
+               return items;
+         }
+
+         if (currentPage >= totalPages)
             return items;
 
          ++currentPage;
@@ -115,7 +123,7 @@ namespace loomis
          httpClient_.GetUrl(),
          path,
          requestParams);
-      const auto response = httpClient_.Get(requestPath, {});
+      auto response = httpClient_.Get(requestPath, {});
       if (const auto error = httpClient_.GetHttpResponseStr(response); error)
       {
          logger_.LogWarning(
@@ -138,7 +146,7 @@ namespace loomis
          return std::nullopt;
       }
 
-      return response.body;
+      return std::move(response.body);
    }
 
    std::optional<std::vector<int64_t>> TmdbClient::ParseMediaItems(

@@ -7,6 +7,7 @@
 #include <warp/log/log-utils.h>
 
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <utility>
 
@@ -25,7 +26,8 @@ namespace loomis
 
          const auto embyItems = embyApi.GetItemsByTmdbIds(tmdbIdStrings);
 
-         std::unordered_map<std::string, std::string> movieItemIds;
+         std::unordered_map<std::string_view, std::string_view> movieItemIds;
+         movieItemIds.reserve(embyItems.size());
          for (const auto& embyItem : embyItems)
          {
             if (embyItem.type == "Movie" && embyItem.tmdbId)
@@ -34,9 +36,9 @@ namespace loomis
 
          std::vector<std::string> itemIds;
          itemIds.reserve(tmdbIds.size());
-         for (const auto tmdbId : tmdbIds)
+         for (const auto& tmdbIdString : tmdbIdStrings)
          {
-            if (auto matchingItem = movieItemIds.find(std::to_string(tmdbId));
+            if (auto matchingItem = movieItemIds.find(tmdbIdString);
                 matchingItem != movieItemIds.end())
                itemIds.emplace_back(matchingItem->second);
          }

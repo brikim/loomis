@@ -75,12 +75,6 @@ namespace loomis
          return;
       }
 
-      logger_.LogInfo(
-         "{}Starting TMDB playlist sync for {} ({})",
-         dryRunText_,
-         config_.name,
-         config_.type);
-
       const auto mediaItems = mediaSource_->Fetch(*tmdbClient_, *config_.maxItems);
       if (!mediaItems)
       {
