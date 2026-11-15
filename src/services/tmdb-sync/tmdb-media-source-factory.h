@@ -14,7 +14,6 @@ namespace loomis
    [[nodiscard]] std::unique_ptr<TmdbMediaSource> CreateTmdbMediaSource(
       const TmdbPlaylistConfig& config,
       TmdbPlaylistType playlistType,
-      TmdbMediaType mediaType,
       ServiceLogger logger,
       std::string_view dryRunText);
 } // namespace loomis

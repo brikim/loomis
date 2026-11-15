@@ -2,6 +2,7 @@
 
 #include "services/service-logger.h"
 #include "services/tmdb-sync/tmdb-client.h"
+#include "services/tmdb-sync/tmdb-emby-sync.h"
 #include "services/tmdb-sync/tmdb-media-source.h"
 
 #include "config-reader/config-reader-types.h"
@@ -16,6 +17,7 @@ namespace loomis
    public:
       TmdbPlaylist(const TmdbPlaylistConfig& config,
                    std::shared_ptr<TmdbClient> tmdbClient,
+                   std::shared_ptr<warp::ApiManager> apiManager,
                    bool dryRun,
                    ServiceLogger logger);
       ~TmdbPlaylist() = default;
@@ -32,6 +34,7 @@ namespace loomis
       TmdbPlaylistConfig config_;
       std::shared_ptr<TmdbClient> tmdbClient_;
       std::unique_ptr<TmdbMediaSource> mediaSource_;
+      TmdbEmbySync embySync_;
       ServiceLogger logger_;
       std::string dryRunText_;
    };

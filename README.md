@@ -154,3 +154,7 @@ Playlist Sync will sync Plex Collections to Emby Playlists with the same name. T
 | library               | The name of the plex library that contains this collection. |
 | collection_name       | The name of the collection to sync. |
 | target_emby_servers   | A list of emby servers to sync the plex collection. |
+
+#### TMDB Sync
+
+TMDB playlists are movie-only; no media type needs to be configured. TV and mixed media types, along with TV-only playlist types, are not supported. Each playlist's `emby` list selects the Emby servers to update. Loomis resolves fetched TMDB movie IDs against each server's library, then creates or updates an Emby playlist with the configured name and TMDB ordering. Movies not present in an Emby library are skipped. A dry run performs lookups and reports planned playlist changes without modifying playlists.

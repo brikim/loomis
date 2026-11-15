@@ -9,14 +9,13 @@ namespace loomis
    class TmdbGenreSource final : public TmdbMediaSource
    {
    public:
-      TmdbGenreSource(TmdbPlaylistGenreConfig genre, TmdbMediaType mediaType);
+      explicit TmdbGenreSource(TmdbPlaylistGenreConfig genre);
 
-      [[nodiscard]] std::optional<std::vector<TmdbMediaItem>> Fetch(
+      [[nodiscard]] std::optional<std::vector<int64_t>> Fetch(
          TmdbClient& client,
          std::size_t maxItems) const override;
 
    private:
       TmdbPlaylistGenreConfig genre_;
-      TmdbMediaType mediaType_;
    };
 } // namespace loomis

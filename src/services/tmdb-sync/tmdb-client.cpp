@@ -11,6 +11,7 @@ namespace loomis
       constexpr int32_t FIRST_TMDB_PAGE{1};
       constexpr int32_t MAX_TMDB_PAGE{500};
       constexpr std::size_t TMDB_FIXED_QUERY_PARAM_COUNT{2};
+      constexpr int64_t INVALID_TMDB_ID{0};
 
       struct TmdbMediaResult
       {
@@ -44,19 +45,6 @@ namespace loomis
          };
       };
 
-      std::optional<TmdbMediaType> ParseMediaType(
-         const std::optional<std::string>& mediaType,
-         TmdbMediaType defaultMediaType)
-      {
-         if (mediaType == TMDB_MEDIA_TYPE_TV)
-            return TmdbMediaType::Tv;
-         if (mediaType == TMDB_MEDIA_TYPE_MOVIE)
-            return TmdbMediaType::Movie;
-         if (defaultMediaType == TmdbMediaType::All)
-            return std::nullopt;
-
-         return defaultMediaType;
-      }
    } // namespace
 
    TmdbClient::TmdbClient(std::string apiKey, ServiceLogger logger, bool dryRun)
@@ -67,13 +55,12 @@ namespace loomis
    {
    }
 
-   std::optional<std::vector<TmdbMediaItem>> TmdbClient::GetMediaItems(
+   std::optional<std::vector<int64_t>> TmdbClient::GetMediaItems(
       std::string_view path,
-      TmdbMediaType defaultMediaType,
       std::size_t maxItems,
       const TmdbQueryParams& params)
    {
-      std::vector<TmdbMediaItem> items;
+      std::vector<int64_t> items;
       if (maxItems == 0)
          return items;
 
@@ -89,7 +76,7 @@ namespace loomis
          if (!response)
             return std::nullopt;
 
-         auto pageItems = ParseMediaItems(*response, defaultMediaType, totalPages);
+         auto pageItems = ParseMediaItems(*response, totalPages);
          if (!pageItems)
             return std::nullopt;
 
@@ -154,9 +141,8 @@ namespace loomis
       return response.body;
    }
 
-   std::optional<std::vector<TmdbMediaItem>> TmdbClient::ParseMediaItems(
+   std::optional<std::vector<int64_t>> TmdbClient::ParseMediaItems(
       const std::string& responseBody,
-      TmdbMediaType defaultMediaType,
       int32_t& totalPages)
    {
       TmdbMediaPage page;
@@ -169,15 +155,17 @@ namespace loomis
 
       totalPages = std::max(page.totalPages, FIRST_TMDB_PAGE);
 
-      std::vector<TmdbMediaItem> items;
+      std::vector<int64_t> items;
       items.reserve(page.results.size());
       for (const auto& result : page.results)
       {
          if (result.id == INVALID_TMDB_ID)
             continue;
 
-         if (const auto mediaType = ParseMediaType(result.mediaType, defaultMediaType); mediaType)
-            items.push_back({result.id, *mediaType});
+         if (result.mediaType && *result.mediaType != TMDB_MEDIA_TYPE_MOVIE)
+            continue;
+
+         items.push_back(result.id);
       }
 
       return items;

@@ -40,6 +40,7 @@ namespace loomis
          if (auto playlist = std::make_unique<TmdbPlaylist>(
                 playlistConfig,
                 tmdbClient,
+                GetApiManager(),
                 config.dryRun,
                 ServiceLogger(*this));
              playlist->IsValid())

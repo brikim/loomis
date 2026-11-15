@@ -2,7 +2,6 @@
 
 #include "services/tmdb-sync/tmdb-media-source-factory.h"
 #include "services/tmdb-sync/tmdb-playlist-type.h"
-#include "services/tmdb-sync/tmdb-string-utils.h"
 
 #include <warp/log/log-utils.h>
 
@@ -10,10 +9,12 @@ namespace loomis
 {
    TmdbPlaylist::TmdbPlaylist(const TmdbPlaylistConfig& config,
                               std::shared_ptr<TmdbClient> tmdbClient,
+                              std::shared_ptr<warp::ApiManager> apiManager,
                               bool dryRun,
                               ServiceLogger logger)
       : config_(config)
       , tmdbClient_(std::move(tmdbClient))
+      , embySync_(std::move(apiManager), dryRun, logger)
       , logger_(logger)
       , dryRunText_(dryRun ? "[DRY RUN] " : "")
    {
@@ -32,22 +33,9 @@ namespace loomis
          return;
       }
 
-      const auto mediaType = ParseTmdbMediaType(config_.mediaType);
-      if (!mediaType)
+      if (config_.embyServers.empty())
       {
-         logger_.LogError(
-            "{}{} has invalid {}. Supported values are: {}.",
-            dryRunText_,
-            warp::GetTag("playlist", config_.name),
-            warp::GetTag("media type", config_.mediaType),
-            JoinCommaSeparated(TMDB_MEDIA_TYPE_NAMES));
-         return;
-      }
-
-      if (config_.embyServers.empty() && config_.plexServers.empty())
-      {
-         logger_.LogError("{}No servers configured. At least one Plex or Emby server is required.",
-                          dryRunText_);
+         logger_.LogError("{}At least one Emby server is required for TMDB playlist sync.", dryRunText_);
          return;
       }
 
@@ -67,7 +55,7 @@ namespace loomis
          return;
       }
 
-      mediaSource_ = CreateTmdbMediaSource(config_, *playlistType, *mediaType, logger_, dryRunText_);
+      mediaSource_ = CreateTmdbMediaSource(config_, *playlistType, logger_, dryRunText_);
       valid_ = mediaSource_ != nullptr;
    }
 
@@ -113,22 +101,6 @@ namespace loomis
          return;
       }
 
-      logger_.LogInfo(
-         "{}TMDB {} returned {} media items for {}",
-         dryRunText_,
-         config_.type,
-         mediaItems->size(),
-         config_.name);
-
-      for (const auto& item : *mediaItems)
-      {
-         const auto mediaType = GetTmdbMediaTypeString(item.mediaType);
-         logger_.LogInfo(
-            "{}TMDB {} id from {}: {}",
-            dryRunText_,
-            mediaType,
-            config_.name,
-            item.id);
-      }
+      embySync_.Sync(config_, *mediaItems);
    }
 } // namespace loomis

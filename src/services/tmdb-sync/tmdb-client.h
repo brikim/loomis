@@ -1,7 +1,6 @@
 #pragma once
 
 #include "services/service-logger.h"
-#include "services/tmdb-sync/tmdb-media-item.h"
 
 #include <warp/http/http-client.h>
 
@@ -15,6 +14,8 @@
 
 namespace loomis
 {
+   inline constexpr std::string_view TMDB_MEDIA_TYPE_MOVIE{"movie"};
+
    using TmdbQueryParams = std::vector<std::pair<std::string, std::string>>;
 
    class TmdbClient
@@ -22,9 +23,8 @@ namespace loomis
    public:
       TmdbClient(std::string apiKey, ServiceLogger logger, bool dryRun);
 
-      [[nodiscard]] std::optional<std::vector<TmdbMediaItem>> GetMediaItems(
+      [[nodiscard]] std::optional<std::vector<int64_t>> GetMediaItems(
          std::string_view path,
-         TmdbMediaType defaultMediaType,
          std::size_t maxItems,
          const TmdbQueryParams& params = {});
 
@@ -33,9 +33,8 @@ namespace loomis
          std::string_view path,
          const TmdbQueryParams& params);
 
-      [[nodiscard]] std::optional<std::vector<TmdbMediaItem>> ParseMediaItems(
+      [[nodiscard]] std::optional<std::vector<int64_t>> ParseMediaItems(
          const std::string& responseBody,
-         TmdbMediaType defaultMediaType,
          int32_t& totalPages);
 
       std::string apiKey_;

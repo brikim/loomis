@@ -1,7 +1,5 @@
 #pragma once
 
-#include "services/tmdb-sync/tmdb-media-item.h"
-
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
@@ -138,7 +136,6 @@ namespace loomis
    struct TmdbPlaylistConfig
    {
       std::string name;
-      std::string mediaType{TMDB_MEDIA_TYPE_MOVIE};
       std::string type;
       std::optional<std::string> timeWindow;
       std::optional<TmdbPlaylistGenreConfig> genre;
@@ -152,7 +149,6 @@ namespace loomis
          // clang-format off
          static constexpr auto value = glz::object(
             "name", &TmdbPlaylistConfig::name,
-            "media_type", &TmdbPlaylistConfig::mediaType,
             "type", &TmdbPlaylistConfig::type,
             "time_window", &TmdbPlaylistConfig::timeWindow,
             "genre", &TmdbPlaylistConfig::genre,

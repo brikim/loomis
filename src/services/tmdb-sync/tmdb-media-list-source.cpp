@@ -4,16 +4,15 @@
 
 namespace loomis
 {
-   TmdbMediaListSource::TmdbMediaListSource(std::string endpoint, TmdbMediaType mediaType)
+   TmdbMediaListSource::TmdbMediaListSource(std::string endpoint)
       : endpoint_(std::move(endpoint))
-      , mediaType_(mediaType)
    {
    }
 
-   std::optional<std::vector<TmdbMediaItem>> TmdbMediaListSource::Fetch(
+   std::optional<std::vector<int64_t>> TmdbMediaListSource::Fetch(
       TmdbClient& client,
       std::size_t maxItems) const
    {
-      return client.GetMediaItems(endpoint_, mediaType_, maxItems);
+      return client.GetMediaItems(endpoint_, maxItems);
    }
 } // namespace loomis

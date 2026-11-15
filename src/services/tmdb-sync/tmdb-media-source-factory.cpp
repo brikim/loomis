@@ -21,25 +21,12 @@ namespace loomis
    std::unique_ptr<TmdbMediaSource> CreateTmdbMediaSource(
       const TmdbPlaylistConfig& config,
       TmdbPlaylistType playlistType,
-      TmdbMediaType mediaType,
       ServiceLogger logger,
       std::string_view dryRunText)
    {
-      if (mediaType == TmdbMediaType::All && playlistType != TmdbPlaylistType::Trending)
-      {
-         logger.LogError(
-            "{}Media type '{}' is only supported for {} playlists.",
-            dryRunText,
-            TMDB_MEDIA_TYPE_ALL,
-            TMDB_PLAYLIST_TYPE_TRENDING);
-         return nullptr;
-      }
-
-      const auto mediaTypeName = GetTmdbMediaTypeString(mediaType);
       const auto createMediaListSource = [&](std::string_view endpointType) {
          return std::make_unique<TmdbMediaListSource>(
-            std::format("/{}/{}", mediaTypeName, endpointType),
-            mediaType);
+            std::format("/movie/{}", endpointType));
       };
 
       switch (playlistType)
@@ -67,41 +54,16 @@ namespace loomis
             return nullptr;
          }
 
-         return std::make_unique<TmdbTrendingSource>(*config.timeWindow, mediaType);
+         return std::make_unique<TmdbTrendingSource>(*config.timeWindow);
       case TmdbPlaylistType::Popular:
          return createMediaListSource(TMDB_PLAYLIST_TYPE_POPULAR);
       case TmdbPlaylistType::TopRated:
          return createMediaListSource(TMDB_PLAYLIST_TYPE_TOP_RATED);
       case TmdbPlaylistType::NowPlaying:
       case TmdbPlaylistType::Upcoming:
-         if (mediaType != TmdbMediaType::Movie)
-         {
-            logger.LogError(
-               "{}{} has {} which is only available for movies. Use {} or {} for TV.",
-               dryRunText,
-               warp::GetTag("playlist", config.name),
-               warp::GetTag("playlist type", config.type),
-               TMDB_PLAYLIST_TYPE_AIRING_TODAY,
-               TMDB_PLAYLIST_TYPE_ON_THE_AIR);
-            return nullptr;
-         }
          if (playlistType == TmdbPlaylistType::NowPlaying)
             return createMediaListSource(TMDB_PLAYLIST_TYPE_NOW_PLAYING);
          return createMediaListSource(TMDB_PLAYLIST_TYPE_UPCOMING);
-      case TmdbPlaylistType::AiringToday:
-      case TmdbPlaylistType::OnTheAir:
-         if (mediaType != TmdbMediaType::Tv)
-         {
-            logger.LogError(
-               "{}{} has {} which is only available for TV.",
-               dryRunText,
-               warp::GetTag("playlist", config.name),
-               warp::GetTag("playlist type", config.type));
-            return nullptr;
-         }
-         if (playlistType == TmdbPlaylistType::AiringToday)
-            return createMediaListSource(TMDB_PLAYLIST_TYPE_AIRING_TODAY);
-         return createMediaListSource(TMDB_PLAYLIST_TYPE_ON_THE_AIR);
       case TmdbPlaylistType::Genre:
          if (!config.genre.has_value())
          {
@@ -121,14 +83,13 @@ namespace loomis
             return nullptr;
          }
 
-         return std::make_unique<TmdbGenreSource>(*config.genre, mediaType);
+         return std::make_unique<TmdbGenreSource>(*config.genre);
       default:
          logger.LogError(
-            "{}{} has {} which is not supported for {}.",
+            "{}{} has unsupported {}.",
             dryRunText,
             warp::GetTag("playlist", config.name),
-            warp::GetTag("playlist type", config.type),
-            warp::GetTag("media type", GetTmdbMediaTypeString(mediaType)));
+            warp::GetTag("playlist type", config.type));
          return nullptr;
       }
    }

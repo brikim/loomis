@@ -5,13 +5,12 @@
 
 namespace loomis
 {
-   TmdbGenreSource::TmdbGenreSource(TmdbPlaylistGenreConfig genre, TmdbMediaType mediaType)
+   TmdbGenreSource::TmdbGenreSource(TmdbPlaylistGenreConfig genre)
       : genre_(std::move(genre))
-      , mediaType_(mediaType)
    {
    }
 
-   std::optional<std::vector<TmdbMediaItem>> TmdbGenreSource::Fetch(
+   std::optional<std::vector<int64_t>> TmdbGenreSource::Fetch(
       TmdbClient& client,
       std::size_t maxItems) const
    {
@@ -21,10 +20,8 @@ namespace loomis
       if (!genre_.withoutGenres.empty())
          params.emplace_back("without_genres", genre_.withoutGenres);
 
-      const auto mediaType = GetTmdbMediaTypeString(mediaType_);
       return client.GetMediaItems(
-         std::format("/discover/{}", mediaType),
-         mediaType_,
+         std::format("/discover/{}", TMDB_MEDIA_TYPE_MOVIE),
          maxItems,
          params);
    }
