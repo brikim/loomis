@@ -1,5 +1,7 @@
 #include "tmdb-plex-sync.h"
 
+#include "services/service-utils.h"
+
 #include <warp/api/api-manager.h>
 #include <warp/api/api-plex.h>
 #include <warp/log/log-utils.h>
@@ -59,7 +61,7 @@ namespace loomis
       : apiManager_(std::move(apiManager))
       , collectionSync_(dryRun, logger)
       , logger_(logger)
-      , dryRunText_(dryRun ? "[DRY RUN] " : "")
+      , dryRunText_(GetDryRunText(dryRun))
    {
    }
 

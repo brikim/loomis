@@ -23,6 +23,6 @@ namespace loomis
    private:
       ServiceLogger logger_;
       bool dryRun_{false};
-      std::string dryRunText_;
+      std::string_view dryRunText_;
    };
 } // namespace loomis

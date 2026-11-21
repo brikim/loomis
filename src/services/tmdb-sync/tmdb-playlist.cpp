@@ -1,5 +1,6 @@
 #include "tmdb-playlist.h"
 
+#include "services/service-utils.h"
 #include "services/tmdb-sync/tmdb-media-source-factory.h"
 #include "services/tmdb-sync/tmdb-playlist-type.h"
 
@@ -17,7 +18,7 @@ namespace loomis
       , embySync_(apiManager, dryRun, logger)
       , plexSync_(std::move(apiManager), dryRun, logger)
       , logger_(logger)
-      , dryRunText_(dryRun ? "[DRY RUN] " : "")
+      , dryRunText_(GetDryRunText(dryRun))
    {
       ErrorCheckConfig();
    }

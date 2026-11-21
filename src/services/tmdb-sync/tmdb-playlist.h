@@ -10,6 +10,7 @@
 
 #include <memory>
 #include <string>
+#include <string_view>
 
 namespace loomis
 {
@@ -38,6 +39,6 @@ namespace loomis
       TmdbEmbySync embySync_;
       TmdbPlexSync plexSync_;
       ServiceLogger logger_;
-      std::string dryRunText_;
+      std::string_view dryRunText_;
    };
 } // namespace loomis

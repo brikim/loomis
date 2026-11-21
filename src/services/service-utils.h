@@ -4,9 +4,15 @@
 #include <cstdint>
 #include <format>
 #include <string>
+#include <string_view>
 
 namespace loomis
 {
+   inline constexpr std::string_view GetDryRunText(bool dryRun) noexcept
+   {
+      return dryRun ? "[DRY RUN] " : "";
+   }
+
    inline auto GetTimePointForHistory(uint32_t minusDays)
    {
       return std::chrono::zoned_time{std::chrono::current_zone(), std::chrono::system_clock::now() - std::chrono::days(minusDays)};

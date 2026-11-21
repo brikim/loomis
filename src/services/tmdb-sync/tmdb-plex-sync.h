@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace warp
@@ -29,6 +30,6 @@ namespace loomis
       std::shared_ptr<warp::ApiManager> apiManager_;
       TmdbPlexCollectionSync collectionSync_;
       ServiceLogger logger_;
-      std::string dryRunText_;
+      std::string_view dryRunText_;
    };
 } // namespace loomis

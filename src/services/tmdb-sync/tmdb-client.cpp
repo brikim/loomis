@@ -1,5 +1,7 @@
 #include "tmdb-client.h"
 
+#include "services/service-utils.h"
+
 #include <algorithm>
 #include <glaze/glaze.hpp>
 #include <unordered_set>
@@ -52,7 +54,7 @@ namespace loomis
    TmdbClient::TmdbClient(std::string apiKey, ServiceLogger logger, bool dryRun)
       : apiKey_(std::move(apiKey))
       , logger_(logger)
-      , dryRunText_(dryRun ? "[DRY RUN] " : "")
+      , dryRunText_(GetDryRunText(dryRun))
       , httpClient_(TMDB_API_URL)
    {
    }

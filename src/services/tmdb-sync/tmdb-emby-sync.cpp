@@ -1,5 +1,7 @@
 #include "tmdb-emby-sync.h"
 
+#include "services/service-utils.h"
+
 #include "services/tmdb-sync/tmdb-string-utils.h"
 
 #include <warp/api/api-emby.h>
@@ -53,7 +55,7 @@ namespace loomis
       : apiManager_(std::move(apiManager))
       , playlistSync_(dryRun, logger)
       , logger_(logger)
-      , dryRunText_(dryRun ? "[DRY RUN] " : "")
+      , dryRunText_(GetDryRunText(dryRun))
    {
    }
 

@@ -39,7 +39,7 @@ namespace loomis
 
       std::string apiKey_;
       ServiceLogger logger_;
-      std::string dryRunText_;
+      std::string_view dryRunText_;
       warp::HttpClient httpClient_;
    };
 } // namespace loomis

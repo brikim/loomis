@@ -1,5 +1,7 @@
 ﻿#include "delete-watched-library.h"
 
+#include "services/service-utils.h"
+
 #include <warp/api/api-emby.h>
 #include <warp/api/api-manager.h>
 #include <warp/api/api-plex.h>
@@ -22,7 +24,7 @@ namespace loomis
       , containerPath_(config.containerPath)
       , deleteTimeHours_(deleteTimeHours)
       , dryRun_(dryRun)
-      , dryRunText_(dryRun ? "[DRY RUN] " : "")
+      , dryRunText_(GetDryRunText(dryRun))
    {
       Init(config);
    }

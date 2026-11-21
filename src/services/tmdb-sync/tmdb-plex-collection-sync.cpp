@@ -1,5 +1,7 @@
 #include "tmdb-plex-collection-sync.h"
 
+#include "services/service-utils.h"
+
 #include <warp/log/log-utils.h>
 
 #include <algorithm>
@@ -320,7 +322,7 @@ namespace loomis
    TmdbPlexCollectionSync::TmdbPlexCollectionSync(bool dryRun, ServiceLogger logger)
       : logger_(logger)
       , dryRun_(dryRun)
-      , dryRunText_(dryRun ? "[DRY RUN] " : "")
+      , dryRunText_(GetDryRunText(dryRun))
    {
    }
 

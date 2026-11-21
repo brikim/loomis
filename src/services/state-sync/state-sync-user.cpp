@@ -1,5 +1,7 @@
 ﻿#include "state-sync-user.h"
 
+#include "services/service-utils.h"
+
 #include <warp/api/api-emby.h>
 #include <warp/api/api-plex.h>
 #include <warp/api/api-tracearr.h>
@@ -12,7 +14,7 @@ namespace loomis
                                 ServiceLogger logger)
       : apiManager_(std::move(apiManager))
       , logger_(logger)
-      , dryRunText_(dryRun ? "[DRY RUN] " : "")
+      , dryRunText_(GetDryRunText(dryRun))
       , tracearrApi_(apiManager_->GetTracearrApi())
       , plexUser_(dryRun, logger_)
       , embyUser_(dryRun, logger_)

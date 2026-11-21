@@ -1,5 +1,7 @@
 #include "tmdb-emby-playlist-sync.h"
 
+#include "services/service-utils.h"
+
 #include <warp/log/log-utils.h>
 
 #include <chrono>
@@ -272,7 +274,7 @@ namespace loomis
    TmdbEmbyPlaylistSync::TmdbEmbyPlaylistSync(bool dryRun, ServiceLogger logger)
       : logger_(logger)
       , dryRun_(dryRun)
-      , dryRunText_(dryRun ? "[DRY RUN] " : "")
+      , dryRunText_(GetDryRunText(dryRun))
    {
    }
 

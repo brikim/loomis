@@ -10,6 +10,7 @@
 #include <warp/utils.h>
 
 #include <memory>
+#include <string_view>
 #include <vector>
 
 namespace loomis
@@ -48,7 +49,7 @@ namespace loomis
 
       std::shared_ptr<warp::ApiManager> apiManager_;
       ServiceLogger logger_;
-      std::string dryRunText_;
+      std::string_view dryRunText_;
       warp::TracearrApi* tracearrApi_{nullptr};
 
       StateSyncPlexUser plexUser_;

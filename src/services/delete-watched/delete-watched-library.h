@@ -12,6 +12,7 @@
 #include <filesystem>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace warp
@@ -56,7 +57,7 @@ namespace loomis
       std::chrono::hours deleteTimeHours_;
 
       bool dryRun_{false};
-      std::string dryRunText_;
+      std::string_view dryRunText_;
 
       std::vector<DeleteWatchedPlexData> plexDatas_;
       std::vector<DeleteWatchedEmbyData> embyDatas_;
