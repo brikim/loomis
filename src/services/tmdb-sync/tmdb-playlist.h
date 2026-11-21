@@ -4,6 +4,7 @@
 #include "services/tmdb-sync/tmdb-client.h"
 #include "services/tmdb-sync/tmdb-emby-sync.h"
 #include "services/tmdb-sync/tmdb-media-source.h"
+#include "services/tmdb-sync/tmdb-plex-sync.h"
 
 #include "config-reader/config-reader-types.h"
 
@@ -35,6 +36,7 @@ namespace loomis
       std::shared_ptr<TmdbClient> tmdbClient_;
       std::unique_ptr<TmdbMediaSource> mediaSource_;
       TmdbEmbySync embySync_;
+      TmdbPlexSync plexSync_;
       ServiceLogger logger_;
       std::string dryRunText_;
    };

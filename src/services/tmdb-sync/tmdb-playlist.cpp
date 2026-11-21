@@ -14,7 +14,8 @@ namespace loomis
                               ServiceLogger logger)
       : config_(config)
       , tmdbClient_(std::move(tmdbClient))
-      , embySync_(std::move(apiManager), dryRun, logger)
+      , embySync_(apiManager, dryRun, logger)
+      , plexSync_(std::move(apiManager), dryRun, logger)
       , logger_(logger)
       , dryRunText_(dryRun ? "[DRY RUN] " : "")
    {
@@ -33,9 +34,9 @@ namespace loomis
          return;
       }
 
-      if (config_.embyServers.empty())
+      if (config_.embyServers.empty() && config_.plexServers.empty())
       {
-         logger_.LogError("{}At least one Emby server is required for TMDB playlist sync.", dryRunText_);
+         logger_.LogError("{}At least one Plex or Emby server is required for TMDB playlist sync.", dryRunText_);
          return;
       }
 
@@ -96,5 +97,6 @@ namespace loomis
       }
 
       embySync_.Sync(config_, *mediaItems);
+      plexSync_.Sync(config_, *mediaItems);
    }
 } // namespace loomis
