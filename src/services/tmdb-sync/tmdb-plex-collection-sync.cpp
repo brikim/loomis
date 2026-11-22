@@ -326,7 +326,7 @@ namespace loomis
    {
    }
 
-   void TmdbPlexCollectionSync::Sync(
+   std::optional<TmdbSyncStats> TmdbPlexCollectionSync::Sync(
       warp::PlexApi& plexApi,
       std::string_view libraryName,
       std::string_view collectionName,
@@ -346,18 +346,17 @@ namespace loomis
             dryRunText_,
             warp::GetTag("collection", collectionName),
             plexApi.GetPrettyName());
+         return std::nullopt;
       }
       else if (result.successful &&
                (result.added > 0 || result.removed > 0 || result.reordered))
       {
-         logger_.LogInfo(
-            "{}Syncing TMDB {} to {} {} {} {}",
-            dryRunText_,
-            warp::GetTag("collection", collectionName),
-            plexApi.GetPrettyName(),
-            warp::GetTag("added", result.added),
-            warp::GetTag("removed", result.removed),
-            warp::GetTag("reordered", result.reordered ? "true" : "false"));
+         return TmdbSyncStats{
+            .added = result.added,
+            .removed = result.removed,
+            .reordered = result.reordered};
       }
+
+      return std::nullopt;
    }
 } // namespace loomis

@@ -1,7 +1,6 @@
 #include "tmdb-emby-sync.h"
 
 #include "services/service-utils.h"
-
 #include "services/tmdb-sync/tmdb-string-utils.h"
 
 #include <warp/api/api-emby.h>
@@ -59,14 +58,15 @@ namespace loomis
    {
    }
 
-   void TmdbEmbySync::Sync(
+   std::vector<TmdbSyncLogEntry> TmdbEmbySync::Sync(
       const TmdbPlaylistConfig& config,
       const std::vector<int64_t>& tmdbIds)
    {
+      std::vector<TmdbSyncLogEntry> syncLogEntries;
       if (!apiManager_)
       {
          logger_.LogError("{}API manager is unavailable.", dryRunText_);
-         return;
+         return syncLogEntries;
       }
 
       for (const auto& serverConfig : config.embyServers)
@@ -101,7 +101,13 @@ namespace loomis
             continue;
          }
 
-         playlistSync_.Sync(*embyApi, config.name, itemIds);
+         if (auto stats = playlistSync_.Sync(*embyApi, config.name, itemIds))
+            syncLogEntries.emplace_back(
+               TmdbSyncLogEntry{
+                  .destination = std::string(embyApi->GetPrettyName()),
+                  .stats = *stats});
       }
+
+      return syncLogEntries;
    }
 } // namespace loomis

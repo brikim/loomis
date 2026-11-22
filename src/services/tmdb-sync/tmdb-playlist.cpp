@@ -5,9 +5,68 @@
 #include "services/tmdb-sync/tmdb-playlist-type.h"
 
 #include <warp/log/log-utils.h>
+#include <warp/utils.h>
+
+#include <algorithm>
+#include <iterator>
+#include <ranges>
+#include <string>
+#include <vector>
 
 namespace loomis
 {
+   namespace
+   {
+      struct SyncLogGroup
+      {
+         TmdbSyncStats stats;
+         std::string destinations;
+      };
+
+      void LogSyncResults(
+         const std::vector<TmdbSyncLogEntry>& syncLogEntries,
+         ServiceLogger logger,
+         std::string_view dryRunText,
+         std::string_view playlistName)
+      {
+         std::vector<SyncLogGroup> syncLogGroups;
+         for (const auto& entry : syncLogEntries)
+         {
+            const auto group = std::ranges::find_if(syncLogGroups, [&](const auto& candidate) {
+               return candidate.stats.added == entry.stats.added &&
+                  candidate.stats.removed == entry.stats.removed &&
+                  candidate.stats.reordered == entry.stats.reordered;
+            });
+            if (group == syncLogGroups.end())
+            {
+               syncLogGroups.push_back(
+                  SyncLogGroup{
+                     .stats = entry.stats,
+                     .destinations = entry.destination});
+            }
+            else
+            {
+               group->destinations = warp::BuildSyncServerString(
+                  group->destinations,
+                  entry.destination,
+                  "");
+            }
+         }
+
+         for (const auto& group : syncLogGroups)
+         {
+            logger.LogInfo(
+               "{}Syncing TMDB {} to {} {} {} {}",
+               dryRunText,
+               warp::GetTag("playlist", playlistName),
+               group.destinations,
+               warp::GetTag("added", group.stats.added),
+               warp::GetTag("removed", group.stats.removed),
+               warp::GetTag("reordered", group.stats.reordered ? "true" : "false"));
+         }
+      }
+   } // namespace
+
    TmdbPlaylist::TmdbPlaylist(const TmdbPlaylistConfig& config,
                               std::shared_ptr<TmdbClient> tmdbClient,
                               std::shared_ptr<warp::ApiManager> apiManager,
@@ -97,7 +156,12 @@ namespace loomis
          return;
       }
 
-      embySync_.Sync(config_, *mediaItems);
-      plexSync_.Sync(config_, *mediaItems);
+      auto syncLogEntries = embySync_.Sync(config_, *mediaItems);
+      auto plexSyncLogEntries = plexSync_.Sync(config_, *mediaItems);
+      syncLogEntries.insert(
+         syncLogEntries.end(),
+         std::make_move_iterator(plexSyncLogEntries.begin()),
+         std::make_move_iterator(plexSyncLogEntries.end()));
+      LogSyncResults(syncLogEntries, logger_, dryRunText_, config_.name);
    }
 } // namespace loomis

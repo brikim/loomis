@@ -8,9 +8,9 @@
 namespace loomis
 {
    inline const std::string ANSI_CODE_SERVICE_FILESYSTEM_CLEANUP{std::format("{}226{}", warp::ANSI_CODE_START, warp::ANSI_CODE_END)};
-   inline const std::string ANSI_CODE_SERVICE_DVR_MAINTAINER{std::format("{}154{}", warp::ANSI_CODE_START, warp::ANSI_CODE_END)};
+   inline const std::string ANSI_CODE_SERVICE_DVR_MAINTAINER{std::format("{}210{}", warp::ANSI_CODE_START, warp::ANSI_CODE_END)};
    inline const std::string ANSI_CODE_SERVICE_DELETE_WATCHED{std::format("{}215{}", warp::ANSI_CODE_START, warp::ANSI_CODE_END)};
    inline const std::string ANSI_CODE_SERVICE_EMBY_TIDY{std::format("{}71{}", warp::ANSI_CODE_START, warp::ANSI_CODE_END)};
    inline const std::string ANSI_CODE_SERVICE_STATE_SYNC{std::format("{}45{}", warp::ANSI_CODE_START, warp::ANSI_CODE_END)};
-   inline const std::string ANSI_CODE_SERVICE_TMDB_SYNC{std::format("{}135{}", warp::ANSI_CODE_START, warp::ANSI_CODE_END)};
+   inline const std::string ANSI_CODE_SERVICE_TMDB_SYNC{std::format("{}154{}", warp::ANSI_CODE_START, warp::ANSI_CODE_END)};
 } // namespace loomis

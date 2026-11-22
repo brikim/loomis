@@ -1,9 +1,11 @@
 #pragma once
 
 #include "services/service-logger.h"
+#include "services/tmdb-sync/tmdb-sync-result.h"
 
 #include <warp/api/api-emby.h>
 
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -15,7 +17,7 @@ namespace loomis
    public:
       TmdbEmbyPlaylistSync(bool dryRun, ServiceLogger logger);
 
-      void Sync(
+      std::optional<TmdbSyncStats> Sync(
          warp::EmbyApi& embyApi,
          std::string_view playlistName,
          const std::vector<std::string>& targetIds);

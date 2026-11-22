@@ -65,14 +65,15 @@ namespace loomis
    {
    }
 
-   void TmdbPlexSync::Sync(
+   std::vector<TmdbSyncLogEntry> TmdbPlexSync::Sync(
       const TmdbPlaylistConfig& config,
       const std::vector<int64_t>& tmdbIds)
    {
+      std::vector<TmdbSyncLogEntry> syncLogEntries;
       if (!apiManager_)
       {
          logger_.LogError("{}API manager is unavailable.", dryRunText_);
-         return;
+         return syncLogEntries;
       }
 
       for (const auto& serverConfig : config.plexServers)
@@ -118,7 +119,13 @@ namespace loomis
             continue;
          }
 
-         collectionSync_.Sync(*plexApi, serverConfig.library, config.name, itemIds);
+         if (auto stats = collectionSync_.Sync(*plexApi, serverConfig.library, config.name, itemIds))
+            syncLogEntries.emplace_back(
+               TmdbSyncLogEntry{
+                  .destination = std::string(plexApi->GetPrettyName()),
+                  .stats = *stats});
       }
+
+      return syncLogEntries;
    }
 } // namespace loomis

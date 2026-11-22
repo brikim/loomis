@@ -3,6 +3,7 @@
 #include "config-reader/config-reader-types.h"
 #include "services/service-logger.h"
 #include "services/tmdb-sync/tmdb-emby-playlist-sync.h"
+#include "services/tmdb-sync/tmdb-sync-result.h"
 
 #include <cstdint>
 #include <memory>
@@ -24,7 +25,7 @@ namespace loomis
                    bool dryRun,
                    ServiceLogger logger);
 
-      void Sync(const TmdbPlaylistConfig& config, const std::vector<int64_t>& tmdbIds);
+      std::vector<TmdbSyncLogEntry> Sync(const TmdbPlaylistConfig& config, const std::vector<int64_t>& tmdbIds);
 
    private:
       std::shared_ptr<warp::ApiManager> apiManager_;

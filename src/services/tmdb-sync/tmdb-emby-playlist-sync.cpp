@@ -93,7 +93,7 @@ namespace loomis
          }
 
          return plannedOrder.size() != targetIds.size() ||
-                !std::ranges::equal(plannedOrder, targetIds);
+            !std::ranges::equal(plannedOrder, targetIds);
       }
 
       struct PlaylistUpdateResult
@@ -278,7 +278,7 @@ namespace loomis
    {
    }
 
-   void TmdbEmbyPlaylistSync::Sync(
+   std::optional<TmdbSyncStats> TmdbEmbyPlaylistSync::Sync(
       warp::EmbyApi& embyApi,
       std::string_view playlistName,
       const std::vector<std::string>& targetIds)
@@ -291,17 +291,16 @@ namespace loomis
             dryRunText_,
             warp::GetTag("playlist", playlistName),
             embyApi.GetPrettyName());
+         return std::nullopt;
       }
       else if (result.successful && (result.added > 0 || result.removed > 0 || result.reordered))
       {
-         logger_.LogInfo(
-            "{}Syncing TMDB {} to {} {} {} {}",
-            dryRunText_,
-            warp::GetTag("playlist", playlistName),
-            embyApi.GetPrettyName(),
-            warp::GetTag("added", result.added),
-            warp::GetTag("removed", result.removed),
-            warp::GetTag("reordered", result.reordered ? "true" : "false"));
+         return TmdbSyncStats{
+            .added = result.added,
+            .removed = result.removed,
+            .reordered = result.reordered};
       }
+
+      return std::nullopt;
    }
 } // namespace loomis
