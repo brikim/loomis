@@ -2,8 +2,8 @@
 
 #include "services/tmdb-sync/tmdb-genre-source.h"
 #include "services/tmdb-sync/tmdb-media-list-source.h"
-#include "services/tmdb-sync/tmdb-trending-source.h"
 #include "services/tmdb-sync/tmdb-string-utils.h"
+#include "services/tmdb-sync/tmdb-trending-source.h"
 
 #include <warp/log/log-utils.h>
 
@@ -60,9 +60,8 @@ namespace loomis
       case TmdbPlaylistType::TopRated:
          return createMediaListSource(TMDB_PLAYLIST_TYPE_TOP_RATED);
       case TmdbPlaylistType::NowPlaying:
+         return createMediaListSource(TMDB_PLAYLIST_TYPE_NOW_PLAYING);
       case TmdbPlaylistType::Upcoming:
-         if (playlistType == TmdbPlaylistType::NowPlaying)
-            return createMediaListSource(TMDB_PLAYLIST_TYPE_NOW_PLAYING);
          return createMediaListSource(TMDB_PLAYLIST_TYPE_UPCOMING);
       case TmdbPlaylistType::Genre:
          if (!config.genre.has_value())

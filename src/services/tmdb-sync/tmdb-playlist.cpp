@@ -33,9 +33,7 @@ namespace loomis
          for (const auto& entry : syncLogEntries)
          {
             const auto group = std::ranges::find_if(syncLogGroups, [&](const auto& candidate) {
-               return candidate.stats.added == entry.stats.added &&
-                  candidate.stats.removed == entry.stats.removed &&
-                  candidate.stats.reordered == entry.stats.reordered;
+               return candidate.stats == entry.stats;
             });
             if (group == syncLogGroups.end())
             {

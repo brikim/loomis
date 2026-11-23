@@ -65,9 +65,13 @@ namespace loomis
       const TmdbQueryParams& params)
    {
       std::vector<int64_t> items;
+      items.reserve(maxItems);
+
       if (maxItems == 0)
          return items;
+
       std::unordered_set<int64_t> seenItems;
+      seenItems.reserve(maxItems);
 
       int32_t totalPages{FIRST_TMDB_PAGE};
       int32_t currentPage{FIRST_TMDB_PAGE};

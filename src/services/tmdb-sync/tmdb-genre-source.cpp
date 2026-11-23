@@ -5,6 +5,11 @@
 
 namespace loomis
 {
+   namespace
+   {
+      constexpr std::string_view DISCOVER_MOVIE_ENDPOINT{"/discover/movie"};
+   }
+
    TmdbGenreSource::TmdbGenreSource(TmdbPlaylistGenreConfig genre)
       : genre_(std::move(genre))
    {
@@ -21,7 +26,7 @@ namespace loomis
          params.emplace_back("without_genres", genre_.withoutGenres);
 
       return client.GetMediaItems(
-         std::format("/discover/{}", TMDB_MEDIA_TYPE_MOVIE),
+         DISCOVER_MOVIE_ENDPOINT,
          maxItems,
          params);
    }

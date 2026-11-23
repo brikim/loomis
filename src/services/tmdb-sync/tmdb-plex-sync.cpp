@@ -23,14 +23,8 @@ namespace loomis
       {
          std::vector<std::string> tmdbIdStrings;
          tmdbIdStrings.reserve(tmdbIds.size());
-         std::unordered_set<std::string> seenTmdbIds;
-         seenTmdbIds.reserve(tmdbIds.size());
          for (const auto tmdbId : tmdbIds)
-         {
-            auto tmdbIdString = std::to_string(tmdbId);
-            if (seenTmdbIds.emplace(tmdbIdString).second)
-               tmdbIdStrings.emplace_back(std::move(tmdbIdString));
-         }
+            tmdbIdStrings.emplace_back(std::to_string(tmdbId));
 
          const auto plexItems = plexApi.GetItemsByTmdbIds(libraryName, tmdbIdStrings);
 

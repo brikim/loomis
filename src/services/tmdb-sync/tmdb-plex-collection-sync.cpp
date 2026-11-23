@@ -1,16 +1,16 @@
 #include "tmdb-plex-collection-sync.h"
 
 #include "services/service-utils.h"
+#include "services/tmdb-sync/tmdb-container-reconciler.h"
 
 #include <warp/log/log-utils.h>
 
 #include <algorithm>
 #include <cstddef>
-#include <cstdint>
 #include <optional>
-#include <ranges>
+#include <span>
+#include <string>
 #include <string_view>
-#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -18,82 +18,6 @@ namespace loomis
 {
    namespace
    {
-      struct CollectionSyncResult
-      {
-         std::size_t added{0};
-         std::size_t removed{0};
-         bool reordered{false};
-         bool creationRequired{false};
-         bool successful{true};
-      };
-
-      struct CollectionChanges
-      {
-         std::vector<std::string> addIds;
-         std::vector<std::string> removeIds;
-      };
-
-      CollectionChanges BuildCollectionChanges(
-         const warp::PlexCollection& collection,
-         const std::vector<std::string>& targetIds)
-      {
-         std::unordered_set<std::string_view> targetIdSet;
-         targetIdSet.reserve(targetIds.size());
-         for (const auto& id : targetIds)
-            targetIdSet.emplace(id);
-
-         std::unordered_set<std::string_view> currentItemIds;
-         currentItemIds.reserve(collection.items.size());
-         CollectionChanges changes;
-         changes.removeIds.reserve(collection.items.size());
-         for (const auto& item : collection.items)
-         {
-            const bool firstOccurrence = currentItemIds.emplace(item.ratingKey).second;
-            if (!targetIdSet.contains(item.ratingKey) || !firstOccurrence)
-               changes.removeIds.emplace_back(item.ratingKey);
-         }
-
-         changes.addIds.reserve(targetIds.size());
-         for (const auto& targetId : targetIds)
-         {
-            if (!currentItemIds.contains(targetId))
-               changes.addIds.emplace_back(targetId);
-         }
-
-         return changes;
-      }
-
-      bool WouldRequireReordering(
-         const warp::PlexCollection& collection,
-         const std::vector<std::string>& targetIds)
-      {
-         std::unordered_set<std::string_view> currentItemIds;
-         currentItemIds.reserve(collection.items.size());
-         for (const auto& item : collection.items)
-            currentItemIds.emplace(item.ratingKey);
-
-         std::unordered_set<std::string_view> targetIdSet;
-         targetIdSet.reserve(targetIds.size());
-         for (const auto& id : targetIds)
-            targetIdSet.emplace(id);
-
-         std::vector<std::string_view> plannedOrder;
-         plannedOrder.reserve(targetIds.size());
-         for (const auto& item : collection.items)
-         {
-            if (targetIdSet.contains(item.ratingKey))
-               plannedOrder.emplace_back(item.ratingKey);
-         }
-         for (const auto& id : targetIds)
-         {
-            if (!currentItemIds.contains(id))
-               plannedOrder.emplace_back(id);
-         }
-
-         return plannedOrder.size() != targetIds.size() ||
-            !std::ranges::equal(plannedOrder, targetIds);
-      }
-
       struct CollectionUpdateResult
       {
          std::optional<warp::PlexCollection> collection;
@@ -103,7 +27,7 @@ namespace loomis
       CollectionUpdateResult ApplyCollectionChanges(
          warp::PlexApi& plexApi,
          warp::PlexCollection collection,
-         const CollectionChanges& changes,
+         const ContainerChanges& changes,
          std::string_view libraryName,
          std::string_view collectionName,
          std::size_t targetSize,
@@ -146,88 +70,53 @@ namespace loomis
             collection = std::move(*updatedCollection);
          }
 
-         if (collection.items.size() != targetSize)
+         if (!VerifyContainerSize(
+                collection.items.size(),
+                targetSize,
+                plexApi.GetPrettyName(),
+                "collection",
+                collection.name,
+                logger))
          {
-            logger.LogWarning(
-               "{} collection update failed. {} should be {} but is {}",
-               plexApi.GetPrettyName(),
-               warp::GetTag("collection", collection.name),
-               warp::GetTag("length", targetSize),
-               warp::GetTag("reported_length", collection.items.size()));
             return {std::nullopt, false};
          }
 
          return {std::move(collection), successful};
       }
 
-      struct CollectionReorderResult
-      {
-         bool reordered{false};
-         bool successful{true};
-      };
-
-      CollectionReorderResult ReorderCollection(
+      ContainerReorderResult ReorderCollection(
          warp::PlexApi& plexApi,
          const warp::PlexCollection& collection,
-         const std::vector<std::string>& targetIds,
+         std::span<const std::string> targetIds,
          std::string_view libraryName,
          ServiceLogger logger)
       {
-         CollectionReorderResult result;
-         std::vector<std::string_view> virtualItems;
+         std::vector<ReorderItemTracker> virtualItems;
          virtualItems.reserve(collection.items.size());
          for (const auto& item : collection.items)
-            virtualItems.emplace_back(item.ratingKey);
+            virtualItems.push_back({.id = item.ratingKey, .moveKey = item.ratingKey});
 
-         for (std::size_t index = 0; index < targetIds.size(); ++index)
-         {
-            if (virtualItems[index] == targetIds[index])
-               continue;
-
-            auto itemToMove = std::ranges::find(
-               virtualItems | std::views::drop(index),
-               targetIds[index]);
-            if (itemToMove == virtualItems.end())
-               continue;
-
-            const auto afterRatingKey = index == 0
-               ? std::optional<std::string_view>{}
-               : std::optional<std::string_view>{targetIds[index - 1]};
-            if (plexApi.MoveCollectionItem(
-                   libraryName,
-                   collection.name,
-                   *itemToMove,
-                   afterRatingKey))
-            {
-               const auto movedItem = *itemToMove;
-               virtualItems.erase(itemToMove);
-               virtualItems.insert(
-                  virtualItems.begin() + static_cast<std::ptrdiff_t>(index),
-                  movedItem);
-               result.reordered = true;
-            }
-            else
-            {
-               logger.LogWarning(
-                  "{} failed to reorder collection {}",
-                  plexApi.GetPrettyName(),
-                  warp::GetTag("collection", collection.name));
-               result.successful = false;
-            }
-         }
-
-         return result;
+         return ReorderContainer(
+            std::move(virtualItems),
+            targetIds,
+            [&](const ReorderItemTracker& item, std::size_t /*index*/, std::optional<std::string_view> prevId) {
+               return plexApi.MoveCollectionItem(libraryName, collection.name, item.moveKey, prevId);
+            },
+            plexApi.GetPrettyName(),
+            "collection",
+            collection.name,
+            logger);
       }
 
-      CollectionSyncResult SyncCollection(
+      ContainerSyncResult SyncCollection(
          warp::PlexApi& plexApi,
          std::string_view libraryName,
          std::string_view collectionName,
-         const std::vector<std::string>& targetIds,
+         std::span<const std::string> targetIds,
          ServiceLogger logger,
          bool dryRun)
       {
-         CollectionSyncResult result;
+         ContainerSyncResult result;
          bool collectionCreated = false;
          if (!plexApi.GetCollectionValid(libraryName, collectionName))
          {
@@ -235,7 +124,8 @@ namespace loomis
             if (dryRun)
                return result;
 
-            if (!plexApi.CreateCollection(libraryName, collectionName, targetIds))
+            std::vector<std::string> initialItemRatingKeys(targetIds.begin(), targetIds.end());
+            if (!plexApi.CreateCollection(libraryName, collectionName, initialItemRatingKeys))
             {
                logger.LogWarning(
                   "{} failed to create collection {}",
@@ -286,12 +176,20 @@ namespace loomis
             return result;
          }
 
-         const auto changes = BuildCollectionChanges(*currentCollection, targetIds);
+         const auto changes = BuildContainerChanges(
+            currentCollection->items,
+            targetIds,
+            [](const warp::PlexCollectionItem& item) -> std::string_view { return item.ratingKey; },
+            [](const warp::PlexCollectionItem& item) -> std::string_view { return item.ratingKey; });
+
          result.added = changes.addIds.size();
          result.removed = changes.removeIds.size();
          if (dryRun)
          {
-            result.reordered = WouldRequireReordering(*currentCollection, targetIds);
+            result.reordered = WouldRequireReordering(
+               currentCollection->items,
+               targetIds,
+               [](const warp::PlexCollectionItem& item) -> std::string_view { return item.ratingKey; });
             return result;
          }
 
@@ -332,31 +230,22 @@ namespace loomis
       std::string_view collectionName,
       const std::vector<std::string>& targetIds)
    {
+      const auto uniqueTargetIds = DeduplicateTargetIds(targetIds);
       const auto result = SyncCollection(
          plexApi,
          libraryName,
          collectionName,
-         targetIds,
+         uniqueTargetIds,
          logger_,
          dryRun_);
-      if (result.creationRequired && (result.successful || dryRun_))
-      {
-         logger_.LogInfo(
-            "{}Creating TMDB {} on {}",
-            dryRunText_,
-            warp::GetTag("collection", collectionName),
-            plexApi.GetPrettyName());
-         return std::nullopt;
-      }
-      else if (result.successful &&
-               (result.added > 0 || result.removed > 0 || result.reordered))
-      {
-         return TmdbSyncStats{
-            .added = result.added,
-            .removed = result.removed,
-            .reordered = result.reordered};
-      }
 
-      return std::nullopt;
+      return ToSyncStats(
+         result,
+         "collection",
+         collectionName,
+         plexApi.GetPrettyName(),
+         dryRunText_,
+         dryRun_,
+         logger_);
    }
 } // namespace loomis
