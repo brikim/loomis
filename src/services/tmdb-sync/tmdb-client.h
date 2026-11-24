@@ -16,7 +16,13 @@ namespace loomis
 {
    inline constexpr std::string_view TMDB_MEDIA_TYPE_MOVIE{"movie"};
 
-   using TmdbQueryParams = std::vector<std::pair<std::string, std::string>>;
+   using TmdbQueryParams = std::vector<std::pair<std::string_view, std::string_view>>;
+
+   struct TmdbPageResult
+   {
+      std::vector<int64_t> items;
+      int32_t totalPages{1};
+   };
 
    class TmdbClient
    {
@@ -31,11 +37,11 @@ namespace loomis
    private:
       [[nodiscard]] std::optional<std::string> GetResponse(
          std::string_view path,
-         const TmdbQueryParams& params);
+         const TmdbQueryParams& params,
+         int32_t page);
 
-      [[nodiscard]] std::optional<std::vector<int64_t>> ParseMediaItems(
-         const std::string& responseBody,
-         int32_t& totalPages);
+      [[nodiscard]] std::optional<TmdbPageResult> ParseMediaItems(
+         std::string_view responseBody);
 
       std::string apiKey_;
       ServiceLogger logger_;

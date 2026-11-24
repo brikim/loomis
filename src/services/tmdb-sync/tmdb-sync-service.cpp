@@ -1,4 +1,4 @@
-﻿#include "tmdb-sync-service.h"
+#include "tmdb-sync-service.h"
 
 #include "services/service-logger.h"
 #include "services/service-types.h"
@@ -37,13 +37,12 @@ namespace loomis
 
       for (const auto& playlistConfig : config.playlists)
       {
-         if (auto playlist = std::make_unique<TmdbPlaylist>(
+         if (auto playlist = TmdbPlaylist::Create(
                 playlistConfig,
                 tmdbClient,
                 GetApiManager(),
                 config.dryRun,
-                ServiceLogger(*this));
-             playlist->IsValid())
+                ServiceLogger(*this)))
          {
             playlists_.emplace_back(std::move(playlist));
          }

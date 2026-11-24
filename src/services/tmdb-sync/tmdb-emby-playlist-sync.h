@@ -20,7 +20,12 @@ namespace loomis
       std::optional<TmdbSyncStats> Sync(
          warp::EmbyApi& embyApi,
          std::string_view playlistName,
-         const std::vector<std::string>& targetIds);
+         std::span<const std::string> targetIds);
+
+      std::optional<TmdbSyncStats> Sync(
+         warp::EmbyApi& embyApi,
+         std::string_view playlistName,
+         std::span<const std::string_view> targetIds);
 
    private:
       ServiceLogger logger_;

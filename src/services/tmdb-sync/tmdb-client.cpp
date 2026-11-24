@@ -14,13 +14,13 @@ namespace loomis
       constexpr std::string_view TMDB_API_URL{"https://api.themoviedb.org/3"};
       constexpr int32_t FIRST_TMDB_PAGE{1};
       constexpr int32_t MAX_TMDB_PAGE{500};
-      constexpr std::size_t TMDB_FIXED_QUERY_PARAM_COUNT{2};
+      constexpr std::size_t TMDB_FIXED_QUERY_PARAM_COUNT{3};
       constexpr int64_t INVALID_TMDB_ID{0};
 
       struct TmdbMediaResult
       {
          int64_t id{INVALID_TMDB_ID};
-         std::optional<std::string> mediaType;
+         std::optional<std::string_view> mediaType;
 
          struct glaze
          {
@@ -73,24 +73,20 @@ namespace loomis
       std::unordered_set<int64_t> seenItems;
       seenItems.reserve(maxItems);
 
-      int32_t totalPages{FIRST_TMDB_PAGE};
       int32_t currentPage{FIRST_TMDB_PAGE};
-      auto pageParams = params;
-      pageParams.emplace_back("page", std::string{});
+
       // Returns early when maxItems is reached; MAX_TMDB_PAGE is only a safety cap.
       while (currentPage <= MAX_TMDB_PAGE)
       {
-         pageParams.back().second = std::to_string(currentPage);
-
-         const auto response = GetResponse(path, pageParams);
+         const auto response = GetResponse(path, params, currentPage);
          if (!response)
             return std::nullopt;
 
-         auto pageItems = ParseMediaItems(*response, totalPages);
-         if (!pageItems)
+         auto pageResult = ParseMediaItems(*response);
+         if (!pageResult)
             return std::nullopt;
 
-         for (const auto item : *pageItems)
+         for (const auto item : pageResult->items)
          {
             if (seenItems.emplace(item).second)
                items.emplace_back(item);
@@ -99,7 +95,7 @@ namespace loomis
                return items;
          }
 
-         if (currentPage >= totalPages)
+         if (pageResult->items.empty() || currentPage >= pageResult->totalPages)
             return items;
 
          ++currentPage;
@@ -116,12 +112,15 @@ namespace loomis
 
    std::optional<std::string> TmdbClient::GetResponse(
       std::string_view path,
-      const TmdbQueryParams& params)
+      const TmdbQueryParams& params,
+      int32_t page)
    {
+      const auto pageStr = std::to_string(page);
       warp::HttpParams requestParams;
       requestParams.reserve(params.size() + TMDB_FIXED_QUERY_PARAM_COUNT);
       requestParams.emplace_back("api_key", apiKey_);
       requestParams.emplace_back("language", "en-US");
+      requestParams.emplace_back("page", pageStr);
       for (const auto& [key, value] : params)
          requestParams.emplace_back(key, value);
 
@@ -155,9 +154,8 @@ namespace loomis
       return std::move(response.body);
    }
 
-   std::optional<std::vector<int64_t>> TmdbClient::ParseMediaItems(
-      const std::string& responseBody,
-      int32_t& totalPages)
+   std::optional<TmdbPageResult> TmdbClient::ParseMediaItems(
+      std::string_view responseBody)
    {
       TmdbMediaPage page;
       if (auto ec = glz::read<glz::opts{.error_on_unknown_keys = false}>(page, responseBody);
@@ -167,21 +165,21 @@ namespace loomis
          return std::nullopt;
       }
 
-      totalPages = std::max(page.totalPages, FIRST_TMDB_PAGE);
+      TmdbPageResult result;
+      result.totalPages = std::max(page.totalPages, FIRST_TMDB_PAGE);
+      result.items.reserve(page.results.size());
 
-      std::vector<int64_t> items;
-      items.reserve(page.results.size());
-      for (const auto& result : page.results)
+      for (const auto& mediaItem : page.results)
       {
-         if (result.id == INVALID_TMDB_ID)
+         if (mediaItem.id == INVALID_TMDB_ID)
             continue;
 
-         if (result.mediaType && *result.mediaType != TMDB_MEDIA_TYPE_MOVIE)
+         if (mediaItem.mediaType && *mediaItem.mediaType != TMDB_MEDIA_TYPE_MOVIE)
             continue;
 
-         items.push_back(result.id);
+         result.items.push_back(mediaItem.id);
       }
 
-      return items;
+      return result;
    }
 } // namespace loomis

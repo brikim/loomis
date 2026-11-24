@@ -21,7 +21,13 @@ namespace loomis
          warp::PlexApi& plexApi,
          std::string_view libraryName,
          std::string_view collectionName,
-         const std::vector<std::string>& targetIds);
+         std::span<const std::string> targetIds);
+
+      std::optional<TmdbSyncStats> Sync(
+         warp::PlexApi& plexApi,
+         std::string_view libraryName,
+         std::string_view collectionName,
+         std::span<const std::string_view> targetIds);
 
    private:
       ServiceLogger logger_;

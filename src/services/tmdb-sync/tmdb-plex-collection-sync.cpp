@@ -26,7 +26,7 @@ namespace loomis
 
       CollectionUpdateResult ApplyCollectionChanges(
          warp::PlexApi& plexApi,
-         warp::PlexCollection collection,
+         warp::PlexCollection& collection,
          const ContainerChanges& changes,
          std::string_view libraryName,
          std::string_view collectionName,
@@ -87,7 +87,7 @@ namespace loomis
       ContainerReorderResult ReorderCollection(
          warp::PlexApi& plexApi,
          const warp::PlexCollection& collection,
-         std::span<const std::string> targetIds,
+         std::span<const std::string_view> targetIds,
          std::string_view libraryName,
          ServiceLogger logger)
       {
@@ -112,7 +112,7 @@ namespace loomis
          warp::PlexApi& plexApi,
          std::string_view libraryName,
          std::string_view collectionName,
-         std::span<const std::string> targetIds,
+         std::span<const std::string_view> targetIds,
          ServiceLogger logger,
          bool dryRun)
       {
@@ -124,8 +124,7 @@ namespace loomis
             if (dryRun)
                return result;
 
-            std::vector<std::string> initialItemRatingKeys(targetIds.begin(), targetIds.end());
-            if (!plexApi.CreateCollection(libraryName, collectionName, initialItemRatingKeys))
+            if (!plexApi.CreateCollection(libraryName, collectionName, targetIds))
             {
                logger.LogWarning(
                   "{} failed to create collection {}",
@@ -179,8 +178,9 @@ namespace loomis
          const auto changes = BuildContainerChanges(
             currentCollection->items,
             targetIds,
-            [](const warp::PlexCollectionItem& item) { return item.ratingKey; },
-            [](const warp::PlexCollectionItem& item) { return item.ratingKey; });
+            // Explicit return types keep these as views; inferred auto would copy the strings.
+            [](const warp::PlexCollectionItem& item) -> std::string_view { return item.ratingKey; },
+            [](const warp::PlexCollectionItem& item) -> std::string_view { return item.ratingKey; });
 
          result.added = changes.addIds.size();
          result.removed = changes.removeIds.size();
@@ -189,13 +189,14 @@ namespace loomis
             result.reordered = WouldRequireReordering(
                currentCollection->items,
                targetIds,
-               [](const warp::PlexCollectionItem& item) { return item.ratingKey; });
+               // Explicit return types keep these as views; inferred auto could copy the strings.
+               [](const warp::PlexCollectionItem& item) -> std::string_view { return item.ratingKey; });
             return result;
          }
 
          auto updateResult = ApplyCollectionChanges(
             plexApi,
-            std::move(*currentCollection),
+            *currentCollection,
             changes,
             libraryName,
             collectionName,
@@ -231,7 +232,32 @@ namespace loomis
       warp::PlexApi& plexApi,
       std::string_view libraryName,
       std::string_view collectionName,
-      const std::vector<std::string>& targetIds)
+      std::span<const std::string> targetIds)
+   {
+      const auto uniqueTargetIds = DeduplicateTargetIds(targetIds);
+      const auto result = SyncCollection(
+         plexApi,
+         libraryName,
+         collectionName,
+         uniqueTargetIds,
+         logger_,
+         dryRun_);
+
+      return ToSyncStats(
+         result,
+         "collection",
+         collectionName,
+         plexApi.GetPrettyName(),
+         dryRunText_,
+         dryRun_,
+         logger_);
+   }
+
+   std::optional<TmdbSyncStats> TmdbPlexCollectionSync::Sync(
+      warp::PlexApi& plexApi,
+      std::string_view libraryName,
+      std::string_view collectionName,
+      std::span<const std::string_view> targetIds)
    {
       const auto uniqueTargetIds = DeduplicateTargetIds(targetIds);
       const auto result = SyncCollection(

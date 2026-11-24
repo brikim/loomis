@@ -26,7 +26,12 @@ namespace loomis
          for (const auto tmdbId : tmdbIds)
             tmdbIdStrings.emplace_back(std::to_string(tmdbId));
 
-         const auto plexItems = plexApi.GetItemsByTmdbIds(libraryName, tmdbIdStrings);
+         std::vector<std::string_view> tmdbIdViews;
+         tmdbIdViews.reserve(tmdbIdStrings.size());
+         for (const auto& idStr : tmdbIdStrings)
+            tmdbIdViews.emplace_back(idStr);
+
+         const auto plexItems = plexApi.GetItemsByTmdbIds(libraryName, tmdbIdViews);
 
          std::unordered_map<std::string_view, std::string_view> itemIdsByTmdbId;
          itemIdsByTmdbId.reserve(plexItems.size());
@@ -38,9 +43,9 @@ namespace loomis
 
          std::vector<std::string> itemIds;
          itemIds.reserve(tmdbIds.size());
-         for (const auto& tmdbIdString : tmdbIdStrings)
+         for (const auto tmdbIdView : tmdbIdViews)
          {
-            if (auto matchingItem = itemIdsByTmdbId.find(tmdbIdString);
+            if (auto matchingItem = itemIdsByTmdbId.find(tmdbIdView);
                 matchingItem != itemIdsByTmdbId.end())
                itemIds.emplace_back(matchingItem->second);
          }

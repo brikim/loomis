@@ -31,7 +31,7 @@ namespace loomis
 
       PlaylistUpdateResult ApplyPlaylistChanges(
          warp::EmbyApi& embyApi,
-         warp::EmbyPlaylist playlist,
+         warp::EmbyPlaylist& playlist,
          const ContainerChanges& changes,
          std::string_view playlistName,
          std::size_t targetSize,
@@ -90,7 +90,7 @@ namespace loomis
       ContainerReorderResult ReorderPlaylist(
          warp::EmbyApi& embyApi,
          const warp::EmbyPlaylist& playlist,
-         std::span<const std::string> targetIds,
+         std::span<const std::string_view> targetIds,
          ServiceLogger logger)
       {
          std::vector<ReorderItemTracker> virtualItems;
@@ -118,7 +118,7 @@ namespace loomis
       ContainerSyncResult SyncPlaylist(
          warp::EmbyApi& embyApi,
          std::string_view playlistName,
-         std::span<const std::string> targetIds,
+         std::span<const std::string_view> targetIds,
          ServiceLogger logger,
          bool dryRun)
       {
@@ -130,8 +130,7 @@ namespace loomis
             result.creationRequired = true;
             if (!dryRun)
             {
-               std::vector<std::string> initialItemIds(targetIds.begin(), targetIds.end());
-               embyApi.CreatePlaylist(playlistName, initialItemIds);
+               embyApi.CreatePlaylist(playlistName, targetIds);
             }
             return result;
          }
@@ -139,6 +138,7 @@ namespace loomis
          const auto changes = BuildContainerChanges(
             currentPlaylist->items,
             targetIds,
+            // Explicit return types keep these as views; inferred auto could copy the strings.
             [](const warp::EmbyPlaylistItem& item) -> std::string_view { return item.id; },
             [](const warp::EmbyPlaylistItem& item) -> std::string_view { return item.playlistId; });
 
@@ -150,13 +150,14 @@ namespace loomis
             result.reordered = WouldRequireReordering(
                currentPlaylist->items,
                targetIds,
+               // Explicit return types keep these as views; inferred auto could copy the strings.
                [](const warp::EmbyPlaylistItem& item) -> std::string_view { return item.id; });
             return result;
          }
 
          auto updateResult = ApplyPlaylistChanges(
             embyApi,
-            std::move(*currentPlaylist),
+            *currentPlaylist,
             changes,
             playlistName,
             targetIds.size(),
@@ -182,7 +183,25 @@ namespace loomis
    std::optional<TmdbSyncStats> TmdbEmbyPlaylistSync::Sync(
       warp::EmbyApi& embyApi,
       std::string_view playlistName,
-      const std::vector<std::string>& targetIds)
+      std::span<const std::string> targetIds)
+   {
+      const auto uniqueTargetIds = DeduplicateTargetIds(targetIds);
+      const auto result = SyncPlaylist(embyApi, playlistName, uniqueTargetIds, logger_, dryRun_);
+
+      return ToSyncStats(
+         result,
+         "playlist",
+         playlistName,
+         embyApi.GetPrettyName(),
+         dryRunText_,
+         dryRun_,
+         logger_);
+   }
+
+   std::optional<TmdbSyncStats> TmdbEmbyPlaylistSync::Sync(
+      warp::EmbyApi& embyApi,
+      std::string_view playlistName,
+      std::span<const std::string_view> targetIds)
    {
       const auto uniqueTargetIds = DeduplicateTargetIds(targetIds);
       const auto result = SyncPlaylist(embyApi, playlistName, uniqueTargetIds, logger_, dryRun_);

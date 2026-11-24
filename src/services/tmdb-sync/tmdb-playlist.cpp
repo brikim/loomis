@@ -65,75 +65,78 @@ namespace loomis
       }
    } // namespace
 
-   TmdbPlaylist::TmdbPlaylist(const TmdbPlaylistConfig& config,
-                              std::shared_ptr<TmdbClient> tmdbClient,
-                              std::shared_ptr<warp::ApiManager> apiManager,
-                              bool dryRun,
-                              ServiceLogger logger)
-      : config_(config)
+   std::unique_ptr<TmdbPlaylist> TmdbPlaylist::Create(
+      const TmdbPlaylistConfig& config,
+      std::shared_ptr<TmdbClient> tmdbClient,
+      std::shared_ptr<warp::ApiManager> apiManager,
+      bool dryRun,
+      ServiceLogger logger)
+   {
+      const auto dryRunText = GetDryRunText(dryRun);
+      const auto playlistType = ParseTmdbPlaylistType(config.type);
+      if (!playlistType)
+      {
+         logger.LogError(
+            "{}Unsupported TMDB {}",
+            dryRunText,
+            warp::GetTag("playlist type", config.type));
+         return nullptr;
+      }
+
+      if (config.embyServers.empty() && config.plexServers.empty())
+      {
+         logger.LogError("{}At least one Plex or Emby server is required for TMDB playlist sync.", dryRunText);
+         return nullptr;
+      }
+
+      if (!tmdbClient)
+      {
+         logger.LogError("{}TMDB client is unavailable.", dryRunText);
+         return nullptr;
+      }
+
+      if (!config.maxItems)
+      {
+         logger.LogError(
+            "{}Playlist {} requires {} to be set.",
+            dryRunText,
+            warp::GetTag("playlist", config.name),
+            warp::GetTag("config", "max_items"));
+         return nullptr;
+      }
+
+      auto mediaSource = CreateTmdbMediaSource(config, *playlistType, logger, dryRunText);
+      if (!mediaSource)
+         return nullptr;
+
+      return std::make_unique<TmdbPlaylist>(
+         config,
+         std::move(tmdbClient),
+         std::move(mediaSource),
+         std::move(apiManager),
+         dryRun,
+         logger);
+   }
+
+   TmdbPlaylist::TmdbPlaylist(
+      TmdbPlaylistConfig config,
+      std::shared_ptr<TmdbClient> tmdbClient,
+      std::unique_ptr<TmdbMediaSource> mediaSource,
+      std::shared_ptr<warp::ApiManager> apiManager,
+      bool dryRun,
+      ServiceLogger logger)
+      : config_(std::move(config))
       , tmdbClient_(std::move(tmdbClient))
+      , mediaSource_(std::move(mediaSource))
       , embySync_(apiManager, dryRun, logger)
       , plexSync_(std::move(apiManager), dryRun, logger)
       , logger_(logger)
       , dryRunText_(GetDryRunText(dryRun))
    {
-      ErrorCheckConfig();
-   }
-
-   void TmdbPlaylist::ErrorCheckConfig()
-   {
-      const auto playlistType = ParseTmdbPlaylistType(config_.type);
-      if (!playlistType)
-      {
-         logger_.LogError(
-            "{}Unsupported TMDB {}",
-            dryRunText_,
-            warp::GetTag("playlist type", config_.type));
-         return;
-      }
-
-      if (config_.embyServers.empty() && config_.plexServers.empty())
-      {
-         logger_.LogError("{}At least one Plex or Emby server is required for TMDB playlist sync.", dryRunText_);
-         return;
-      }
-
-      if (!tmdbClient_)
-      {
-         logger_.LogError("{}TMDB client is unavailable.", dryRunText_);
-         return;
-      }
-
-      if (!config_.maxItems)
-      {
-         logger_.LogError(
-            "{}Playlist {} requires {} to be set.",
-            dryRunText_,
-            warp::GetTag("playlist", config_.name),
-            warp::GetTag("config", "max_items"));
-         return;
-      }
-
-      mediaSource_ = CreateTmdbMediaSource(config_, *playlistType, logger_, dryRunText_);
-      valid_ = mediaSource_ != nullptr;
-   }
-
-   bool TmdbPlaylist::IsValid() const
-   {
-      return valid_;
    }
 
    void TmdbPlaylist::Sync()
    {
-      if (!valid_)
-      {
-         logger_.LogError(
-            "{}Cannot sync invalid TMDB playlist {}.",
-            dryRunText_,
-            warp::GetTag("playlist", config_.name));
-         return;
-      }
-
       const auto mediaItems = mediaSource_->Fetch(*tmdbClient_, *config_.maxItems);
       if (!mediaItems)
       {

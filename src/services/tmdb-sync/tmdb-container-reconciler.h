@@ -6,6 +6,7 @@
 #include <warp/log/log-utils.h>
 
 #include <algorithm>
+#include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -30,8 +31,8 @@ namespace loomis
 
    struct ContainerChanges
    {
-      std::vector<std::string> addIds;
-      std::vector<std::string> removeIds;
+      std::vector<std::string_view> addIds;
+      std::vector<std::string_view> removeIds;
    };
 
    struct ContainerReorderResult
@@ -46,9 +47,9 @@ namespace loomis
       std::string_view moveKey;
    };
 
-   [[nodiscard]] inline std::vector<std::string> DeduplicateTargetIds(std::span<const std::string> targetIds)
+   [[nodiscard]] inline std::vector<std::string_view> DeduplicateTargetIds(std::span<const std::string> targetIds)
    {
-      std::vector<std::string> uniqueIds;
+      std::vector<std::string_view> uniqueIds;
       uniqueIds.reserve(targetIds.size());
       std::unordered_set<std::string_view> seen;
       seen.reserve(targetIds.size());
@@ -60,10 +61,34 @@ namespace loomis
       return uniqueIds;
    }
 
-   template <typename ItemRange, typename GetIdFn, typename GetRemoveIdFn>
+   [[nodiscard]] inline std::vector<std::string_view> DeduplicateTargetIds(std::span<const std::string_view> targetIds)
+   {
+      std::vector<std::string_view> uniqueIds;
+      uniqueIds.reserve(targetIds.size());
+      std::unordered_set<std::string_view> seen;
+      seen.reserve(targetIds.size());
+      for (const auto id : targetIds)
+      {
+         if (seen.emplace(id).second)
+            uniqueIds.emplace_back(id);
+      }
+      return uniqueIds;
+   }
+
+   void DeduplicateTargetIds(std::vector<std::string>&&) = delete;
+
+   template <
+      std::ranges::input_range ItemRange,
+      typename GetIdFn,
+      typename GetRemoveIdFn>
+   requires
+      std::invocable<GetIdFn, std::ranges::range_reference_t<ItemRange>> &&
+      std::convertible_to<std::invoke_result_t<GetIdFn, std::ranges::range_reference_t<ItemRange>>, std::string_view> &&
+      std::invocable<GetRemoveIdFn, std::ranges::range_reference_t<ItemRange>> &&
+      std::convertible_to<std::invoke_result_t<GetRemoveIdFn, std::ranges::range_reference_t<ItemRange>>, std::string_view>
    [[nodiscard]] ContainerChanges BuildContainerChanges(
       const ItemRange& currentItems,
-      std::span<const std::string> targetIds,
+      std::span<const std::string_view> targetIds,
       GetIdFn&& getId,
       GetRemoveIdFn&& getRemoveId)
    {
@@ -88,7 +113,7 @@ namespace loomis
          {
             const auto removeId = getRemoveId(item);
             if (seenRemoveIds.emplace(removeId).second)
-               changes.removeIds.emplace_back(std::string(removeId));
+               changes.removeIds.emplace_back(removeId);
          }
       }
 
@@ -102,10 +127,13 @@ namespace loomis
       return changes;
    }
 
-   template <typename ItemRange, typename GetIdFn>
+   template <std::ranges::input_range ItemRange, typename GetIdFn>
+   requires
+      std::invocable<GetIdFn, std::ranges::range_reference_t<ItemRange>> &&
+      std::convertible_to<std::invoke_result_t<GetIdFn, std::ranges::range_reference_t<ItemRange>>, std::string_view>
    [[nodiscard]] bool WouldRequireReordering(
       const ItemRange& currentItems,
-      std::span<const std::string> targetIds,
+      std::span<const std::string_view> targetIds,
       GetIdFn&& getId)
    {
       std::unordered_set<std::string_view> currentItemIds;
@@ -141,9 +169,12 @@ namespace loomis
    }
 
    template <typename MoveFn>
+   requires
+      std::invocable<MoveFn, const ReorderItemTracker&, std::size_t, std::optional<std::string_view>> &&
+      std::convertible_to<std::invoke_result_t<MoveFn, const ReorderItemTracker&, std::size_t, std::optional<std::string_view>>, bool>
    [[nodiscard]] ContainerReorderResult ReorderContainer(
       std::vector<ReorderItemTracker> virtualItems,
-      std::span<const std::string> targetIds,
+      std::span<const std::string_view> targetIds,
       MoveFn&& moveFn,
       std::string_view serverName,
       std::string_view containerTag,

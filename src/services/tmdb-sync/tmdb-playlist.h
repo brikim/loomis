@@ -17,22 +17,25 @@ namespace loomis
    class TmdbPlaylist
    {
    public:
-      TmdbPlaylist(const TmdbPlaylistConfig& config,
-                   std::shared_ptr<TmdbClient> tmdbClient,
-                   std::shared_ptr<warp::ApiManager> apiManager,
-                   bool dryRun,
-                   ServiceLogger logger);
-      ~TmdbPlaylist() = default;
+      [[nodiscard]] static std::unique_ptr<TmdbPlaylist> Create(
+         const TmdbPlaylistConfig& config,
+         std::shared_ptr<TmdbClient> tmdbClient,
+         std::shared_ptr<warp::ApiManager> apiManager,
+         bool dryRun,
+         ServiceLogger logger);
 
-      [[nodiscard]] bool IsValid() const;
+      TmdbPlaylist(
+         TmdbPlaylistConfig config,
+         std::shared_ptr<TmdbClient> tmdbClient,
+         std::unique_ptr<TmdbMediaSource> mediaSource,
+         std::shared_ptr<warp::ApiManager> apiManager,
+         bool dryRun,
+         ServiceLogger logger);
+      ~TmdbPlaylist() = default;
 
       void Sync();
 
    private:
-      void ErrorCheckConfig();
-
-      bool valid_{false};
-
       TmdbPlaylistConfig config_;
       std::shared_ptr<TmdbClient> tmdbClient_;
       std::unique_ptr<TmdbMediaSource> mediaSource_;
