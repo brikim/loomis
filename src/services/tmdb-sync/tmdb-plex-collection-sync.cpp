@@ -38,7 +38,7 @@ namespace loomis
              !plexApi.RemoveCollectionItems(libraryName, collectionName, changes.removeIds))
          {
             logger.LogWarning(
-               "{} failed to remove {} from collection {}",
+               "{} failed to remove {} from {}",
                plexApi.GetPrettyName(),
                warp::GetTag("item_count", changes.removeIds.size()),
                warp::GetTag("collection", collectionName));
@@ -49,7 +49,7 @@ namespace loomis
              !plexApi.AddCollectionItems(libraryName, collectionName, changes.addIds))
          {
             logger.LogWarning(
-               "{} failed to add {} to collection {}",
+               "{} failed to add {} to {}",
                plexApi.GetPrettyName(),
                warp::GetTag("item_count", changes.addIds.size()),
                warp::GetTag("collection", collectionName));
@@ -62,7 +62,7 @@ namespace loomis
             if (!updatedCollection)
             {
                logger.LogWarning(
-                  "{} failed to retrieve collection {} after updating",
+                  "{} failed to retrieve {} after updating",
                   plexApi.GetPrettyName(),
                   warp::GetTag("collection", collectionName));
                return {std::nullopt, false};
@@ -179,8 +179,8 @@ namespace loomis
          const auto changes = BuildContainerChanges(
             currentCollection->items,
             targetIds,
-            [](const warp::PlexCollectionItem& item) -> std::string_view { return item.ratingKey; },
-            [](const warp::PlexCollectionItem& item) -> std::string_view { return item.ratingKey; });
+            [](const warp::PlexCollectionItem& item) { return item.ratingKey; },
+            [](const warp::PlexCollectionItem& item) { return item.ratingKey; });
 
          result.added = changes.addIds.size();
          result.removed = changes.removeIds.size();
@@ -189,7 +189,7 @@ namespace loomis
             result.reordered = WouldRequireReordering(
                currentCollection->items,
                targetIds,
-               [](const warp::PlexCollectionItem& item) -> std::string_view { return item.ratingKey; });
+               [](const warp::PlexCollectionItem& item) { return item.ratingKey; });
             return result;
          }
 
@@ -201,7 +201,9 @@ namespace loomis
             collectionName,
             targetIds.size(),
             logger);
+
          result.successful = updateResult.successful;
+
          if (!updateResult.collection)
             return result;
 
@@ -211,6 +213,7 @@ namespace loomis
             targetIds,
             libraryName,
             logger);
+
          result.reordered = reorderResult.reordered;
          result.successful = result.successful && reorderResult.successful;
          return result;

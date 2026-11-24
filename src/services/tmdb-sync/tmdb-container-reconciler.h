@@ -75,6 +75,7 @@ namespace loomis
       std::unordered_set<std::string_view> currentItemIds;
       currentItemIds.reserve(std::ranges::size(currentItems));
       std::unordered_set<std::string_view> seenRemoveIds;
+      seenRemoveIds.reserve(std::ranges::size(currentItems));
 
       ContainerChanges changes;
       changes.removeIds.reserve(std::ranges::size(currentItems));
@@ -119,7 +120,10 @@ namespace loomis
 
       std::vector<std::string_view> plannedOrder;
       plannedOrder.reserve(targetIds.size());
+
       std::unordered_set<std::string_view> seenPlanned;
+      seenPlanned.reserve(targetIds.size());
+
       for (const auto& item : currentItems)
       {
          const auto id = getId(item);
