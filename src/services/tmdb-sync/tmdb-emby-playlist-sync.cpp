@@ -98,17 +98,18 @@ namespace loomis
          for (const auto& item : playlist.items)
             virtualItems.push_back({.id = item.id, .moveKey = item.playlistId});
 
+         auto moveFunc = [&](const ReorderItemTracker& item, std::size_t index, std::optional<std::string_view> /*prevId*/) {
+            if (embyApi.MovePlaylistItem(playlist.id, item.moveKey, static_cast<uint32_t>(index)))
+            {
+               std::this_thread::sleep_for(PLAYLIST_UPDATE_WAIT_TIME);
+               return true;
+            }
+            return false;
+         };
          return ReorderContainer(
             std::move(virtualItems),
             targetIds,
-            [&](const ReorderItemTracker& item, std::size_t index, std::optional<std::string_view> /*prevId*/) {
-               if (embyApi.MovePlaylistItem(playlist.id, item.moveKey, static_cast<uint32_t>(index)))
-               {
-                  std::this_thread::sleep_for(PLAYLIST_UPDATE_WAIT_TIME);
-                  return true;
-               }
-               return false;
-            },
+            moveFunc,
             embyApi.GetPrettyName(),
             "playlist",
             playlist.name,

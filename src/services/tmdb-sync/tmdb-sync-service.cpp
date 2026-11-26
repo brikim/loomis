@@ -44,7 +44,7 @@ namespace loomis
                 config.dryRun,
                 ServiceLogger(*this)))
          {
-            playlists_.emplace_back(std::move(playlist));
+            playlists_.emplace_back(std::move(*playlist));
          }
       }
    }

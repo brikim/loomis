@@ -129,3 +129,5 @@ Not required unless wanting to send Warnings or Errors to Apprise
 #### TMDB Sync
 
 TMDB playlists are movie-only; no media type needs to be configured. TV and mixed media types, along with TV-only playlist types, are not supported. Each playlist can target Emby servers, Plex movie libraries, or both using its `emby` and `plex` lists. Loomis resolves fetched TMDB movie IDs against each configured library, then creates or updates an Emby playlist or Plex collection with the configured name and TMDB ordering. Plex collections use custom item ordering. Movies not present in a target library are skipped. A dry run performs lookups and reports planned changes without modifying playlists or collections.
+
+Use `type: "discover"` with a `discover` object to filter TMDB's Discover Movie results by keyword. For example, `{"type":"discover","discover":{"with_keywords":"207317"}}` creates a Christmas-keyword playlist. `with_keywords` and `without_keywords` accept TMDB keyword IDs; multiple IDs may be comma-separated for AND matching or pipe-separated for OR matching. Results are ordered by popularity and limited by `max_items`.

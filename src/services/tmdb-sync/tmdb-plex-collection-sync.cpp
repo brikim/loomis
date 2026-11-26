@@ -96,12 +96,13 @@ namespace loomis
          for (const auto& item : collection.items)
             virtualItems.push_back({.id = item.ratingKey, .moveKey = item.ratingKey});
 
+         auto moveFn = [&](const ReorderItemTracker& item, std::size_t /*index*/, std::optional<std::string_view> prevId) {
+            return plexApi.MoveCollectionItem(libraryName, collection.name, item.moveKey, prevId);
+         };
          return ReorderContainer(
             std::move(virtualItems),
             targetIds,
-            [&](const ReorderItemTracker& item, std::size_t /*index*/, std::optional<std::string_view> prevId) {
-               return plexApi.MoveCollectionItem(libraryName, collection.name, item.moveKey, prevId);
-            },
+            moveFn,
             plexApi.GetPrettyName(),
             "collection",
             collection.name,

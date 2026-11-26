@@ -112,12 +112,29 @@ namespace loomis
       };
    };
 
+   struct TmdbPlaylistDiscoverConfig
+   {
+      std::string withKeywords;
+      std::string withoutKeywords;
+
+      struct glaze
+      {
+         // clang-format off
+         static constexpr auto value = glz::object(
+            "with_keywords", &TmdbPlaylistDiscoverConfig::withKeywords,
+            "without_keywords", &TmdbPlaylistDiscoverConfig::withoutKeywords
+         );
+         // clang-format on
+      };
+   };
+
    struct TmdbPlaylistConfig
    {
       std::string name;
       std::string type;
       std::optional<std::string> timeWindow;
       std::optional<TmdbPlaylistGenreConfig> genre;
+      std::optional<TmdbPlaylistDiscoverConfig> discover;
       // Optional here so playlist validation can reject a missing config value.
       std::optional<std::size_t> maxItems;
       std::vector<TmdbPlaylistPlexServerConfig> plexServers;
@@ -131,6 +148,7 @@ namespace loomis
             "type", &TmdbPlaylistConfig::type,
             "time_window", &TmdbPlaylistConfig::timeWindow,
             "genre", &TmdbPlaylistConfig::genre,
+            "discover", &TmdbPlaylistConfig::discover,
             "max_items", &TmdbPlaylistConfig::maxItems,
             "plex", &TmdbPlaylistConfig::plexServers,
             "emby", &TmdbPlaylistConfig::embyServers

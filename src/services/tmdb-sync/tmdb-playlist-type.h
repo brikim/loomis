@@ -11,6 +11,7 @@ namespace loomis
    inline constexpr std::string_view TMDB_PLAYLIST_TYPE_NOW_PLAYING{"now_playing"};
    inline constexpr std::string_view TMDB_PLAYLIST_TYPE_UPCOMING{"upcoming"};
    inline constexpr std::string_view TMDB_PLAYLIST_TYPE_GENRE{"genre"};
+   inline constexpr std::string_view TMDB_PLAYLIST_TYPE_DISCOVER{"discover"};
 
    enum class TmdbPlaylistType
    {
@@ -19,7 +20,8 @@ namespace loomis
       TopRated,
       NowPlaying,
       Upcoming,
-      Genre
+      Genre,
+      Discover
    };
 
    [[nodiscard]] inline std::optional<TmdbPlaylistType> ParseTmdbPlaylistType(std::string_view type)
@@ -36,6 +38,8 @@ namespace loomis
          return TmdbPlaylistType::Upcoming;
       if (type == TMDB_PLAYLIST_TYPE_GENRE)
          return TmdbPlaylistType::Genre;
+      if (type == TMDB_PLAYLIST_TYPE_DISCOVER)
+         return TmdbPlaylistType::Discover;
 
       return std::nullopt;
    }

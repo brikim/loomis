@@ -24,7 +24,7 @@ namespace loomis
       };
 
       void LogSyncResults(
-         const std::vector<TmdbSyncLogEntry>& syncLogEntries,
+         const std::span<const TmdbSyncLogEntry> syncLogEntries,
          ServiceLogger logger,
          std::string_view dryRunText,
          std::string_view playlistName)
@@ -65,7 +65,7 @@ namespace loomis
       }
    } // namespace
 
-   std::unique_ptr<TmdbPlaylist> TmdbPlaylist::Create(
+   std::optional<std::unique_ptr<TmdbPlaylist>> TmdbPlaylist::Create(
       const TmdbPlaylistConfig& config,
       std::shared_ptr<TmdbClient> tmdbClient,
       std::shared_ptr<warp::ApiManager> apiManager,
@@ -80,19 +80,19 @@ namespace loomis
             "{}Unsupported TMDB {}",
             dryRunText,
             warp::GetTag("playlist type", config.type));
-         return nullptr;
+         return std::nullopt;
       }
 
       if (config.embyServers.empty() && config.plexServers.empty())
       {
          logger.LogError("{}At least one Plex or Emby server is required for TMDB playlist sync.", dryRunText);
-         return nullptr;
+         return std::nullopt;
       }
 
       if (!tmdbClient)
       {
          logger.LogError("{}TMDB client is unavailable.", dryRunText);
-         return nullptr;
+         return std::nullopt;
       }
 
       if (!config.maxItems)
@@ -102,17 +102,17 @@ namespace loomis
             dryRunText,
             warp::GetTag("playlist", config.name),
             warp::GetTag("config", "max_items"));
-         return nullptr;
+         return std::nullopt;
       }
 
       auto mediaSource = CreateTmdbMediaSource(config, *playlistType, logger, dryRunText);
       if (!mediaSource)
-         return nullptr;
+         return std::nullopt;
 
       return std::make_unique<TmdbPlaylist>(
          config,
          std::move(tmdbClient),
-         std::move(mediaSource),
+         std::move(*mediaSource),
          std::move(apiManager),
          dryRun,
          logger);

@@ -1,5 +1,6 @@
 #include "tmdb-media-source-factory.h"
 
+#include "services/tmdb-sync/tmdb-discover-source.h"
 #include "services/tmdb-sync/tmdb-genre-source.h"
 #include "services/tmdb-sync/tmdb-media-list-source.h"
 #include "services/tmdb-sync/tmdb-string-utils.h"
@@ -74,9 +75,35 @@ namespace loomis
 
          return true;
       }
+
+      bool ValidateDiscoverConfig(
+         const TmdbPlaylistConfig& config,
+         ServiceLogger logger,
+         std::string_view dryRunText)
+      {
+         if (!config.discover.has_value())
+         {
+            logger.LogError(
+               "{}{} has no discover filters given. Expected a discover object with 'with_keywords' and/or 'without_keywords' values.",
+               dryRunText,
+               warp::GetTag("playlist", config.name));
+            return false;
+         }
+
+         if (config.discover->withKeywords.empty() && config.discover->withoutKeywords.empty())
+         {
+            logger.LogError(
+               "{}{} discover filter has no values. Provide at least one 'with_keywords' or 'without_keywords' keyword id.",
+               dryRunText,
+               warp::GetTag("playlist", config.name));
+            return false;
+         }
+
+         return true;
+      }
    } // namespace
 
-   std::unique_ptr<TmdbMediaSource> CreateTmdbMediaSource(
+   std::optional<std::unique_ptr<TmdbMediaSource>> CreateTmdbMediaSource(
       const TmdbPlaylistConfig& config,
       TmdbPlaylistType playlistType,
       ServiceLogger logger,
@@ -90,7 +117,7 @@ namespace loomis
       {
       case TmdbPlaylistType::Trending:
          if (!ValidateTrendingConfig(config, logger, dryRunText))
-            return nullptr;
+            return std::nullopt;
          return createMediaListSource(std::format("/trending/movie/{}", *config.timeWindow));
 
       case TmdbPlaylistType::Popular:
@@ -107,8 +134,13 @@ namespace loomis
 
       case TmdbPlaylistType::Genre:
          if (!ValidateGenreConfig(config, logger, dryRunText))
-            return nullptr;
+            return std::nullopt;
          return std::make_unique<TmdbGenreSource>(*config.genre);
+
+      case TmdbPlaylistType::Discover:
+         if (!ValidateDiscoverConfig(config, logger, dryRunText))
+            return std::nullopt;
+         return std::make_unique<TmdbDiscoverSource>(*config.discover);
 
       default:
          logger.LogError(
@@ -116,7 +148,7 @@ namespace loomis
             dryRunText,
             warp::GetTag("playlist", config.name),
             warp::GetTag("playlist type", config.type));
-         return nullptr;
+         return std::nullopt;
       }
    }
 } // namespace loomis

@@ -17,7 +17,7 @@ namespace loomis
    class TmdbPlaylist
    {
    public:
-      [[nodiscard]] static std::unique_ptr<TmdbPlaylist> Create(
+      [[nodiscard]] static std::optional<std::unique_ptr<TmdbPlaylist>> Create(
          const TmdbPlaylistConfig& config,
          std::shared_ptr<TmdbClient> tmdbClient,
          std::shared_ptr<warp::ApiManager> apiManager,
